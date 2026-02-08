@@ -46,12 +46,21 @@ assistants:
     args:
       model: sonnet
       mcp_config: ./mcp-servers.json
-      skills: ["terraform-ibm-modules-solution-builder"]
+    skills:
+      - terraform-ibm-modules/terraform-ibm-modules-skills  # from GitHub via npx skills
+      - ./local-skills/my-custom-skill                       # local path (cp -r)
 
   codex-baseline:
     adapter: codex
     args:
       model: o3
+
+  codex-with-skills:
+    adapter: codex
+    args:
+      model: o3
+    skills:
+      - terraform-ibm-modules/terraform-ibm-modules-skills
 
   vibe-baseline:
     adapter: mistral-vibe
@@ -182,6 +191,39 @@ VIBE_HOME=$(mktemp -d) vibe --prompt "Create a Terraform module..." \
 Known issues:
 - Session resume broken — `session_id` missing from streaming output ([Issue #208](https://github.com/mistralai/mistral-vibe/issues/208))
 - `--enabled-tools` in `--prompt` mode **disables all tools not explicitly listed** (stricter than interactive mode)
+
+### Skill Installation
+
+Skills are installed **automatically** by the harness as a setup step before invoking any assistant. The `skills` field in the eval config supports two sources:
+
+```yaml
+skills:
+  - terraform-ibm-modules/terraform-ibm-modules-skills  # GitHub repo
+  - ./local-skills/my-custom-skill                       # local path
+```
+
+**Installation process per adapter run:**
+
+1. Create the temp workspace (copy from `workdir`)
+2. For each skill in the assistant's `skills` list:
+   - **GitHub reference** (e.g. `org/repo`): run `npx skills install <ref> --agent <agent-type> --yes` in the workspace. This places skill files in the agent-specific directory (`.claude/skills/`, `.codex/skills/`, `.vibe/skills/`).
+   - **Local path** (starts with `./` or `/`): `cp -r` the skill directory into the workspace's agent-specific skill directory.
+3. Run the assistant CLI
+
+**Agent-to-directory mapping for local copies:**
+
+| Adapter | Skill install directory |
+|---------|----------------------|
+| Claude Code | `<workspace>/.claude/skills/<skill-name>/` |
+| Codex | `<workspace>/.codex/skills/<skill-name>/` |
+| Vibe | `<workspace>/.vibe/skills/<skill-name>/` |
+
+**Why this matters for the TDD loop:** When iterating on a local skill, you edit the skill files, then re-run `agent-eval run eval.yaml`. The harness copies the latest version into each workspace automatically — no manual install step.
+
+**Pre-flight validation:** Before running, the harness verifies:
+- GitHub skills: `npx skills` is available (`which npx`)
+- Local skills: path exists and contains a `SKILL.md` file
+- Failures are reported immediately, before any assistant is invoked
 
 ### Parallel Execution & Workspace Isolation
 
