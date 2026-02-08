@@ -111,30 +111,125 @@ class BaseAdapter(ABC):
 ### Initial Adapters
 
 **ClaudeCodeAdapter**
+
+Configuration: all via CLI flags (no config files needed).
+
 ```bash
-claude -p --output-format json --dangerously-skip-permissions \
+claude -p --output-format stream-json --dangerously-skip-permissions \
   --mcp-config ./mcp.json --model sonnet \
   "Create a Terraform module..."
 ```
-JSON output provides conversation, tool calls, and token usage natively.
+
+| Feature | How |
+|---------|-----|
+| MCP | `--mcp-config <file>` (or `--strict-mcp-config` to ignore other configs) |
+| Skills | Model-invoked skills work automatically. User `/slash` commands are **not available** in `-p` mode. |
+| System prompt | `--append-system-prompt` (appends) or `--system-prompt` (replaces) |
+| Settings | `--settings <file>` or `--setting-sources` |
+| Output | `stream-json` → NDJSON with full conversation (assistant messages, tool_use blocks, tool results). `json` → summary only (no conversation detail). **Use `stream-json` for full capture.** |
+| Token usage | Yes — aggregate + per-model breakdown in result message |
+| Cost | Yes — `total_cost_usd` in result message |
+| Budget limit | `--max-budget-usd` |
+| Turn limit | `--max-turns` |
+| Permissions | `--dangerously-skip-permissions` or `--allowedTools` |
 
 **CodexAdapter**
+
+Configuration: requires a **project-local `.codex/config.toml`** in the workspace for MCP servers and custom instructions. The adapter generates this file in the temp workspace before invocation. This avoids touching `~/.codex/` and enables safe parallel execution.
+
 ```bash
-codex exec --json --yolo -m o3 \
+CODEX_HOME=$(mktemp -d) codex exec --json -a never \
+  -s workspace-write -m o3 \
   "Create a Terraform module..."
 ```
-JSON output with final message. Progress streams to stderr.
+
+| Feature | How |
+|---------|-----|
+| MCP | `.codex/config.toml` `[mcp_servers.<name>]` tables in workspace (no CLI flag) |
+| Skills | Auto-selected based on task. Configured via `agents/openai.yaml` in workspace. |
+| System prompt | `AGENTS.md` in workspace root, or `-c model_instructions_file="path"` |
+| Output | `--json` → JSONL stream with all events (`turn.started`, `turn.completed`, `item.*`, etc.) |
+| Token usage | Yes — `input_tokens`, `cached_input_tokens`, `output_tokens` in `turn.completed` events |
+| Cost | Not directly reported — must compute from token counts |
+| Sandbox | `--sandbox workspace-write` (or `danger-full-access`) |
+| Approval | `-a never` (or `--yolo` for no sandbox + no approval) |
+
+Known issues:
+- JSON output schema has drifted from docs ([Issue #4776](https://github.com/openai/codex/issues/4776)) — parser must be defensive
+- Some MCP tools silently dropped if JSON Schema uses unsupported features ([Issue #4176](https://github.com/openai/codex/issues/4176))
 
 **MistralVibeAdapter**
+
+Configuration: requires a **project-local `.vibe/config.toml`** in the workspace for MCP servers, system prompt, and model config. The adapter generates this file in the temp workspace before invocation.
+
 ```bash
-vibe --prompt "Create a Terraform module..." \
-  --auto-approve --max-turns 50
+VIBE_HOME=$(mktemp -d) vibe --prompt "Create a Terraform module..." \
+  --output json --max-turns 50
 ```
-Text output — adapter parses what it can from stdout/stderr.
+
+| Feature | How |
+|---------|-----|
+| MCP | `.vibe/config.toml` `[[mcp_servers]]` array in workspace (no CLI flag) |
+| Skills | Via `enabled_skills` in `config.toml`. Supports glob/regex patterns. |
+| System prompt | `system_prompt_id` in `config.toml` pointing to a `.md` file (no CLI flag) |
+| Output | `--output json` (all messages as JSON) or `--output streaming` (NDJSON) |
+| Token usage | Yes — `usage` field in result message |
+| Cost | Yes — `total_cost_usd` in result message |
+| Turn limit | `--max-turns N` |
+| Cost limit | `--max-price DOLLARS` |
+| Auto-approve | Enabled by default in `--prompt` mode |
+
+Known issues:
+- Session resume broken — `session_id` missing from streaming output ([Issue #208](https://github.com/mistralai/mistral-vibe/issues/208))
+- `--enabled-tools` in `--prompt` mode **disables all tools not explicitly listed** (stricter than interactive mode)
+
+### Parallel Execution & Workspace Isolation
+
+Each adapter run gets its own **isolated temp directory** (copied from the task's `workdir`). This is critical for three reasons:
+
+1. **No workspace conflicts** — assistants don't overwrite each other's files
+2. **Config file isolation** — Codex and Vibe adapters write project-local config files (`.codex/config.toml`, `.vibe/config.toml`) inside the temp workspace. These take priority over home directory configs.
+3. **Home directory safety** — As extra insurance, adapters set `CODEX_HOME` / `VIBE_HOME` environment variables to temp directories in the subprocess env, ensuring zero bleed to the user's actual home config even if something reads global config.
+
+| CLI | Config method | Home dir touched? | Parallel safe? |
+|-----|--------------|-------------------|----------------|
+| Claude Code | CLI flags only | No | Yes |
+| Codex | `.codex/config.toml` in workspace + `CODEX_HOME` env | No | Yes |
+| Vibe | `.vibe/config.toml` in workspace + `VIBE_HOME` env | No | Yes |
+
+### Conversation Normalization
+
+Each CLI outputs conversation data in a different format. Adapters normalize into a common structure:
+
+```python
+# Normalized conversation entry
+{
+    "role": "assistant" | "user" | "tool",
+    "content": str,
+    "tool_use": {              # optional, present for tool calls
+        "name": str,
+        "input": dict,
+        "output": str,
+    },
+    "timestamp": float,        # relative to run start
+}
+```
+
+| CLI | Source format | Parsing approach |
+|-----|-------------|-----------------|
+| Claude Code | `stream-json` NDJSON — Anthropic API message objects with `text` and `tool_use` content blocks | Direct mapping |
+| Codex | JSONL events — `item.*` events with `agent_message`, command executions, MCP tool calls | Event-type dispatch, defensive parsing due to schema drift |
+| Vibe | `--output json` — messages array with `role`, `content` fields | Direct mapping, tool call structure TBD |
 
 ### Adding New Adapters
 
-Adding a new assistant means writing one class (~50-80 lines) that implements `run()`. The adapter handles CLI-specific quirks; everything upstream and downstream is generic.
+Adding a new assistant means writing one class (~50-100 lines) that implements `run()`. The adapter handles:
+- CLI invocation flags
+- Config file generation (if needed)
+- Output format parsing into `AdapterResult`
+- Conversation normalization
+
+Everything upstream (config, workspace setup) and downstream (assertions, metrics, reporting) is generic.
 
 ## Assertion System
 
@@ -321,9 +416,20 @@ similarity = ["evaluate", "sentence-transformers", "bert-score"]
 
 Install: `uv pip install agent-eval[similarity]`
 
+## Known Risks & Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|-----------|
+| Codex JSON schema drift | Parser breaks on new Codex versions | Defensive parsing, version detection, integration tests against real CLI |
+| MCP tools silently dropped (Codex) | Eval runs without expected tools, gives misleading results | Pre-flight check: verify MCP tools loaded via output stream, warn if expected tools missing |
+| Vibe session resume broken | Cannot resume failed runs for Vibe | Not needed for eval — each run is independent |
+| CLI version changes | Adapters break on new releases | Pin tested CLI versions in docs, adapter version detection |
+| Large model downloads (BERTScore) | First similarity assertion run is slow | Document in README, optional extra install, cache models |
+
 ## Future Considerations (not in v1)
 
 - **LLM-as-judge** — Optional qualitative scoring pass after assertions
 - **Historical tracking** — Compare runs over time, regression detection
 - **Live dashboard** — Flask/FastAPI server for browsing historical runs
 - **Custom assertion plugins** — Register via entry points
+- **Multi-turn eval** — Feed follow-up prompts based on assistant output (requires `stream-json` input for Claude, session resume for others)
