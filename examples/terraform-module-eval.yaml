@@ -25,22 +25,30 @@ assistants:
   claude-baseline:
     adapter: claude-code
     args:
-      model: sonnet
+      model: haiku
 
   # With TIM skill: should discover and use real TIM modules
   claude-with-tim-skill:
     adapter: claude-code
     args:
-      model: sonnet
+      model: haiku
     skills:
       - source: terraform-ibm-modules/terraform-ibm-modules-skills
         skill: terraform-ibm-modules-solution-builder
 
-  # Codex baseline for cross-assistant comparison
-  codex-baseline:
-    adapter: codex
+  # mistral vibe baseline for cross-assistant comparison
+  vibe-baseline:
+    adapter: mistral-vibe
     args:
-      model: o3
+      model: devstral-2
+
+  vibe-with-tim-skill:
+    adapter: mistral-vibe
+    args:
+      model: devstral-2
+    skills:
+        - source: terraform-ibm-modules/terraform-ibm-modules-skills
+          skill: terraform-ibm-modules-solution-builder
 
 tasks:
   - name: compose-vpc-and-vsi
