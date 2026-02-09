@@ -101,3 +101,21 @@ tasks:
     typer.echo("Initialized eval project:")
     typer.echo("  eval.yaml        - example eval config")
     typer.echo("  fixtures/empty/  - empty fixture directory")
+
+
+@app.command()
+def schema(
+    out: str = typer.Option(
+        "schemas/agent-eval.schema.json", help="Output path for JSON Schema"
+    ),
+    doc: str = typer.Option("docs/schema.md", help="Output path for schema docs"),
+):
+    """Generate JSON Schema and docs for the eval YAML format."""
+    from agent_eval.schema import write_json_schema, write_schema_doc
+
+    out_path = Path(out)
+    doc_path = Path(doc)
+    write_json_schema(out_path)
+    write_schema_doc(doc_path)
+    typer.echo(f"Wrote schema: {out_path}")
+    typer.echo(f"Wrote docs: {doc_path}")

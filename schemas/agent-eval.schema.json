@@ -1,0 +1,308 @@
+{
+  "$defs": {
+    "AssistantConfig": {
+      "properties": {
+        "adapter": {
+          "title": "Adapter",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Args",
+          "type": "object"
+        },
+        "skills": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SkillRef"
+          },
+          "title": "Skills",
+          "type": "array"
+        }
+      },
+      "required": [
+        "adapter"
+      ],
+      "title": "AssistantConfig",
+      "type": "object"
+    },
+    "BERTScoreAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "bertscore": {
+          "$ref": "#/$defs/SimilaritySpec"
+        }
+      },
+      "required": [
+        "bertscore"
+      ],
+      "title": "BERTScoreAssertion",
+      "type": "object"
+    },
+    "BleuAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "bleu": {
+          "$ref": "#/$defs/SimilaritySpec"
+        }
+      },
+      "required": [
+        "bleu"
+      ],
+      "title": "BleuAssertion",
+      "type": "object"
+    },
+    "CommandFailsAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "command_fails": {
+          "title": "Command Fails",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command_fails"
+      ],
+      "title": "CommandFailsAssertion",
+      "type": "object"
+    },
+    "CommandSucceedsAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "command_succeeds": {
+          "title": "Command Succeeds",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command_succeeds"
+      ],
+      "title": "CommandSucceedsAssertion",
+      "type": "object"
+    },
+    "CosineSimilarityAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "cosine_similarity": {
+          "$ref": "#/$defs/SimilaritySpec"
+        }
+      },
+      "required": [
+        "cosine_similarity"
+      ],
+      "title": "CosineSimilarityAssertion",
+      "type": "object"
+    },
+    "FileContainsAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "file_contains": {
+          "$ref": "#/$defs/FileContainsSpec"
+        }
+      },
+      "required": [
+        "file_contains"
+      ],
+      "title": "FileContainsAssertion",
+      "type": "object"
+    },
+    "FileContainsSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "pattern": {
+          "title": "Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "pattern"
+      ],
+      "title": "FileContainsSpec",
+      "type": "object"
+    },
+    "FileExistsAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "file_exists": {
+          "title": "File Exists",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_exists"
+      ],
+      "title": "FileExistsAssertion",
+      "type": "object"
+    },
+    "RougeAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "rouge": {
+          "$ref": "#/$defs/SimilaritySpec"
+        }
+      },
+      "required": [
+        "rouge"
+      ],
+      "title": "RougeAssertion",
+      "type": "object"
+    },
+    "SimilaritySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "title": "Actual",
+          "type": "string"
+        },
+        "expected": {
+          "title": "Expected",
+          "type": "string"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "min_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Score"
+        }
+      },
+      "required": [
+        "actual",
+        "expected"
+      ],
+      "title": "SimilaritySpec",
+      "type": "object"
+    },
+    "SkillRef": {
+      "properties": {
+        "skill": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skill"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "SkillRef",
+      "type": "object"
+    },
+    "TaskConfig": {
+      "properties": {
+        "assertions": {
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/FileExistsAssertion"
+              },
+              {
+                "$ref": "#/$defs/FileContainsAssertion"
+              },
+              {
+                "$ref": "#/$defs/CommandSucceedsAssertion"
+              },
+              {
+                "$ref": "#/$defs/CommandFailsAssertion"
+              },
+              {
+                "$ref": "#/$defs/BleuAssertion"
+              },
+              {
+                "$ref": "#/$defs/RougeAssertion"
+              },
+              {
+                "$ref": "#/$defs/BERTScoreAssertion"
+              },
+              {
+                "$ref": "#/$defs/CosineSimilarityAssertion"
+              }
+            ]
+          },
+          "title": "Assertions",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "prompt": {
+          "title": "Prompt",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 300,
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "workdir": {
+          "title": "Workdir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "prompt",
+        "workdir",
+        "assertions"
+      ],
+      "title": "TaskConfig",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "assistants": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AssistantConfig"
+      },
+      "title": "Assistants",
+      "type": "object"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/TaskConfig"
+      },
+      "title": "Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "assistants",
+    "tasks"
+  ],
+  "title": "EvalConfig",
+  "type": "object"
+}

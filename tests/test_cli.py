@@ -21,3 +21,14 @@ def test_run_missing_config():
 def test_report_missing_dir():
     result = runner.invoke(app, ["report", "/tmp/nonexistent-run-dir"])
     assert result.exit_code != 0
+
+
+def test_schema_command_writes_files(tmp_path):
+    out = tmp_path / "schema.json"
+    doc = tmp_path / "schema.md"
+    result = runner.invoke(
+        app, ["schema", "--out", str(out), "--doc", str(doc)]
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert doc.exists()
