@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from agent_eval.adapters.base import AdapterResult, BaseAdapter
+
+if TYPE_CHECKING:
+    import logging
 
 
 class ClaudeCodeAdapter(BaseAdapter):
@@ -82,19 +86,82 @@ class ClaudeCodeAdapter(BaseAdapter):
 
         return conversation, token_usage, cost
 
-    def run(self, prompt: str, workdir: Path, config: dict[str, Any]) -> AdapterResult:
-        cmd = self._build_command(prompt, config)
-        start = time.monotonic()
+    async def _run_with_streaming(
+        self,
+        cmd: list[str],
+        workdir: Path,
+        timeout: int,
+        logger: logging.Logger | None,
+    ) -> tuple[str, str, int]:
+        """Run command with optional real-time output streaming using asyncio."""
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            cwd=workdir,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        stdout_lines = []
+        stderr_lines = []
+
+        async def read_stream(stream, lines, prefix):
+            """Read stream line by line and optionally log."""
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                line_str = line.decode('utf-8')
+                lines.append(line_str)
+                if logger:
+                    logger.debug(f"[{prefix}] {line_str.rstrip()}")
+
+        # Read both streams concurrently
         try:
-            proc = subprocess.run(
-                cmd,
-                cwd=workdir,
-                capture_output=True,
-                text=True,
-                timeout=config.get("timeout", 300),
+            await asyncio.wait_for(
+                asyncio.gather(
+                    read_stream(proc.stdout, stdout_lines, "stdout"),
+                    read_stream(proc.stderr, stderr_lines, "stderr"),
+                    proc.wait(),
+                ),
+                timeout=timeout,
             )
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            raise subprocess.TimeoutExpired(cmd, timeout)
+
+        stdout = ''.join(stdout_lines)
+        stderr = ''.join(stderr_lines)
+        return stdout, stderr, proc.returncode
+
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        config: dict[str, Any],
+        logger: logging.Logger | None = None,
+    ) -> AdapterResult:
+        cmd = self._build_command(prompt, config)
+        timeout = config.get("timeout", 300)
+
+        # Log command context if verbose
+        if logger:
+            logger.debug(f"Command: {' '.join(cmd)}")
+            logger.debug(f"Working directory: {workdir}")
+            logger.debug(f"Timeout: {timeout}s")
+            logger.debug(f"Config: {json.dumps(config, indent=2)}")
+
+        start = time.monotonic()
+
+        try:
+            stdout, stderr, exit_code = asyncio.run(
+                self._run_with_streaming(cmd, workdir, timeout, logger)
+            )
+
         except subprocess.TimeoutExpired as e:
             duration = time.monotonic() - start
+            if logger:
+                logger.debug(f"Command timed out after {duration:.2f}s")
             return AdapterResult(
                 stdout=e.stdout or "",
                 stderr=e.stderr or "",
@@ -104,12 +171,17 @@ class ClaudeCodeAdapter(BaseAdapter):
                 token_usage=None,
                 cost_usd=None,
             )
+
         duration = time.monotonic() - start
-        conversation, token_usage, cost = self._parse_output(proc.stdout)
+
+        if logger:
+            logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
+
+        conversation, token_usage, cost = self._parse_output(stdout)
         return AdapterResult(
-            stdout=proc.stdout,
-            stderr=proc.stderr,
-            exit_code=proc.returncode,
+            stdout=stdout,
+            stderr=stderr,
+            exit_code=exit_code,
             duration_seconds=duration,
             conversation=conversation,
             token_usage=token_usage,
