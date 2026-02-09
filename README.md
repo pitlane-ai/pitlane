@@ -34,6 +34,12 @@ Run a single YAML-defined benchmark to get an immediate, comparable result acros
 agent-eval run examples/simple-codegen-eval.yaml
 ```
 
+For faster execution on multi-task benchmarks, use parallel execution:
+
+```bash
+agent-eval run examples/simple-codegen-eval.yaml --parallel 4
+```
+
 Outputs are written to `runs/` by default and include `results.json`, `meta.yaml`, `debug.log`, and an HTML report.
 
 ### Debug Output

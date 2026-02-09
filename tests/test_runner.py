@@ -63,3 +63,84 @@ def test_runner_captures_results(tmp_path, eval_config):
     task_result = results["mock-claude"]["simple-test"]
     assert "metrics" in task_result
     assert "assertions" in task_result
+
+
+def test_runner_parallel_execution(tmp_path, eval_config):
+    """Test that parallel execution works correctly."""
+    # Create a config with multiple tasks
+    fixture_dir = tmp_path / "fixtures" / "empty"
+    fixture_dir.mkdir(parents=True, exist_ok=True)
+    (fixture_dir / "test.txt").write_text("test")
+
+    config_file = tmp_path / "parallel_eval.yaml"
+    config_file.write_text(f"""
+assistants:
+  mock-claude:
+    adapter: claude-code
+    args:
+      model: sonnet
+
+tasks:
+  - name: task-1
+    prompt: "Task 1"
+    workdir: {fixture_dir}
+    timeout: 10
+    assertions:
+      - file_exists: "test.txt"
+  - name: task-2
+    prompt: "Task 2"
+    workdir: {fixture_dir}
+    timeout: 10
+    assertions:
+      - file_exists: "test.txt"
+  - name: task-3
+    prompt: "Task 3"
+    workdir: {fixture_dir}
+    timeout: 10
+    assertions:
+      - file_exists: "test.txt"
+""")
+    parallel_config = load_config(config_file)
+
+    runner = Runner(config=parallel_config, output_dir=tmp_path / "runs", verbose=False, parallel_tasks=2)
+
+    mock_result = AdapterResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=0.1,
+    )
+    with patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result):
+        run_dir = runner.execute()
+
+    # Verify all tasks completed successfully
+    results = json.loads((run_dir / "results.json").read_text())
+    assert "mock-claude" in results
+    assert len(results["mock-claude"]) == 3
+    assert "task-1" in results["mock-claude"]
+    assert "task-2" in results["mock-claude"]
+    assert "task-3" in results["mock-claude"]
+    
+    # Verify all tasks have results
+    for task_name in ["task-1", "task-2", "task-3"]:
+        task_result = results["mock-claude"][task_name]
+        assert "metrics" in task_result
+        assert "assertions" in task_result
+
+
+def test_runner_sequential_execution(tmp_path, eval_config):
+    """Test that sequential execution works when parallel_tasks=1."""
+    runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False, parallel_tasks=1)
+
+    mock_result = AdapterResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+    )
+    with patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result):
+        run_dir = runner.execute()
+
+    results = json.loads((run_dir / "results.json").read_text())
+    assert "mock-claude" in results
+    assert "simple-test" in results["mock-claude"]
+
+
+def test_runner_default_parallel_tasks(tmp_path, eval_config):
+    """Test that default parallel_tasks is 1 (sequential)."""
+    runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
+    assert runner.parallel_tasks == 1

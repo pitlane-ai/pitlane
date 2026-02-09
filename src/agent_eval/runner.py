@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,12 +30,14 @@ class Runner:
         task_filter: str | None = None,
         assistant_filter: str | None = None,
         verbose: bool = False,
+        parallel_tasks: int = 1,
     ):
         self.config = config
         self.output_dir = output_dir
         self.task_filter = task_filter
         self.assistant_filter = assistant_filter
         self.verbose = verbose
+        self.parallel_tasks = parallel_tasks
 
     def execute(self) -> Path:
         """Run all tasks against all assistants. Returns the run directory."""
@@ -61,20 +64,33 @@ class Runner:
                 if k == self.assistant_filter
             }
 
-        for assistant_name, assistant_config in assistants.items():
-            all_results[assistant_name] = {}
-            adapter = get_adapter(assistant_config.adapter)
-
-            for task in tasks:
-                result = self._run_task(
-                    workspace_mgr=workspace_mgr,
-                    adapter=adapter,
-                    assistant_name=assistant_name,
-                    assistant_config=assistant_config,
-                    task=task,
-                    logger=logger,
-                )
-                all_results[assistant_name][task.name] = result
+        with ThreadPoolExecutor(max_workers=self.parallel_tasks) as executor:
+            future_to_task = {}
+            
+            for assistant_name, assistant_config in assistants.items():
+                all_results[assistant_name] = {}
+                adapter = get_adapter(assistant_config.adapter)
+                
+                for task in tasks:
+                    future = executor.submit(
+                        self._run_task,
+                        workspace_mgr=workspace_mgr,
+                        adapter=adapter,
+                        assistant_name=assistant_name,
+                        assistant_config=assistant_config,
+                        task=task,
+                        logger=logger,
+                    )
+                    future_to_task[future] = (assistant_name, task.name)
+            
+            for future in as_completed(future_to_task):
+                assistant_name, task_name = future_to_task[future]
+                try:
+                    result = future.result()
+                    all_results[assistant_name][task_name] = result
+                except Exception as e:
+                    logger.error(f"Task '{task_name}' failed for assistant '{assistant_name}': {e}")
+                    raise
 
         # Write results
         (run_dir / "results.json").write_text(
