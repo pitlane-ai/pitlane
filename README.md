@@ -36,6 +36,17 @@ agent-eval run examples/simple-codegen-eval.yaml
 
 Outputs are written to `runs/` by default and include `results.json`, `meta.yaml`, and an HTML report.
 
+### Debug Mode
+
+Enable verbose output to troubleshoot adapter command execution:
+
+```bash
+agent-eval run examples/simple-codegen-eval.yaml --verbose
+# or short form: -v
+```
+
+Debug output streams to stderr and saves to `{run_dir}/debug.log`.
+
 ## Config Format
 
 Keep benchmarks as plain YAML so you can diff, review, and iterate quickly.
