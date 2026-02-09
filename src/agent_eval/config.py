@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 VALID_ADAPTERS = {"claude-code", "cline", "codex", "mistral-vibe", "opencode"}
 
@@ -42,12 +42,78 @@ class AssistantConfig(BaseModel):
         return v
 
 
+class FileExistsAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    file_exists: str
+
+
+class FileContainsSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: str
+    pattern: str
+
+
+class FileContainsAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    file_contains: FileContainsSpec
+
+
+class CommandSucceedsAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    command_succeeds: str
+
+
+class CommandFailsAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    command_fails: str
+
+
+class SimilaritySpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    actual: str
+    expected: str
+    metric: str | None = None
+    min_score: float | None = None
+
+
+class BleuAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    bleu: SimilaritySpec
+
+
+class RougeAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rouge: SimilaritySpec
+
+
+class BERTScoreAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    bertscore: SimilaritySpec
+
+
+class CosineSimilarityAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cosine_similarity: SimilaritySpec
+
+
+Assertion = (
+    FileExistsAssertion
+    | FileContainsAssertion
+    | CommandSucceedsAssertion
+    | CommandFailsAssertion
+    | BleuAssertion
+    | RougeAssertion
+    | BERTScoreAssertion
+    | CosineSimilarityAssertion
+)
+
+
 class TaskConfig(BaseModel):
     name: str
     prompt: str
     workdir: str
     timeout: int = 300
-    assertions: list[dict[str, Any]]
+    assertions: list[Assertion]
 
     @field_validator("assertions")
     @classmethod
