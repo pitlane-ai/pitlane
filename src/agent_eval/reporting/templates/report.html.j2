@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>agent-eval Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 24px; }
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  h2 { font-size: 20px; margin: 24px 0 12px; }
+  h3 { font-size: 16px; margin: 12px 0 8px; }
+  .meta { color: #666; font-size: 14px; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
+  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+  th { background: #fafafa; font-weight: 600; }
+  .pass { background: #e6f9e6; color: #1a7a1a; }
+  .partial { background: #fff8e6; color: #8a6d00; }
+  .fail { background: #fde6e6; color: #a00; }
+  .metric { font-size: 12px; color: #666; }
+  .details { display: none; background: #fafafa; padding: 16px; }
+  .details.open { display: block; }
+  .toggle { cursor: pointer; user-select: none; }
+  .toggle:hover { background: #f0f0f0; }
+  .assertion-list { list-style: none; padding: 0; }
+  .assertion-list li { padding: 4px 0; font-size: 13px; }
+  .assertion-list li::before { content: "✓ "; color: #1a7a1a; }
+  .assertion-list li.failed::before { content: "✗ "; color: #a00; }
+  .chart-section { margin-bottom: 24px; }
+  .chart-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
+  .chart-label { width: 140px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chart-bar { height: 20px; border-radius: 3px; transition: width 0.3s; }
+  .colors { --c0: #4285f4; --c1: #ea4335; --c2: #fbbc04; --c3: #34a853; --c4: #ff6d01; --c5: #46bdc6; }
+</style>
+</head>
+<body class="colors">
+<h1>agent-eval Report</h1>
+<p class="meta">Generated from run data</p>
+
+<h2>Summary</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Task</th>
+      {% for assistant in assistants %}
+      <th>{{ assistant }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for task in tasks %}
+    <tr class="toggle" onclick="toggleDetails('{{ task }}')">
+      <td><strong>{{ task }}</strong></td>
+      {% for assistant in assistants %}
+      {% set r = results[assistant][task] %}
+      {% if r %}
+      {% if r.all_passed %}
+      <td class="pass">
+      {% elif r.metrics.assertion_pass_rate > 0 %}
+      <td class="partial">
+      {% else %}
+      <td class="fail">
+      {% endif %}
+        {{ r.metrics.assertion_pass_rate }}% pass<br>
+        <span class="metric">{{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {{ r.metrics.tool_calls_count }} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
+      </td>
+      {% else %}
+      <td>—</td>
+      {% endif %}
+      {% endfor %}
+    </tr>
+    <tr>
+      <td colspan="{{ assistants|length + 1 }}">
+        <div class="details" id="details-{{ task }}">
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                {% for assistant in assistants %}
+                <th>{{ assistant }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for metric_key in metric_keys %}
+              <tr>
+                <td>{{ metric_key }}</td>
+                {% for assistant in assistants %}
+                {% set r = results[assistant][task] %}
+                <td>{% if r %}{{ r.metrics[metric_key] if r.metrics[metric_key] is not none else "—" }}{% else %}—{% endif %}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <h4 style="margin: 12px 0 8px;">Assertions</h4>
+          {% for assistant in assistants %}
+          <p><strong>{{ assistant }}</strong></p>
+          {% set r = results[assistant][task] %}
+          {% if r %}
+          <ul class="assertion-list">
+            {% for a in r.assertions %}
+            <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Metrics Comparison</h2>
+{% for metric_key in ["wall_clock_seconds", "cost_usd", "token_usage_input", "tool_calls_count", "assertion_pass_rate"] %}
+<div class="chart-section">
+  <h3>{{ metric_key }}</h3>
+  {% for task in tasks %}
+  <p style="font-size:12px; color:#666; margin: 4px 0;">{{ task }}</p>
+  {% set max_val = [] %}
+  {% for assistant in assistants %}
+    {% set r = results[assistant][task] %}
+    {% if r and r.metrics[metric_key] is not none %}
+      {% if max_val.append(r.metrics[metric_key]) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+  {% set max_value = max_val|max if max_val else 1 %}
+  {% for assistant in assistants %}
+  {% set r = results[assistant][task] %}
+  {% set val = r.metrics[metric_key] if r and r.metrics[metric_key] is not none else 0 %}
+  {% set pct = (val / max_value * 100) if max_value > 0 else 0 %}
+  <div class="chart-row">
+    <span class="chart-label">{{ assistant }}</span>
+    <div class="chart-bar" style="width: {{ pct }}%; max-width: 400px; background: var(--c{{ loop.index0 % 6 }});">&nbsp;</div>
+    <span>{{ val if val else "—" }}</span>
+  </div>
+  {% endfor %}
+  {% endfor %}
+</div>
+{% endfor %}
+
+<script>
+function toggleDetails(task) {
+  var el = document.getElementById('details-' + task);
+  if (el) el.classList.toggle('open');
+}
+</script>
+</body>
+</html>
