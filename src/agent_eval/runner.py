@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,17 +27,33 @@ class Runner:
         output_dir: Path,
         task_filter: str | None = None,
         assistant_filter: str | None = None,
+        logger: logging.Logger | None = None,
     ):
         self.config = config
         self.output_dir = output_dir
         self.task_filter = task_filter
         self.assistant_filter = assistant_filter
+        self.logger = logger
 
     def execute(self) -> Path:
         """Run all tasks against all assistants. Returns the run directory."""
         run_id = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
         run_dir = self.output_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Set debug file path if logger exists
+        if self.logger and not self.logger.disabled:
+            # Add file handler now that we have the run directory
+            debug_file = run_dir / "debug.log"
+            file_handler = logging.FileHandler(debug_file, mode='a')
+            file_handler.setLevel(logging.DEBUG)
+            formatter = logging.Formatter(
+                fmt="[%(asctime)s] %(message)s",
+                datefmt="%Y-%m-%dT%H:%M:%S"
+            )
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
+            self.logger.debug("Starting evaluation run")
 
         workspace_mgr = WorkspaceManager(base_dir=run_dir)
         all_results: dict[str, dict[str, Any]] = {}
@@ -93,6 +110,9 @@ class Runner:
         run_id: str,
     ) -> dict[str, Any]:
         """Run a single task for a single assistant."""
+        if self.logger:
+            self.logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")
+
         source_dir = Path(task.workdir)
         workspace = workspace_mgr.create_workspace(
             source_dir=source_dir,
@@ -116,12 +136,13 @@ class Runner:
                 agent_type=adapter.agent_type(),
             )
 
-        # Run adapter
+        # Run adapter with logger
         config = {**assistant_config.args, "timeout": task.timeout}
         adapter_result = adapter.run(
             prompt=task.prompt,
             workdir=workspace,
             config=config,
+            logger=self.logger,
         )
 
         # Evaluate assertions
@@ -144,6 +165,12 @@ class Runner:
         conv_file.write_text(
             json.dumps(adapter_result.conversation, indent=2, default=str)
         )
+
+        if self.logger:
+            self.logger.debug(
+                f"Task '{task.name}' completed: "
+                f"{sum(1 for ar in assertion_results if ar.passed)}/{len(assertion_results)} assertions passed"
+            )
 
         return {
             "metrics": metrics,
