@@ -24,11 +24,12 @@ class MistralVibeAdapter(BaseAdapter):
         return "mistral-vibe"
 
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
-        cmd = ["vibe", "--prompt", prompt, "--output", "json"]
+        cmd = ["vibe", "-p", "--output", "json"]
         if max_turns := config.get("max_turns"):
             cmd.extend(["--max-turns", str(max_turns)])
         if max_price := config.get("max_price"):
             cmd.extend(["--max-price", str(max_price)])
+        cmd.append(prompt)
         return cmd
 
     def _generate_config(self, workdir: Path, config: dict[str, Any]) -> None:
@@ -103,7 +104,12 @@ class MistralVibeAdapter(BaseAdapter):
             logger.debug(f"Timeout: {timeout}s")
 
         vibe_home = tempfile.mkdtemp(prefix="vibe-home-")
-        env = {**os.environ, "VIBE_HOME": vibe_home}
+        env = {
+            **os.environ,
+            "VIBE_HOME": vibe_home,
+            "TERM": "dumb",
+            "NO_COLOR": "1",
+        }
 
         start = time.monotonic()
         try:

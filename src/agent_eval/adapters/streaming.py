@@ -37,6 +37,7 @@ async def run_command_with_streaming(
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         cwd=workdir,
+        stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
         env=env,
