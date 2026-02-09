@@ -9,6 +9,12 @@ import yaml
 from agent_eval.config import EvalConfig, SkillRef, load_config
 
 
+def _example_configs() -> list[Path]:
+    repo_root = Path(__file__).resolve().parents[1]
+    examples_dir = repo_root / "examples"
+    return sorted(p for p in examples_dir.glob("*.yaml") if p.is_file())
+
+
 @pytest.fixture()
 def tmp_yaml(tmp_path):
     """Helper that writes YAML content to a temp file and returns its path."""
@@ -126,3 +132,9 @@ def test_task_default_timeout(tmp_yaml):
     cfg = load_config(path)
     assert cfg.tasks[0].timeout == 300
     assert cfg.tasks[1].timeout == 600
+
+
+@pytest.mark.parametrize("path", _example_configs())
+def test_example_configs_load(path: Path):
+    assert path.exists()
+    load_config(path)

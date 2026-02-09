@@ -33,7 +33,8 @@ assistants:
     args:
       model: sonnet
     skills:
-      - terraform-ibm-modules/terraform-ibm-modules-skills
+      - source: terraform-ibm-modules/terraform-ibm-modules-skills
+        skill: terraform-ibm-modules-solution-builder
 
   # Codex baseline for cross-assistant comparison
   codex-baseline:
