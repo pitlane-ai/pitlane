@@ -1,10 +1,20 @@
 {
   "$defs": {
+    "AdapterType": {
+      "enum": [
+        "claude-code",
+        "cline",
+        "codex",
+        "mistral-vibe",
+        "opencode"
+      ],
+      "title": "AdapterType",
+      "type": "string"
+    },
     "AssistantConfig": {
       "properties": {
         "adapter": {
-          "title": "Adapter",
-          "type": "string"
+          "$ref": "#/$defs/AdapterType"
         },
         "args": {
           "additionalProperties": true,

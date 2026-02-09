@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-VALID_ADAPTERS = {"claude-code", "cline", "codex", "mistral-vibe", "opencode"}
+
+class AdapterType(str, Enum):
+    CLAUDE_CODE = "claude-code"
+    CLINE = "cline"
+    CODEX = "codex"
+    MISTRAL_VIBE = "mistral-vibe"
+    OPENCODE = "opencode"
 
 
 class SkillRef(BaseModel):
@@ -17,7 +24,7 @@ class SkillRef(BaseModel):
 
 
 class AssistantConfig(BaseModel):
-    adapter: str
+    adapter: AdapterType
     args: dict[str, Any] = {}
     skills: list[SkillRef] = []
 
@@ -33,13 +40,6 @@ class AssistantConfig(BaseModel):
             else:
                 result.append(item)
         return result
-
-    @field_validator("adapter")
-    @classmethod
-    def adapter_must_be_valid(cls, v: str) -> str:
-        if v not in VALID_ADAPTERS:
-            raise ValueError(f"adapter must be one of {VALID_ADAPTERS}, got {v!r}")
-        return v
 
 
 class FileExistsAssertion(BaseModel):
