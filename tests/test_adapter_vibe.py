@@ -8,9 +8,10 @@ def test_build_command_minimal():
     adapter = MistralVibeAdapter()
     cmd = adapter._build_command("Write code", {"model": "devstral-2"})
     assert cmd[0] == "vibe"
-    assert "--prompt" in cmd
+    assert "-p" in cmd
     assert "--output" in cmd
     assert "json" in cmd
+    assert "Write code" in cmd
 
 
 def test_build_command_with_max_turns():

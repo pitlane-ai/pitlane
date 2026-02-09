@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import tempfile
 import time
-import os
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
@@ -24,12 +22,11 @@ class MistralVibeAdapter(BaseAdapter):
         return "mistral-vibe"
 
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
-        cmd = ["vibe", "-p", "--output", "json"]
+        cmd = ["vibe", "-p", prompt, "--output", "json"]
         if max_turns := config.get("max_turns"):
             cmd.extend(["--max-turns", str(max_turns)])
         if max_price := config.get("max_price"):
             cmd.extend(["--max-price", str(max_price)])
-        cmd.append(prompt)
         return cmd
 
     def _generate_config(self, workdir: Path, config: dict[str, Any]) -> None:
@@ -103,18 +100,10 @@ class MistralVibeAdapter(BaseAdapter):
             logger.debug(f"Working directory: {workdir}")
             logger.debug(f"Timeout: {timeout}s")
 
-        vibe_home = tempfile.mkdtemp(prefix="vibe-home-")
-        env = {
-            **os.environ,
-            "VIBE_HOME": vibe_home,
-            "TERM": "dumb",
-            "NO_COLOR": "1",
-        }
-
         start = time.monotonic()
         try:
             stdout, stderr, exit_code = asyncio.run(
-                run_command_with_streaming(cmd, workdir, timeout, logger, env)
+                run_command_with_streaming(cmd, workdir, timeout, logger)
             )
         except Exception as e:
             duration = time.monotonic() - start
