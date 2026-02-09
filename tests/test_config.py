@@ -51,7 +51,9 @@ def test_load_minimal_config(tmp_yaml):
     assert task.prompt == "Say hello"
     assert task.workdir == "/tmp"
     assert task.timeout == 300
-    assert task.assertions == [{"file_exists": "hello.py"}]
+    assert [a.model_dump() for a in task.assertions] == [
+        {"file_exists": "hello.py"}
+    ]
 
 
 def test_load_config_with_skills(tmp_yaml):
