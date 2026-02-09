@@ -15,7 +15,7 @@ def _require_similarity_deps() -> None:
         import bert_score  # noqa: F401
     except Exception as exc:  # pragma: no cover - import errors vary by environment
         raise ValueError(
-            "Similarity assertions require optional deps. Install with: uv pip install '.[similarity]'"
+            "Similarity assertions require installed deps. Run: uv sync"
         ) from exc
 
 

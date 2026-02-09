@@ -8,10 +8,14 @@ dependencies = [
     "pyyaml>=6.0",
     "jinja2>=3.1",
     "pydantic>=2.0",
+    "evaluate>=0.4.6",
+    "sentence-transformers>=5.2.2",
+    "bert-score>=0.3.13",
+    "absl-py>=2.4.0",
+    "rouge-score>=0.1.2",
+    "nltk>=3.9.2",
+    "sacrebleu>=2.6.0",
 ]
-
-[project.optional-dependencies]
-similarity = ["evaluate", "sentence-transformers", "bert-score"]
 
 [project.scripts]
 agent-eval = "agent_eval.cli:app"
