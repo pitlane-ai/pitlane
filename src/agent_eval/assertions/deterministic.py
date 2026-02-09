@@ -123,10 +123,9 @@ def evaluate_assertion(
     value = assertion_dict[atype]
 
     if atype in _SIMILARITY_TYPES:
-        raise ValueError(
-            f"Assertion type '{atype}' requires the similarity extra. "
-            "Install with: pip install agent-eval[similarity]"
-        )
+        from agent_eval.assertions.similarity import evaluate_similarity_assertion
+
+        return evaluate_similarity_assertion(workdir, atype, value)
 
     if atype == "file_exists":
         return check_file_exists(workdir, value)

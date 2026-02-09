@@ -1,5 +1,7 @@
 """Tests for the deterministic assertion system."""
 
+import importlib.util
+
 import pytest
 
 from agent_eval.assertions.base import AssertionResult
@@ -102,7 +104,36 @@ def test_evaluate_assertion_unknown_type():
         evaluate_assertion("/tmp", {"bogus_check": "value"})
 
 
-def test_evaluate_assertion_similarity_types_raise():
+def _similarity_deps_present() -> bool:
+    return (
+        importlib.util.find_spec("evaluate") is not None
+        and importlib.util.find_spec("sentence_transformers") is not None
+        and importlib.util.find_spec("bert_score") is not None
+    )
+
+
+def test_evaluate_assertion_similarity_missing_deps_raises():
+    if _similarity_deps_present():
+        pytest.skip("similarity deps installed")
     for kind in ("bleu", "rouge", "bertscore", "cosine_similarity"):
-        with pytest.raises(ValueError, match="similarity"):
-            evaluate_assertion("/tmp", {kind: {"reference": "x"}})
+        with pytest.raises(ValueError, match="uv pip install '\\.\\[similarity\\]'"):
+            evaluate_assertion("/tmp", {kind: {"actual": "a", "expected": "b"}})
+
+
+def test_evaluate_assertion_similarity_runs(tmp_path):
+    if not _similarity_deps_present():
+        pytest.skip("similarity deps missing")
+    (tmp_path / "a.txt").write_text("hello world")
+    (tmp_path / "b.txt").write_text("hello world")
+    result = evaluate_assertion(
+        tmp_path,
+        {
+            "rouge": {
+                "actual": "a.txt",
+                "expected": "b.txt",
+                "metric": "rougeL",
+                "min_score": 0.5,
+            }
+        },
+    )
+    assert result.passed is True
