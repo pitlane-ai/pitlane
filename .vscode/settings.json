@@ -1,0 +1,10 @@
+{
+  "yaml.schemas": {
+    "./schemas/agent-eval.schema.json": [
+      "eval.yaml",
+      "examples/*.yaml",
+      "**/*eval*.y*ml"
+    ]
+  },
+  "yaml.validate": true
+}

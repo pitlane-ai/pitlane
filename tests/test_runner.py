@@ -33,7 +33,7 @@ tasks:
 
 
 def test_runner_creates_run_directory(tmp_path, eval_config):
-    runner = Runner(config=eval_config, output_dir=tmp_path / "runs")
+    runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
 
     mock_result = AdapterResult(
         stdout="", stderr="", exit_code=0, duration_seconds=1.0,
@@ -44,10 +44,11 @@ def test_runner_creates_run_directory(tmp_path, eval_config):
     assert run_dir.exists()
     assert (run_dir / "results.json").exists()
     assert (run_dir / "meta.yaml").exists()
+    assert (run_dir / "debug.log").exists()
 
 
 def test_runner_captures_results(tmp_path, eval_config):
-    runner = Runner(config=eval_config, output_dir=tmp_path / "runs")
+    runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
 
     mock_result = AdapterResult(
         stdout="", stderr="", exit_code=0, duration_seconds=1.0,

@@ -15,6 +15,7 @@ from agent_eval.assertions.deterministic import evaluate_assertion
 from agent_eval.assertions.base import AssertionResult
 from agent_eval.config import EvalConfig, AssistantConfig, TaskConfig
 from agent_eval.metrics import collect_metrics
+from agent_eval.verbose import setup_logger
 from agent_eval.workspace import WorkspaceManager
 
 
@@ -27,13 +28,13 @@ class Runner:
         output_dir: Path,
         task_filter: str | None = None,
         assistant_filter: str | None = None,
-        logger: logging.Logger | None = None,
+        verbose: bool = False,
     ):
         self.config = config
         self.output_dir = output_dir
         self.task_filter = task_filter
         self.assistant_filter = assistant_filter
-        self.logger = logger
+        self.verbose = verbose
 
     def execute(self) -> Path:
         """Run all tasks against all assistants. Returns the run directory."""
@@ -41,19 +42,10 @@ class Runner:
         run_dir = self.output_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        # Set debug file path if logger exists
-        if self.logger and not self.logger.disabled:
-            # Add file handler now that we have the run directory
-            debug_file = run_dir / "debug.log"
-            file_handler = logging.FileHandler(debug_file, mode='a')
-            file_handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter(
-                fmt="[%(asctime)s] %(message)s",
-                datefmt="%Y-%m-%dT%H:%M:%S"
-            )
-            file_handler.setFormatter(formatter)
-            self.logger.addHandler(file_handler)
-            self.logger.debug("Starting evaluation run")
+        # Setup logger - always writes to debug.log, optionally to stderr if verbose
+        debug_file = run_dir / "debug.log"
+        logger = setup_logger(debug_file, verbose=self.verbose)
+        logger.debug("Starting evaluation run")
 
         workspace_mgr = WorkspaceManager(base_dir=run_dir)
         all_results: dict[str, dict[str, Any]] = {}
@@ -81,6 +73,7 @@ class Runner:
                     assistant_config=assistant_config,
                     task=task,
                     run_id=run_id,
+                    logger=logger,
                 )
                 all_results[assistant_name][task.name] = result
 
@@ -108,10 +101,10 @@ class Runner:
         assistant_config: AssistantConfig,
         task: TaskConfig,
         run_id: str,
+        logger: logging.Logger,
     ) -> dict[str, Any]:
         """Run a single task for a single assistant."""
-        if self.logger:
-            self.logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")
+        logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")
 
         source_dir = Path(task.workdir)
         workspace = workspace_mgr.create_workspace(
@@ -142,7 +135,7 @@ class Runner:
             prompt=task.prompt,
             workdir=workspace,
             config=config,
-            logger=self.logger,
+            logger=logger,
         )
 
         # Evaluate assertions
@@ -166,11 +159,10 @@ class Runner:
             json.dumps(adapter_result.conversation, indent=2, default=str)
         )
 
-        if self.logger:
-            self.logger.debug(
-                f"Task '{task.name}' completed: "
-                f"{sum(1 for ar in assertion_results if ar.passed)}/{len(assertion_results)} assertions passed"
-            )
+        logger.debug(
+            f"Task '{task.name}' completed: "
+            f"{sum(1 for ar in assertion_results if ar.passed)}/{len(assertion_results)} assertions passed"
+        )
 
         return {
             "metrics": metrics,

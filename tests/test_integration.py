@@ -63,7 +63,7 @@ def test_full_pipeline(full_eval_setup):
     with patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", mock_run), \
          patch("agent_eval.adapters.codex.CodexAdapter.run", mock_run):
 
-        runner = Runner(config=config, output_dir=tmp_path / "runs")
+        runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
         run_dir = runner.execute()
 
         # Verify run directory structure

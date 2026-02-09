@@ -7,13 +7,15 @@ import sys
 from pathlib import Path
 
 
-def setup_verbose_logger(debug_file: Path | None = None) -> logging.Logger:
+def setup_logger(debug_file: Path, verbose: bool = False) -> logging.Logger:
     """
-    Configure and return a logger for verbose debug output.
+    Configure and return a logger for debug output.
+    
+    Always writes to debug_file. Optionally also writes to stderr if verbose=True.
     
     Args:
-        debug_file: Optional path to debug log file. If provided, logs to both
-                   stderr and the file. If None, returns a disabled logger.
+        debug_file: Path to debug log file (always created)
+        verbose: If True, also log to stderr. If False, only log to file.
     
     Returns:
         Configured logger instance.
@@ -22,10 +24,6 @@ def setup_verbose_logger(debug_file: Path | None = None) -> logging.Logger:
     
     # Clear any existing handlers
     logger.handlers.clear()
-    
-    if debug_file is None:
-        logger.disabled = True
-        return logger
     
     logger.disabled = False
     logger.setLevel(logging.DEBUG)
@@ -36,16 +34,18 @@ def setup_verbose_logger(debug_file: Path | None = None) -> logging.Logger:
         datefmt="%Y-%m-%dT%H:%M:%S"
     )
     
-    # Add stderr handler
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.DEBUG)
-    stderr_handler.setFormatter(formatter)
-    logger.addHandler(stderr_handler)
-    
-    # Add file handler
+    # Always add file handler
+    debug_file.parent.mkdir(parents=True, exist_ok=True)
     file_handler = logging.FileHandler(debug_file, mode='a')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+    
+    # Add stderr handler only if verbose mode enabled
+    if verbose:
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        stderr_handler.setLevel(logging.DEBUG)
+        stderr_handler.setFormatter(formatter)
+        logger.addHandler(stderr_handler)
     
     return logger

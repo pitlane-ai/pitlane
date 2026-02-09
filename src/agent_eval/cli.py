@@ -13,13 +13,12 @@ def run(
     task: str | None = typer.Option(None, help="Run only this task"),
     assistant: str | None = typer.Option(None, help="Run only this assistant"),
     output_dir: str = typer.Option("runs", help="Output directory for run results"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug output"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug output to terminal"),
 ):
     """Run evaluation tasks against configured assistants."""
     from agent_eval.config import load_config
     from agent_eval.runner import Runner
     from agent_eval.reporting.html import generate_report
-    from agent_eval.verbose import setup_verbose_logger
     import json
 
     config_path = Path(config)
@@ -29,16 +28,12 @@ def run(
 
     eval_config = load_config(config_path)
 
-    # Create logger if verbose mode enabled
-    # Note: debug file path will be set by Runner after creating run_dir
-    logger = setup_verbose_logger() if verbose else None
-
     runner = Runner(
         config=eval_config,
         output_dir=Path(output_dir),
         task_filter=task,
         assistant_filter=assistant,
-        logger=logger,
+        verbose=verbose,
     )
 
     typer.echo("Starting evaluation run...")
@@ -49,6 +44,8 @@ def run(
 
     typer.echo(f"Run complete: {run_dir}")
     typer.echo(f"Report: {report_path}")
+    if not verbose:
+        typer.echo(f"Debug log: {run_dir / 'debug.log'}")
 
     # Exit with non-zero if any assertion failed
     results = json.loads((run_dir / "results.json").read_text())
