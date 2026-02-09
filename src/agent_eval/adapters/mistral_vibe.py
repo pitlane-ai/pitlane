@@ -19,9 +19,6 @@ class MistralVibeAdapter(BaseAdapter):
     def agent_type(self) -> str:
         return "mistral-vibe"
 
-    def skills_dir_name(self) -> str:
-        return ".vibe"
-
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["vibe", "--prompt", prompt, "--output", "json"]
         if max_turns := config.get("max_turns"):

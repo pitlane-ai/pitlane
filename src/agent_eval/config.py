@@ -11,10 +11,28 @@ from pydantic import BaseModel, field_validator, model_validator
 VALID_ADAPTERS = {"claude-code", "cline", "codex", "mistral-vibe", "opencode"}
 
 
+class SkillRef(BaseModel):
+    source: str
+    skill: str | None = None
+
+
 class AssistantConfig(BaseModel):
     adapter: str
     args: dict[str, Any] = {}
-    skills: list[str] = []
+    skills: list[SkillRef] = []
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def normalize_skills(cls, v: list) -> list:
+        result = []
+        for item in v:
+            if isinstance(item, str):
+                result.append(SkillRef(source=item))
+            elif isinstance(item, dict):
+                result.append(SkillRef(**item))
+            else:
+                result.append(item)
+        return result
 
     @field_validator("adapter")
     @classmethod

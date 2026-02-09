@@ -50,4 +50,3 @@ def test_cli_name():
     adapter = ClineAdapter()
     assert adapter.cli_name() == "cline"
     assert adapter.agent_type() == "cline"
-    assert adapter.skills_dir_name() == ".cline"

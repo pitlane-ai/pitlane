@@ -18,9 +18,6 @@ class CodexAdapter(BaseAdapter):
     def agent_type(self) -> str:
         return "codex"
 
-    def skills_dir_name(self) -> str:
-        return ".codex"
-
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["codex", "exec", "--json"]
         if model := config.get("model"):

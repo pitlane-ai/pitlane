@@ -38,8 +38,3 @@ class BaseAdapter(ABC):
     def agent_type(self) -> str:
         """Identifier for this agent type."""
         ...
-
-    @abstractmethod
-    def skills_dir_name(self) -> str:
-        """Name of the skills/config directory (e.g. '.claude')."""
-        ...

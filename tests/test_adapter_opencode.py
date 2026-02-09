@@ -60,4 +60,3 @@ def test_cli_name():
     adapter = OpenCodeAdapter()
     assert adapter.cli_name() == "opencode"
     assert adapter.agent_type() == "opencode"
-    assert adapter.skills_dir_name() == ".opencode"

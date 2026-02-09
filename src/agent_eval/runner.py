@@ -110,18 +110,11 @@ class Runner:
 
         # Install skills
         for skill in assistant_config.skills:
-            if skill.startswith("./") or skill.startswith("/"):
-                workspace_mgr.install_local_skill(
-                    workspace=workspace,
-                    skill_path=Path(skill),
-                    skills_dir_name=adapter.skills_dir_name(),
-                )
-            else:
-                workspace_mgr.install_github_skill(
-                    workspace=workspace,
-                    skill_ref=skill,
-                    agent_type=adapter.agent_type(),
-                )
+            workspace_mgr.install_skill(
+                workspace=workspace,
+                skill=skill,
+                agent_type=adapter.agent_type(),
+            )
 
         # Run adapter
         config = {**assistant_config.args, "timeout": task.timeout}

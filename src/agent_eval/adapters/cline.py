@@ -19,9 +19,6 @@ class ClineAdapter(BaseAdapter):
     def agent_type(self) -> str:
         return "cline"
 
-    def skills_dir_name(self) -> str:
-        return ".cline"
-
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["cline", "-y", "--json"]
         if timeout := config.get("timeout"):
