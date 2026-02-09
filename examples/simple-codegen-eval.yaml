@@ -1,0 +1,19 @@
+assistants:
+  claude-baseline:
+    adapter: claude-code
+    args:
+      model: sonnet
+
+  codex-baseline:
+    adapter: codex
+    args:
+      model: o3
+
+tasks:
+  - name: hello-world-python
+    prompt: "Create a Python script called hello.py that prints 'Hello, World!'"
+    workdir: ./fixtures/empty
+    timeout: 120
+    assertions:
+      - file_exists: "hello.py"
+      - command_succeeds: "python hello.py"

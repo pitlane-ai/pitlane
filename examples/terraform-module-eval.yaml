@@ -1,0 +1,29 @@
+assistants:
+  claude-baseline:
+    adapter: claude-code
+    args:
+      model: sonnet
+
+  claude-with-skills:
+    adapter: claude-code
+    args:
+      model: sonnet
+    skills:
+      - terraform-ibm-modules/terraform-ibm-modules-skills
+
+  codex-baseline:
+    adapter: codex
+    args:
+      model: o3
+
+tasks:
+  - name: scaffold-terraform-vpc
+    prompt: "Create a Terraform module for an IBM Cloud VPC with 3 subnets across different zones"
+    workdir: ./fixtures/empty-repo
+    timeout: 300
+    assertions:
+      - file_exists: "main.tf"
+      - file_exists: "variables.tf"
+      - file_exists: "outputs.tf"
+      - file_contains: { path: "main.tf", pattern: "resource.*ibm_is_vpc" }
+      - command_succeeds: "terraform fmt -check"
