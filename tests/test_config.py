@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from agent_eval.config import EvalConfig, load_config
+from agent_eval.config import EvalConfig, SkillRef, load_config
 
 
 @pytest.fixture()
@@ -56,7 +56,8 @@ def test_load_config_with_skills(tmp_yaml):
             adapter: codex
             skills:
               - python
-              - rust
+              - source: terraform-ibm-modules/terraform-ibm-modules-skills
+                skill: terraform-ibm-modules-solution-builder
         tasks:
           - name: t1
             prompt: do something
@@ -66,7 +67,14 @@ def test_load_config_with_skills(tmp_yaml):
                 value: 0
     """)
     cfg = load_config(path)
-    assert cfg.assistants["skilled"].skills == ["python", "rust"]
+    skills = cfg.assistants["skilled"].skills
+    assert skills == [
+        SkillRef(source="python", skill=None),
+        SkillRef(
+            source="terraform-ibm-modules/terraform-ibm-modules-skills",
+            skill="terraform-ibm-modules-solution-builder",
+        ),
+    ]
 
 
 def test_load_config_missing_required_fields(tmp_yaml):
@@ -118,20 +126,3 @@ def test_task_default_timeout(tmp_yaml):
     cfg = load_config(path)
     assert cfg.tasks[0].timeout == 300
     assert cfg.tasks[1].timeout == 600
-
-
-def test_valid_adapter_types(tmp_yaml):
-    path = tmp_yaml("""\
-        assistants:
-          bad:
-            adapter: unknown-adapter
-        tasks:
-          - name: t
-            prompt: p
-            workdir: /tmp
-            assertions:
-              - type: x
-                value: 1
-    """)
-    with pytest.raises(Exception):
-        load_config(path)

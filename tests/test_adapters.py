@@ -46,25 +46,22 @@ class TestAdapterResultCreation:
 
 class TestGetAdapter:
     @pytest.mark.parametrize(
-        "name,expected_type,cli,agent,skills",
+        "name,expected_type,cli,agent",
         [
-            ("claude-code", ClaudeCodeAdapter, "claude", "claude-code", ".claude"),
-            ("cline", ClineAdapter, "cline", "cline", ".cline"),
-            ("codex", CodexAdapter, "codex", "codex", ".codex"),
-            ("mistral-vibe", MistralVibeAdapter, "vibe", "mistral-vibe", ".vibe"),
-            ("opencode", OpenCodeAdapter, "opencode", "opencode", ".opencode"),
+            ("claude-code", ClaudeCodeAdapter, "claude", "claude-code"),
+            ("cline", ClineAdapter, "cline", "cline"),
+            ("codex", CodexAdapter, "codex", "codex"),
+            ("mistral-vibe", MistralVibeAdapter, "vibe", "mistral-vibe"),
+            ("opencode", OpenCodeAdapter, "opencode", "opencode"),
         ],
     )
-    def test_get_adapter_returns_correct_type(self, name, expected_type, cli, agent, skills):
+    def test_get_adapter_returns_correct_type(self, name, expected_type, cli, agent):
         adapter = get_adapter(name)
         assert isinstance(adapter, expected_type)
         assert isinstance(adapter, BaseAdapter)
         assert adapter.cli_name() == cli
         assert adapter.agent_type() == agent
-        assert adapter.skills_dir_name() == skills
 
     def test_get_adapter_unknown_raises(self):
         with pytest.raises(ValueError, match="Unknown adapter"):
             get_adapter("unknown-agent")
-
-

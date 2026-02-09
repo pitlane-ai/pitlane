@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from agent_eval.config import SkillRef
 from agent_eval.workspace import WorkspaceManager
 
 
@@ -46,35 +47,88 @@ def test_create_isolated_workspace(manager: WorkspaceManager, source_dir: Path):
     assert ws != source_dir
 
 
-def test_install_local_skill(manager: WorkspaceManager, tmp_path: Path):
-    # Setup workspace
+def test_install_skill_includes_skill_flag(manager: WorkspaceManager, tmp_path: Path, monkeypatch):
     ws = tmp_path / "ws"
     ws.mkdir()
 
-    # Setup skill with SKILL.md
-    skill_path = tmp_path / "my-skill"
-    skill_path.mkdir()
-    (skill_path / "SKILL.md").write_text("# Skill")
-    (skill_path / "helper.py").write_text("pass")
+    calls = []
 
-    manager.install_local_skill(ws, skill_path, skills_dir_name=".agent")
+    def fake_run(cmd, cwd, capture_output, text):
+        calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text})
 
-    installed = ws / ".agent" / "skills" / "my-skill"
-    assert installed.is_dir()
-    assert (installed / "SKILL.md").read_text() == "# Skill"
-    assert (installed / "helper.py").read_text() == "pass"
+        class Result:
+            returncode = 0
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run)
+
+    manager.install_skill(
+        workspace=ws,
+        skill=SkillRef(source="owner/repo", skill="my-skill"),
+        agent_type="codex",
+    )
+
+    assert calls == [
+        {
+            "cmd": [
+                "npx",
+                "skills",
+                "add",
+                "owner/repo",
+                "--agent",
+                "codex",
+                "--yes",
+                "--skill",
+                "my-skill",
+            ],
+            "cwd": ws,
+            "capture_output": True,
+            "text": True,
+        }
+    ]
 
 
-def test_install_local_skill_missing_skill_md(manager: WorkspaceManager, tmp_path: Path):
+def test_install_skill_without_skill_flag(manager: WorkspaceManager, tmp_path: Path, monkeypatch):
     ws = tmp_path / "ws"
     ws.mkdir()
 
-    skill_path = tmp_path / "bad-skill"
-    skill_path.mkdir()
-    # No SKILL.md present
+    calls = []
 
-    with pytest.raises(FileNotFoundError):
-        manager.install_local_skill(ws, skill_path, skills_dir_name=".agent")
+    def fake_run(cmd, cwd, capture_output, text):
+        calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text})
+
+        class Result:
+            returncode = 0
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run)
+
+    manager.install_skill(
+        workspace=ws,
+        skill=SkillRef(source="owner/repo"),
+        agent_type="claude-code",
+    )
+
+    assert calls == [
+        {
+            "cmd": [
+                "npx",
+                "skills",
+                "add",
+                "owner/repo",
+                "--agent",
+                "claude-code",
+                "--yes",
+            ],
+            "cwd": ws,
+            "capture_output": True,
+            "text": True,
+        }
+    ]
 
 
 def test_workspace_cleanup(manager: WorkspaceManager, source_dir: Path):
