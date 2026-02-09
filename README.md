@@ -34,18 +34,11 @@ Run a single YAML-defined benchmark to get an immediate, comparable result acros
 agent-eval run examples/simple-codegen-eval.yaml
 ```
 
-Outputs are written to `runs/` by default and include `results.json`, `meta.yaml`, and an HTML report.
+Outputs are written to `runs/` by default and include `results.json`, `meta.yaml`, `debug.log`, and an HTML report.
 
-### Debug Mode
+### Debug Output
 
-Enable verbose output to troubleshoot adapter command execution:
-
-```bash
-agent-eval run examples/simple-codegen-eval.yaml --verbose
-# or short form: -v
-```
-
-Debug output streams to stderr and saves to `{run_dir}/debug.log`.
+Every run creates `debug.log` with command execution details. Add `--verbose` (or `-v`) to also stream output to terminal.
 
 ## Config Format
 
