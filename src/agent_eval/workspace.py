@@ -6,6 +6,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from agent_eval.config import SkillRef
+
 
 class WorkspaceManager:
     """Manages isolated workspaces for evaluation runs."""
@@ -26,48 +28,29 @@ class WorkspaceManager:
         shutil.copytree(source_dir, workspace)
         return workspace
 
-    def install_local_skill(
+    def install_skill(
         self,
         workspace: Path | str,
-        skill_path: Path | str,
-        skills_dir_name: str,
-    ) -> None:
-        """Copy a local skill directory into the workspace.
-
-        Raises FileNotFoundError if skill_path has no SKILL.md.
-        """
-        workspace = Path(workspace)
-        skill_path = Path(skill_path)
-
-        if not (skill_path / "SKILL.md").exists():
-            raise FileNotFoundError(
-                f"SKILL.md not found in {skill_path}"
-            )
-
-        skill_name = skill_path.name
-        dest = workspace / skills_dir_name / "skills" / skill_name
-        shutil.copytree(skill_path, dest)
-
-    def install_github_skill(
-        self,
-        workspace: Path | str,
-        skill_ref: str,
+        skill: SkillRef,
         agent_type: str,
     ) -> None:
-        """Run: npx skills install <ref> --agent <type> --yes.
+        """Run: npx skills add <ref> --agent <type> --yes [--skill <name>].
 
         Raises RuntimeError on failure.
         """
         workspace = Path(workspace)
+        cmd = ["npx", "skills", "add", skill.source, "--agent", agent_type, "--yes"]
+        if skill.skill:
+            cmd.extend(["--skill", skill.skill])
         result = subprocess.run(
-            ["npx", "skills", "install", skill_ref, "--agent", agent_type, "--yes"],
+            cmd,
             cwd=workspace,
             capture_output=True,
             text=True,
         )
         if result.returncode != 0:
             raise RuntimeError(
-                f"Failed to install skill {skill_ref}: {result.stderr}"
+                f"Failed to install skill {skill.source}: {result.stderr}"
             )
 
     def cleanup_workspace(self, workspace: Path | str) -> None:
