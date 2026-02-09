@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import json
-import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from agent_eval.adapters.base import AdapterResult, BaseAdapter
+from agent_eval.adapters.streaming import run_command_with_streaming
+
+if TYPE_CHECKING:
+    import logging
 
 
 class CodexAdapter(BaseAdapter):
@@ -87,9 +91,21 @@ class CodexAdapter(BaseAdapter):
 
         return conversation, token_usage, None  # Codex doesn't report cost
 
-    def run(self, prompt: str, workdir: Path, config: dict[str, Any]) -> AdapterResult:
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        config: dict[str, Any],
+        logger: logging.Logger | None = None,
+    ) -> AdapterResult:
         self._generate_config(workdir, config)
         cmd = self._build_command(prompt, config)
+        timeout = config.get("timeout", 300)
+
+        if logger:
+            logger.debug(f"Command: {' '.join(cmd)}")
+            logger.debug(f"Working directory: {workdir}")
+            logger.debug(f"Timeout: {timeout}s")
 
         codex_home = tempfile.mkdtemp(prefix="codex-home-")
 
@@ -98,24 +114,26 @@ class CodexAdapter(BaseAdapter):
 
         start = time.monotonic()
         try:
-            proc = subprocess.run(
-                cmd,
-                cwd=workdir,
-                capture_output=True,
-                text=True,
-                timeout=config.get("timeout", 300),
-                env=env,
+            stdout, stderr, exit_code = asyncio.run(
+                run_command_with_streaming(cmd, workdir, timeout, logger, env)
             )
-        except subprocess.TimeoutExpired as e:
+        except Exception as e:
             duration = time.monotonic() - start
+            if logger:
+                logger.debug(f"Command failed after {duration:.2f}s: {e}")
             return AdapterResult(
-                stdout=e.stdout or "", stderr=e.stderr or "",
+                stdout="", stderr=str(e),
                 exit_code=-1, duration_seconds=duration,
             )
+        
         duration = time.monotonic() - start
-        conversation, token_usage, cost = self._parse_output(proc.stdout)
+        
+        if logger:
+            logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
+        
+        conversation, token_usage, cost = self._parse_output(stdout)
         return AdapterResult(
-            stdout=proc.stdout, stderr=proc.stderr,
-            exit_code=proc.returncode, duration_seconds=duration,
+            stdout=stdout, stderr=stderr,
+            exit_code=exit_code, duration_seconds=duration,
             conversation=conversation, token_usage=token_usage, cost_usd=cost,
         )

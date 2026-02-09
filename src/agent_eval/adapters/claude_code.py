@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-import subprocess
 import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 from agent_eval.adapters.base import AdapterResult, BaseAdapter
+from agent_eval.adapters.streaming import run_command_with_streaming
 
 if TYPE_CHECKING:
     import logging
@@ -86,54 +86,6 @@ class ClaudeCodeAdapter(BaseAdapter):
 
         return conversation, token_usage, cost
 
-    async def _run_with_streaming(
-        self,
-        cmd: list[str],
-        workdir: Path,
-        timeout: int,
-        logger: logging.Logger | None,
-    ) -> tuple[str, str, int]:
-        """Run command with optional real-time output streaming using asyncio."""
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            cwd=workdir,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        stdout_lines = []
-        stderr_lines = []
-
-        async def read_stream(stream, lines, prefix):
-            """Read stream line by line and optionally log."""
-            while True:
-                line = await stream.readline()
-                if not line:
-                    break
-                line_str = line.decode('utf-8')
-                lines.append(line_str)
-                if logger:
-                    logger.debug(f"[{prefix}] {line_str.rstrip()}")
-
-        # Read both streams concurrently
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(
-                    read_stream(proc.stdout, stdout_lines, "stdout"),
-                    read_stream(proc.stderr, stderr_lines, "stderr"),
-                    proc.wait(),
-                ),
-                timeout=timeout,
-            )
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            raise subprocess.TimeoutExpired(cmd, timeout)
-
-        stdout = ''.join(stdout_lines)
-        stderr = ''.join(stderr_lines)
-        return stdout, stderr, proc.returncode
-
     def run(
         self,
         prompt: str,
@@ -155,16 +107,15 @@ class ClaudeCodeAdapter(BaseAdapter):
 
         try:
             stdout, stderr, exit_code = asyncio.run(
-                self._run_with_streaming(cmd, workdir, timeout, logger)
+                run_command_with_streaming(cmd, workdir, timeout, logger)
             )
-
-        except subprocess.TimeoutExpired as e:
+        except Exception as e:
             duration = time.monotonic() - start
             if logger:
-                logger.debug(f"Command timed out after {duration:.2f}s")
+                logger.debug(f"Command failed after {duration:.2f}s: {e}")
             return AdapterResult(
-                stdout=e.stdout or "",
-                stderr=e.stderr or "",
+                stdout="",
+                stderr=str(e),
                 exit_code=-1,
                 duration_seconds=duration,
                 conversation=[],
