@@ -64,9 +64,3 @@ class TestGetAdapter:
             get_adapter("unknown-agent")
 
 
-class TestStubAdaptersRunNotImplemented:
-    @pytest.mark.parametrize("name", ["claude-code", "codex", "mistral-vibe"])
-    def test_run_raises_not_implemented(self, name):
-        adapter = get_adapter(name)
-        with pytest.raises(NotImplementedError):
-            adapter.run(prompt="test", workdir=Path("/tmp"), config={})
