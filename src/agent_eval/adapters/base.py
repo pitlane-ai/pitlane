@@ -5,7 +5,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import logging
 
 
 @dataclass
@@ -25,7 +28,13 @@ class BaseAdapter(ABC):
     """Abstract base class that all agent adapters must implement."""
 
     @abstractmethod
-    def run(self, prompt: str, workdir: Path, config: dict[str, Any]) -> AdapterResult:
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        config: dict[str, Any],
+        logger: logging.Logger | None = None,
+    ) -> AdapterResult:
         """Execute the agent with the given prompt in workdir."""
         ...
 
