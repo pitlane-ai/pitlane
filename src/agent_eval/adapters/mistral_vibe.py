@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import shutil
+import tempfile
 import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
@@ -99,10 +102,21 @@ class MistralVibeAdapter(BaseAdapter):
         logger.debug(f"Working directory: {workdir}")
         logger.debug(f"Timeout: {timeout}s")
 
+        vibe_home = tempfile.mkdtemp(prefix="vibe-home-")
+        # Copy .env (API key) from the real ~/.vibe if it exists
+        real_env = Path.home() / ".vibe" / ".env"
+        if real_env.is_file():
+            shutil.copy2(real_env, Path(vibe_home) / ".env")
+        else:
+            raise RuntimeError(
+                "No ~/.vibe/.env found. Run 'vibe --setup' to configure your API key."
+            )
+        env = {**os.environ, "VIBE_HOME": vibe_home}
+
         start = time.monotonic()
         try:
             stdout, stderr, exit_code = asyncio.run(
-                run_command_with_streaming(cmd, workdir, timeout, logger)
+                run_command_with_streaming(cmd, workdir, timeout, logger, env)
             )
         except Exception as e:
             duration = time.monotonic() - start

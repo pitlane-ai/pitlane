@@ -29,6 +29,8 @@ class ClaudeCodeAdapter(BaseAdapter):
             "--output-format", "stream-json",
             "--verbose",
             "--dangerously-skip-permissions",
+            "--disable-slash-commands",
+            "--setting-sources", "project,local",
         ]
         if model := config.get("model"):
             cmd.extend(["--model", model])
