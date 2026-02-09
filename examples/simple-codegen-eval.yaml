@@ -2,12 +2,7 @@ assistants:
   claude-baseline:
     adapter: claude-code
     args:
-      model: sonnet
-
-  codex-baseline:
-    adapter: codex
-    args:
-      model: o3
+      model: haiku
 
 tasks:
   - name: hello-world-python

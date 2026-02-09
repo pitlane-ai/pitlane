@@ -23,6 +23,7 @@ class ClaudeCodeAdapter(BaseAdapter):
         cmd = [
             "claude", "-p",
             "--output-format", "stream-json",
+            "--verbose",
             "--dangerously-skip-permissions",
         ]
         if model := config.get("model"):
