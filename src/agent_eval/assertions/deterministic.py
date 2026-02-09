@@ -7,6 +7,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
+
 from agent_eval.assertions.base import AssertionResult
 
 _SIMILARITY_TYPES = frozenset({"bleu", "rouge", "bertscore", "cosine_similarity"})
@@ -104,7 +106,7 @@ def check_command_fails(workdir: str | Path, command: str) -> AssertionResult:
 
 
 def evaluate_assertion(
-    workdir: str | Path, assertion_dict: dict[str, Any]
+    workdir: str | Path, assertion_dict: dict[str, Any] | BaseModel
 ) -> AssertionResult:
     """Dispatch an assertion dict to the appropriate checker.
 
@@ -118,6 +120,9 @@ def evaluate_assertion(
     """
     if not assertion_dict:
         raise ValueError("Empty assertion dict")
+
+    if isinstance(assertion_dict, BaseModel):
+        assertion_dict = assertion_dict.model_dump()
 
     atype = next(iter(assertion_dict))
     value = assertion_dict[atype]
