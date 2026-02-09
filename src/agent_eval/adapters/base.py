@@ -33,7 +33,7 @@ class BaseAdapter(ABC):
         prompt: str,
         workdir: Path,
         config: dict[str, Any],
-        logger: logging.Logger | None = None,
+        logger: logging.Logger,
     ) -> AdapterResult:
         """Execute the agent with the given prompt in workdir."""
         ...

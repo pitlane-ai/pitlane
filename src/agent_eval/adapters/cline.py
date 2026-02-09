@@ -81,15 +81,14 @@ class ClineAdapter(BaseAdapter):
         prompt: str,
         workdir: Path,
         config: dict[str, Any],
-        logger: logging.Logger | None = None,
+        logger: logging.Logger,
     ) -> AdapterResult:
         cmd = self._build_command(prompt, config)
         timeout = config.get("timeout", 300)
 
-        if logger:
-            logger.debug(f"Command: {' '.join(cmd)}")
-            logger.debug(f"Working directory: {workdir}")
-            logger.debug(f"Timeout: {timeout}s")
+        logger.debug(f"Command: {' '.join(cmd)}")
+        logger.debug(f"Working directory: {workdir}")
+        logger.debug(f"Timeout: {timeout}s")
 
         start = time.monotonic()
         try:

@@ -91,17 +91,16 @@ class ClaudeCodeAdapter(BaseAdapter):
         prompt: str,
         workdir: Path,
         config: dict[str, Any],
-        logger: logging.Logger | None = None,
+        logger: logging.Logger,
     ) -> AdapterResult:
         cmd = self._build_command(prompt, config)
         timeout = config.get("timeout", 300)
 
-        # Log command context if verbose
-        if logger:
-            logger.debug(f"Command: {' '.join(cmd)}")
-            logger.debug(f"Working directory: {workdir}")
-            logger.debug(f"Timeout: {timeout}s")
-            logger.debug(f"Config: {json.dumps(config, indent=2)}")
+        # Log command context
+        logger.debug(f"Command: {' '.join(cmd)}")
+        logger.debug(f"Working directory: {workdir}")
+        logger.debug(f"Timeout: {timeout}s")
+        logger.debug(f"Config: {json.dumps(config, indent=2)}")
 
         start = time.monotonic()
 

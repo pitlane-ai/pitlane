@@ -57,7 +57,7 @@ def test_full_pipeline(full_eval_setup):
     config_file, tmp_path = full_eval_setup
     config = load_config(config_file)
 
-    def mock_run(self, prompt, workdir, config, logger=None):
+    def mock_run(self, prompt, workdir, config, logger):
         return _make_mock_result(workdir)
 
     with patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", mock_run), \
