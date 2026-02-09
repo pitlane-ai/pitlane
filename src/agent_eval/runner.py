@@ -42,9 +42,9 @@ class Runner:
         run_dir = self.output_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        # Setup logger - always writes to debug.log, optionally to stderr if verbose
+        # Setup main logger for high-level messages only
         debug_file = run_dir / "debug.log"
-        logger = setup_logger(debug_file, verbose=self.verbose)
+        logger = setup_logger(debug_file, verbose=self.verbose, logger_name="agent_eval_main")
         logger.debug("Starting evaluation run")
 
         workspace_mgr = WorkspaceManager(base_dir=run_dir)
@@ -72,7 +72,6 @@ class Runner:
                     assistant_name=assistant_name,
                     assistant_config=assistant_config,
                     task=task,
-                    run_id=run_id,
                     logger=logger,
                 )
                 all_results[assistant_name][task.name] = result
@@ -100,11 +99,9 @@ class Runner:
         assistant_name: str,
         assistant_config: AssistantConfig,
         task: TaskConfig,
-        run_id: str,
         logger: logging.Logger,
     ) -> dict[str, Any]:
         """Run a single task for a single assistant."""
-        logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")
 
         source_dir = Path(task.workdir)
         workspace = workspace_mgr.create_workspace(
@@ -113,6 +110,18 @@ class Runner:
             assistant_name=assistant_name,
             task_name=task.name,
         )
+
+        # task-specific debug log
+        task_dir = workspace.parent  # task dir
+        task_debug_file = task_dir / "debug.log"
+        
+        task_logger = setup_logger(
+            debug_file=task_debug_file,
+            verbose=self.verbose,
+            logger_name=f"agent_eval_task_{task_debug_file.parent.stem}"
+        )
+        
+        logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")
 
         # Snapshot files before
         files_before = {
@@ -129,13 +138,12 @@ class Runner:
                 agent_type=adapter.agent_type(),
             )
 
-        # Run adapter with logger
         config = {**assistant_config.args, "timeout": task.timeout}
         adapter_result = adapter.run(
             prompt=task.prompt,
             workdir=workspace,
             config=config,
-            logger=logger,
+            logger=task_logger,
         )
 
         # Evaluate assertions
@@ -160,6 +168,10 @@ class Runner:
         )
 
         logger.debug(
+            f"Task '{task.name}' completed: "
+            f"{sum(1 for ar in assertion_results if ar.passed)}/{len(assertion_results)} assertions passed"
+        )
+        task_logger.debug(
             f"Task '{task.name}' completed: "
             f"{sum(1 for ar in assertion_results if ar.passed)}/{len(assertion_results)} assertions passed"
         )

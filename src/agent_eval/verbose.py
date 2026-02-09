@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-def setup_logger(debug_file: Path, verbose: bool = False) -> logging.Logger:
+def setup_logger(debug_file: Path, verbose: bool = False, logger_name: str = "agent_eval") -> logging.Logger:
     """
     Configure and return a logger for debug output.
     
@@ -16,13 +16,14 @@ def setup_logger(debug_file: Path, verbose: bool = False) -> logging.Logger:
     Args:
         debug_file: Path to debug log file (always created)
         verbose: If True, also log to stderr. If False, only log to file.
+        logger_name: Name of the logger instance (allows multiple independent loggers)
     
     Returns:
         Configured logger instance.
     """
-    logger = logging.getLogger("agent_eval")
+    logger = logging.getLogger(logger_name)
     
-    # Clear any existing handlers
+    # Clear any existing handlers for this specific logger
     logger.handlers.clear()
     
     logger.disabled = False
@@ -49,3 +50,5 @@ def setup_logger(debug_file: Path, verbose: bool = False) -> logging.Logger:
         logger.addHandler(stderr_handler)
     
     return logger
+
+

@@ -38,7 +38,14 @@
 <body class="colors">
 <h1>agent-eval Report</h1>
 <p class="meta">Generated from run data</p>
-<a href="debug.log" class="debug-link">📋 View debug.log</a>
+<a href="debug.log" class="debug-link">📋 View main debug.log</a>
+{% for assistant in assistants %}
+  {% for task in tasks %}
+    {% if results[assistant][task] %}
+      <a href="{{ assistant }}/{{ task }}/debug.log" class="debug-link">📋 {{ assistant }}/{{ task }} debug.log</a>
+    {% endif %}
+  {% endfor %}
+{% endfor %}
 
 <h2>Summary</h2>
 <table>
