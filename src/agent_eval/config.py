@@ -8,7 +8,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, field_validator, model_validator
 
-VALID_ADAPTERS = {"claude-code", "codex", "mistral-vibe"}
+VALID_ADAPTERS = {"claude-code", "cline", "codex", "mistral-vibe", "opencode"}
 
 
 class AssistantConfig(BaseModel):

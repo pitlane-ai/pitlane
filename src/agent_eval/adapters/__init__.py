@@ -2,13 +2,17 @@
 
 from agent_eval.adapters.base import AdapterResult, BaseAdapter
 from agent_eval.adapters.claude_code import ClaudeCodeAdapter
+from agent_eval.adapters.cline import ClineAdapter
 from agent_eval.adapters.codex import CodexAdapter
 from agent_eval.adapters.mistral_vibe import MistralVibeAdapter
+from agent_eval.adapters.opencode import OpenCodeAdapter
 
 _ADAPTERS: dict[str, type[BaseAdapter]] = {
     "claude-code": ClaudeCodeAdapter,
+    "cline": ClineAdapter,
     "codex": CodexAdapter,
     "mistral-vibe": MistralVibeAdapter,
+    "opencode": OpenCodeAdapter,
 }
 
 
@@ -30,7 +34,9 @@ __all__ = [
     "AdapterResult",
     "BaseAdapter",
     "ClaudeCodeAdapter",
+    "ClineAdapter",
     "CodexAdapter",
     "MistralVibeAdapter",
+    "OpenCodeAdapter",
     "get_adapter",
 ]

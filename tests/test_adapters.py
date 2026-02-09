@@ -7,8 +7,10 @@ import pytest
 from agent_eval.adapters import get_adapter
 from agent_eval.adapters.base import AdapterResult, BaseAdapter
 from agent_eval.adapters.claude_code import ClaudeCodeAdapter
+from agent_eval.adapters.cline import ClineAdapter
 from agent_eval.adapters.codex import CodexAdapter
 from agent_eval.adapters.mistral_vibe import MistralVibeAdapter
+from agent_eval.adapters.opencode import OpenCodeAdapter
 
 
 class TestAdapterResultCreation:
@@ -47,8 +49,10 @@ class TestGetAdapter:
         "name,expected_type,cli,agent,skills",
         [
             ("claude-code", ClaudeCodeAdapter, "claude", "claude-code", ".claude"),
+            ("cline", ClineAdapter, "cline", "cline", ".cline"),
             ("codex", CodexAdapter, "codex", "codex", ".codex"),
             ("mistral-vibe", MistralVibeAdapter, "vibe", "mistral-vibe", ".vibe"),
+            ("opencode", OpenCodeAdapter, "opencode", "opencode", ".opencode"),
         ],
     )
     def test_get_adapter_returns_correct_type(self, name, expected_type, cli, agent, skills):
