@@ -131,10 +131,13 @@ class Runner:
         task_dir = workspace.parent  # task dir
         task_debug_file = task_dir / "debug.log"
         
+        # CRITICAL: Logger name must be unique per assistant+task to avoid handler collision
+        # when multiple assistants run the same task in parallel. Python's logging.getLogger()
+        # returns the same instance for the same name, causing logs to be mixed/redirected.
         task_logger = setup_logger(
             debug_file=task_debug_file,
             verbose=self.verbose,
-            logger_name=f"agent_eval_task_{task_debug_file.parent.stem}"
+            logger_name=f"agent_eval_{assistant_name}_{task.name}"
         )
         
         logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")

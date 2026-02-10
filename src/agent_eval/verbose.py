@@ -21,6 +21,10 @@ def setup_logger(debug_file: Path, verbose: bool = False, logger_name: str = "ag
     Returns:
         Configured logger instance.
     """
+    # Guard - should not happen if names are properly unique
+    if logger_name in logging.Logger.manager.loggerDict:
+        raise RuntimeError(f"Logger '{logger_name}' already exists - logger names must be unique")
+    
     logger = logging.getLogger(logger_name)
     
     # Clear any existing handlers for this specific logger
