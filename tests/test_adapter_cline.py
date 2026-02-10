@@ -27,7 +27,7 @@ def test_parse_json_output():
         json.dumps({"type": "result", "usage": {"input_tokens": 150, "output_tokens": 60}, "total_cost_usd": 0.003}),
     ]
     stdout = "\n".join(lines)
-    conversation, token_usage, cost = adapter._parse_output(stdout)
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert len(conversation) == 2
     assert conversation[0]["role"] == "assistant"
     assert conversation[0]["content"] == "Here is the code"
@@ -35,11 +35,12 @@ def test_parse_json_output():
     assert token_usage["input"] == 150
     assert token_usage["output"] == 60
     assert cost == 0.003
+    assert tool_calls_count == 1
 
 
 def test_parse_empty_output():
     adapter = ClineAdapter()
-    conversation, token_usage, cost = adapter._parse_output("")
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output("")
     assert conversation == []
     assert token_usage is None
     assert cost is None

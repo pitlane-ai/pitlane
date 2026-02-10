@@ -58,10 +58,11 @@ class CodexAdapter(BaseAdapter):
             config_dir.mkdir(parents=True, exist_ok=True)
             (config_dir / "config.toml").write_text("\n".join(sections))
 
-    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None]:
+    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None, int]:
         """Parse JSONL output from codex exec --json."""
         conversation: list[dict] = []
         token_usage = None
+        tool_calls_count = 0
 
         for line in stdout.strip().splitlines():
             if not line.strip():
@@ -89,7 +90,10 @@ class CodexAdapter(BaseAdapter):
                     "content": msg.get("content", ""),
                 })
 
-        return conversation, token_usage, None  # Codex doesn't report cost
+            if msg_type == "tool_use":
+                tool_calls_count += 1
+
+        return conversation, token_usage, None, tool_calls_count  # Codex doesn't report cost
 
     def run(
         self,
@@ -130,9 +134,10 @@ class CodexAdapter(BaseAdapter):
         if logger:
             logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
         
-        conversation, token_usage, cost = self._parse_output(stdout)
+        conversation, token_usage, cost, tool_calls_count = self._parse_output(stdout)
         return AdapterResult(
             stdout=stdout, stderr=stderr,
             exit_code=exit_code, duration_seconds=duration,
             conversation=conversation, token_usage=token_usage, cost_usd=cost,
+            tool_calls_count=tool_calls_count,
         )

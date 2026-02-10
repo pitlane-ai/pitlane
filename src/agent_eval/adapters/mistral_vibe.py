@@ -54,38 +54,80 @@ class MistralVibeAdapter(BaseAdapter):
             config_dir.mkdir(parents=True, exist_ok=True)
             (config_dir / "config.toml").write_text("\n".join(lines) + "\n")
 
-    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None]:
-        """Parse JSON output from vibe --output json."""
+    def _parse_output(self, stdout: str) -> list[dict]:
+        """Parse JSON output from vibe --output json into conversation entries."""
         conversation: list[dict] = []
-        token_usage = None
-        cost = None
 
         try:
             data = json.loads(stdout)
         except json.JSONDecodeError:
-            return conversation, token_usage, cost
+            return conversation
 
         items = data if isinstance(data, list) else [data]
         for item in items:
             if not isinstance(item, dict):
                 continue
 
-            if item.get("role") == "assistant":
-                conversation.append({
+            role = item.get("role")
+            if role == "assistant":
+                entry: dict[str, Any] = {
                     "role": "assistant",
                     "content": item.get("content", ""),
-                })
+                }
+                if item.get("tool_calls"):
+                    entry["tool_calls"] = item["tool_calls"]
+                conversation.append(entry)
 
-            if item.get("type") == "result":
-                usage = item.get("usage", {})
-                if usage:
-                    token_usage = {
-                        "input": usage.get("prompt_tokens", 0),
-                        "output": usage.get("completion_tokens", 0),
-                    }
-                cost = item.get("total_cost_usd")
+        return conversation
 
-        return conversation, token_usage, cost
+    def _read_session_stats(
+        self, vibe_home: str, logger: logging.Logger,
+    ) -> tuple[dict[str, int] | None, float | None, int]:
+        """Read token usage, cost, and tool call count from vibe session meta.json.
+
+        Vibe writes session metadata (including stats) to
+        VIBE_HOME/logs/session/session_*/meta.json after each run.
+        """
+        token_usage = None
+        cost = None
+        tool_calls = 0
+
+        session_dir = Path(vibe_home) / "logs" / "session"
+        if not session_dir.exists():
+            logger.debug("No vibe session log directory found")
+            return token_usage, cost, tool_calls
+
+        # Find the most recent session meta.json
+        meta_files = sorted(session_dir.glob("session_*/meta.json"))
+        if not meta_files:
+            logger.debug("No vibe session meta.json found")
+            return token_usage, cost, tool_calls
+
+        meta_file = meta_files[-1]  # most recent
+        try:
+            meta = json.loads(meta_file.read_text())
+        except (json.JSONDecodeError, OSError) as e:
+            logger.debug(f"Failed to read vibe session meta: {e}")
+            return token_usage, cost, tool_calls
+
+        stats = meta.get("stats", {})
+        if stats:
+            prompt_tokens = stats.get("session_prompt_tokens", 0)
+            completion_tokens = stats.get("session_completion_tokens", 0)
+            if prompt_tokens or completion_tokens:
+                token_usage = {
+                    "input": prompt_tokens,
+                    "output": completion_tokens,
+                }
+            cost = stats.get("session_cost")
+            tool_calls = stats.get("tool_calls_agreed", 0)
+            logger.debug(
+                f"Vibe session stats: {prompt_tokens} input tokens, "
+                f"{completion_tokens} output tokens, cost=${cost}, "
+                f"{tool_calls} tool calls"
+            )
+
+        return token_usage, cost, tool_calls
 
     def run(
         self,
@@ -132,9 +174,11 @@ class MistralVibeAdapter(BaseAdapter):
         if logger:
             logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
 
-        conversation, token_usage, cost = self._parse_output(stdout)
+        conversation = self._parse_output(stdout)
+        token_usage, cost, tool_calls_count = self._read_session_stats(vibe_home, logger)
         return AdapterResult(
             stdout=stdout, stderr=stderr,
             exit_code=exit_code, duration_seconds=duration,
             conversation=conversation, token_usage=token_usage, cost_usd=cost,
+            tool_calls_count=tool_calls_count,
         )

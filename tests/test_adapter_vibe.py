@@ -40,9 +40,10 @@ def test_parse_json_output():
     adapter = MistralVibeAdapter()
     output = json.dumps([
         {"role": "assistant", "content": "Here is the code"},
-        {"type": "result", "usage": {"prompt_tokens": 100, "completion_tokens": 50},
-         "total_cost_usd": 0.005, "duration_ms": 2000},
+        {"role": "assistant", "content": "", "tool_calls": [
+            {"id": "abc", "type": "function", "function": {"name": "write_file", "arguments": "{}"}}
+        ]},
     ])
-    conversation, token_usage, cost = adapter._parse_output(output)
-    assert len(conversation) >= 1
-    assert cost == 0.005
+    conversation = adapter._parse_output(output)
+    assert len(conversation) == 2
+    assert conversation[0]["content"] == "Here is the code"

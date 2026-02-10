@@ -38,18 +38,19 @@ def test_parse_json_output():
         json.dumps({"type": "result", "usage": {"input_tokens": 300, "output_tokens": 120}, "total_cost_usd": 0.005}),
     ]
     stdout = "\n".join(lines)
-    conversation, token_usage, cost = adapter._parse_output(stdout)
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert len(conversation) == 2
     assert conversation[0]["content"] == "Created the module"
     assert conversation[1]["tool_use"]["name"] == "edit_file"
     assert token_usage["input"] == 300
     assert token_usage["output"] == 120
     assert cost == 0.005
+    assert tool_calls_count == 1
 
 
 def test_parse_empty_output():
     adapter = OpenCodeAdapter()
-    conversation, token_usage, cost = adapter._parse_output("")
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output("")
     assert conversation == []
     assert token_usage is None
     assert cost is None

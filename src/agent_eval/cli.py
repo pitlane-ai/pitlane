@@ -14,7 +14,7 @@ def run(
     assistant: str | None = typer.Option(None, help="Run only this assistant"),
     output_dir: str = typer.Option("runs", help="Output directory for run results"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug output to terminal"),
-    parallel: int = typer.Option(1, "--parallel", "-p", help="Number of parallel tasks to run"),
+    parallel: int = typer.Option(1, "--parallel", "-p", min=1, max=100, help="Number of parallel tasks to run"),
 ):
     """Run evaluation tasks against configured assistants."""
     from agent_eval.config import load_config

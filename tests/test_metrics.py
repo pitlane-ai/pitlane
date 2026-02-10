@@ -20,6 +20,7 @@ def test_collect_metrics_basic(tmp_path):
         conversation=[{"role": "assistant"}, {"role": "assistant", "tool_use": {"name": "Bash"}}],
         token_usage={"input": 500, "output": 200},
         cost_usd=0.03,
+        tool_calls_count=1,
     )
 
     assertion_results = [

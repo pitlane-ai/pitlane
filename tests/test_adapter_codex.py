@@ -42,7 +42,8 @@ def test_parse_jsonl_output():
         json.dumps({"type": "agent_message", "content": "Done writing code"}),
     ]
     stdout = "\n".join(lines)
-    conversation, token_usage, cost = adapter._parse_output(stdout)
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert token_usage["input"] == 200
     assert token_usage["output"] == 80
     assert cost is None  # Codex doesn't report cost directly
+    assert tool_calls_count == 0

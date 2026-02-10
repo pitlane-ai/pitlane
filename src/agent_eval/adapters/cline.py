@@ -30,11 +30,12 @@ class ClineAdapter(BaseAdapter):
         cmd.append(prompt)
         return cmd
 
-    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None]:
+    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None, int]:
         """Parse JSON output from cline --json."""
         conversation: list[dict] = []
         token_usage = None
         cost = None
+        tool_calls_count = 0
 
         # Cline --json emits newline-delimited JSON events
         for line in stdout.strip().splitlines():
@@ -56,6 +57,7 @@ class ClineAdapter(BaseAdapter):
                     })
 
             if msg_type == "tool_use":
+                tool_calls_count += 1
                 conversation.append({
                     "role": "assistant",
                     "content": "",
@@ -74,7 +76,7 @@ class ClineAdapter(BaseAdapter):
                     }
                 cost = msg.get("total_cost_usd") or msg.get("cost")
 
-        return conversation, token_usage, cost
+        return conversation, token_usage, cost, tool_calls_count
 
     def run(
         self,
@@ -109,9 +111,10 @@ class ClineAdapter(BaseAdapter):
         if logger:
             logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
 
-        conversation, token_usage, cost = self._parse_output(stdout)
+        conversation, token_usage, cost, tool_calls_count = self._parse_output(stdout)
         return AdapterResult(
             stdout=stdout, stderr=stderr,
             exit_code=exit_code, duration_seconds=duration,
             conversation=conversation, token_usage=token_usage, cost_usd=cost,
+            tool_calls_count=tool_calls_count,
         )

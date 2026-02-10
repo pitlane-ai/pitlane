@@ -22,6 +22,7 @@ class AdapterResult:
     conversation: list[dict[str, Any]] = field(default_factory=list)
     token_usage: dict[str, int] | None = None
     cost_usd: float | None = None
+    tool_calls_count: int | None = None
 
 
 class BaseAdapter(ABC):

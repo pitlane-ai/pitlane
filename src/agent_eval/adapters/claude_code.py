@@ -45,11 +45,12 @@ class ClaudeCodeAdapter(BaseAdapter):
         cmd.append(prompt)
         return cmd
 
-    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None]:
-        """Parse stream-json NDJSON output into conversation, token_usage, cost."""
+    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None, int]:
+        """Parse stream-json NDJSON output into conversation, token_usage, cost, tool_calls_count."""
         conversation: list[dict] = []
         token_usage = None
         cost = None
+        tool_calls_count = 0
 
         for line in stdout.strip().splitlines():
             if not line.strip():
@@ -69,6 +70,7 @@ class ClaudeCodeAdapter(BaseAdapter):
                             "content": block["text"],
                         })
                     elif block.get("type") == "tool_use":
+                        tool_calls_count += 1
                         conversation.append({
                             "role": "assistant",
                             "content": "",
@@ -86,7 +88,7 @@ class ClaudeCodeAdapter(BaseAdapter):
                     }
                 cost = msg.get("total_cost_usd")
 
-        return conversation, token_usage, cost
+        return conversation, token_usage, cost, tool_calls_count
 
     def run(
         self,
@@ -129,7 +131,7 @@ class ClaudeCodeAdapter(BaseAdapter):
         if logger:
             logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
 
-        conversation, token_usage, cost = self._parse_output(stdout)
+        conversation, token_usage, cost, tool_calls_count = self._parse_output(stdout)
         return AdapterResult(
             stdout=stdout,
             stderr=stderr,
@@ -138,4 +140,5 @@ class ClaudeCodeAdapter(BaseAdapter):
             conversation=conversation,
             token_usage=token_usage,
             cost_usd=cost,
+            tool_calls_count=tool_calls_count,
         )

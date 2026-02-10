@@ -32,12 +32,6 @@ def collect_metrics(
             except (UnicodeDecodeError, PermissionError):
                 pass
 
-    # Tool calls
-    tool_calls = sum(
-        1 for entry in adapter_result.conversation
-        if "tool_use" in entry
-    )
-
     # Assertions
     passed = sum(1 for r in assertion_results if r.passed)
     failed = sum(1 for r in assertion_results if not r.passed)
@@ -56,7 +50,7 @@ def collect_metrics(
         "token_usage_input": tu.get("input"),
         "token_usage_output": tu.get("output"),
         "cost_usd": adapter_result.cost_usd,
-        "tool_calls_count": tool_calls,
+        "tool_calls_count": adapter_result.tool_calls_count,
         "assertion_pass_count": passed,
         "assertion_fail_count": failed,
         "assertion_pass_rate": round(pass_rate, 2),

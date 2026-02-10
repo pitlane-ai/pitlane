@@ -72,7 +72,7 @@
       <td class="fail">
       {% endif %}
         {{ r.metrics.assertion_pass_rate }}% pass<br>
-        <span class="metric">{{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {{ r.metrics.tool_calls_count }} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
+        <span class="metric">{{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {% if r.metrics.tool_calls_count is not none %}{{ r.metrics.tool_calls_count }}{% else %}unknown{% endif %} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
       </td>
       {% else %}
       <td>—</td>

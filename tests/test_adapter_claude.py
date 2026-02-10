@@ -46,8 +46,9 @@ def test_parse_stream_json_result():
         }),
     ]
     stdout = "\n".join(lines)
-    conversation, token_usage, cost = adapter._parse_output(stdout)
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert len(conversation) >= 1
     assert token_usage["input"] == 100
     assert token_usage["output"] == 50
     assert cost == 0.02
+    assert tool_calls_count == 0
