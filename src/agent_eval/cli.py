@@ -77,11 +77,19 @@ def report(
 
 
 @app.command()
-def init():
+def init(
+    dir: str = typer.Argument("agent-eval", help="Directory to initialize eval project in"),
+):
     """Initialize a new eval project with example config."""
-    example = Path("eval.yaml")
+    project_dir = Path(dir)
+
+    # Create the project directory if it doesn't exist
+    if not project_dir.exists():
+        project_dir.mkdir(parents=True, exist_ok=True)
+
+    example = project_dir / "eval.yaml"
     if example.exists():
-        typer.echo("eval.yaml already exists, skipping.")
+        typer.echo(f"eval.yaml already exists in {dir}, skipping.")
         return
 
     example.write_text("""\
@@ -101,11 +109,11 @@ tasks:
       - command_succeeds: "python hello.py"
 """)
 
-    fixtures = Path("fixtures/empty")
+    fixtures = project_dir / "fixtures/empty"
     fixtures.mkdir(parents=True, exist_ok=True)
     (fixtures / ".gitkeep").write_text("")
 
-    typer.echo("Initialized eval project:")
+    typer.echo(f"Initialized eval project in {dir}:")
     typer.echo("  eval.yaml        - example eval config")
     typer.echo("  fixtures/empty/  - empty fixture directory")
 
