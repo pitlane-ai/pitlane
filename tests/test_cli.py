@@ -1,4 +1,5 @@
 import pytest
+import json
 from pathlib import Path
 from typer.testing import CliRunner
 from agent_eval.cli import app
@@ -32,12 +33,73 @@ def test_report_missing_dir():
     assert result.exit_code != 0
 
 
-def test_schema_command_writes_files(tmp_path):
+def test_schema_generate_command_writes_files(tmp_path):
     out = tmp_path / "schema.json"
     doc = tmp_path / "schema.md"
     result = runner.invoke(
-        app, ["schema", "--out", str(out), "--doc", str(doc)]
+        app, ["schema", "generate", "--out", str(out), "--doc", str(doc)]
     )
     assert result.exit_code == 0
     assert out.exists()
     assert doc.exists()
+
+
+def test_schema_generate_defaults_to_init_directory(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["schema", "generate"])
+    assert result.exit_code == 0
+    assert (tmp_path / "agent-eval" / "schemas" / "agent-eval.schema.json").exists()
+    assert (tmp_path / "agent-eval" / "docs" / "schema.md").exists()
+
+
+def test_schema_install_requires_yes_in_non_interactive_mode(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["schema", "install"])
+    assert result.exit_code != 0
+    assert "requires --yes" in result.output
+    assert (tmp_path / "agent-eval" / "schemas" / "agent-eval.schema.json").exists()
+    assert (tmp_path / "agent-eval" / "docs" / "schema.md").exists()
+    assert not (tmp_path / ".vscode" / "settings.json").exists()
+
+
+def test_schema_install_writes_settings_and_preserves_unrelated_keys(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    settings_path = tmp_path / ".vscode" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text(json.dumps({"editor.tabSize": 2, "yaml.schemas": {"foo.json": ["*.foo"]}}))
+
+    result = runner.invoke(app, ["schema", "install", "--yes"])
+    assert result.exit_code == 0
+    updated = json.loads(settings_path.read_text())
+    assert updated["editor.tabSize"] == 2
+    assert updated["yaml.validate"] is True
+    assert updated["yaml.schemas"]["foo.json"] == ["*.foo"]
+    assert updated["yaml.schemas"]["./agent-eval/schemas/agent-eval.schema.json"] == [
+        "eval.yaml",
+        "examples/*.yaml",
+        "**/*eval*.y*ml",
+    ]
+
+
+def test_schema_install_creates_backup_for_existing_settings(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    settings_path = tmp_path / ".vscode" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text("{}\n")
+
+    result = runner.invoke(app, ["schema", "install", "--yes"])
+    assert result.exit_code == 0
+    backups = list((tmp_path / ".vscode").glob("settings.json.bak.*"))
+    assert len(backups) == 1
+
+
+def test_schema_install_errors_on_invalid_json(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    settings_path = tmp_path / ".vscode" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text("{bad json")
+
+    result = runner.invoke(app, ["schema", "install", "--yes"])
+    assert result.exit_code != 0
+    assert "Invalid JSON" in result.output
+

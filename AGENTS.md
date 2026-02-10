@@ -70,7 +70,11 @@ agent-eval run examples/simple-codegen-eval.yaml --output-dir my-runs
 agent-eval init
 
 # Generate JSON Schema and documentation
-agent-eval schema
+agent-eval schema generate
+
+# Generate schema/docs and install VS Code YAML validation settings safely
+agent-eval schema install
+# (`schema` outputs default under ./agent-eval; VS Code settings default to ./.vscode/settings.json)
 
 # Regenerate HTML report from previous run
 agent-eval report runs/2024-01-01_12-00-00

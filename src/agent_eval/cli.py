@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import typer
 
 app = typer.Typer(name="agent-eval", help="Evaluate AI coding assistants")
+schema_app = typer.Typer(name="schema", help="Generate and install schema tooling")
+app.add_typer(schema_app, name="schema")
 
 
 @app.command()
@@ -118,19 +121,148 @@ tasks:
     typer.echo("  fixtures/empty/  - empty fixture directory")
 
 
-@app.command()
-def schema(
-    out: str = typer.Option(
-        "schemas/agent-eval.schema.json", help="Output path for JSON Schema"
+@schema_app.command("generate")
+def schema_generate(
+    dir: str = typer.Option("agent-eval", "--dir", help="Project directory for default schema/doc outputs"),
+    out: str | None = typer.Option(
+        None, help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)"
     ),
-    doc: str = typer.Option("docs/schema.md", help="Output path for schema docs"),
+    doc: str | None = typer.Option(
+        None, help="Output path for schema docs (defaults to <dir>/docs/schema.md)"
+    ),
 ):
     """Generate JSON Schema and docs for the eval YAML format."""
     from agent_eval.schema import write_json_schema, write_schema_doc
 
-    out_path = Path(out)
-    doc_path = Path(doc)
+    project_dir = Path(dir)
+    out_path = Path(out) if out is not None else project_dir / "schemas" / "agent-eval.schema.json"
+    doc_path = Path(doc) if doc is not None else project_dir / "docs" / "schema.md"
     write_json_schema(out_path)
     write_schema_doc(doc_path)
     typer.echo(f"Wrote schema: {out_path}")
     typer.echo(f"Wrote docs: {doc_path}")
+
+
+@schema_app.command("install")
+def schema_install(
+    dir: str = typer.Option("agent-eval", "--dir", help="Project directory for default outputs and editor settings"),
+    out: str | None = typer.Option(
+        None, help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)"
+    ),
+    doc: str | None = typer.Option(
+        None, help="Output path for schema docs (defaults to <dir>/docs/schema.md)"
+    ),
+    settings: str | None = typer.Option(
+        None, help="VS Code settings file to update (defaults to .vscode/settings.json)"
+    ),
+    schema_ref: str | None = typer.Option(
+        None,
+        help="Schema reference path to write under yaml.schemas (defaults to relative path of --out)",
+    ),
+    editor: str = typer.Option(
+        "vscode",
+        "--editor",
+        help="Editor integration target (currently only: vscode)",
+    ),
+    non_interactive: bool = typer.Option(
+        False,
+        "--non-interactive",
+        help="Disable interactive prompts; requires --yes to apply changes",
+    ),
+    yes: bool = typer.Option(False, "--yes", help="Apply changes without interactive confirmation"),
+    backup: bool = typer.Option(
+        True,
+        "--backup/--no-backup",
+        help="Create a backup before writing settings.json",
+    ),
+    backup_file: str | None = typer.Option(
+        None, help="Optional explicit backup path"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print planned changes without writing settings"
+    ),
+):
+    """Generate schema/docs and install VS Code YAML schema settings safely."""
+    from agent_eval.editor import (
+        create_backup,
+        default_backup_path,
+        load_vscode_settings,
+        plan_vscode_settings_update,
+        write_json_atomic,
+    )
+    from agent_eval.schema import write_json_schema, write_schema_doc
+
+    project_dir = Path(dir)
+    out_path = Path(out) if out is not None else project_dir / "schemas" / "agent-eval.schema.json"
+    doc_path = Path(doc) if doc is not None else project_dir / "docs" / "schema.md"
+    settings_path = Path(settings) if settings is not None else Path(".vscode") / "settings.json"
+    if schema_ref is None:
+        if out_path.is_absolute():
+            try:
+                rel_out = out_path.relative_to(Path.cwd())
+                schema_ref_value = f"./{rel_out.as_posix()}"
+            except ValueError:
+                schema_ref_value = out_path.as_posix()
+        else:
+            schema_ref_value = f"./{out_path.as_posix()}"
+    else:
+        schema_ref_value = schema_ref
+    if editor != "vscode":
+        typer.echo(
+            f"Error: unsupported editor '{editor}'. Supported values: vscode",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    write_json_schema(out_path)
+    write_schema_doc(doc_path)
+    typer.echo(f"Wrote schema: {out_path}")
+    typer.echo(f"Wrote docs: {doc_path}")
+
+    try:
+        current_settings, had_settings_file = load_vscode_settings(settings_path)
+        update_plan = plan_vscode_settings_update(current_settings, schema_ref_value)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo(f"Will update VS Code settings file: {settings_path}")
+    for line in update_plan.preview_lines:
+        typer.echo(line)
+    if not update_plan.changed:
+        typer.echo("No settings changes are required.")
+        return
+
+    chosen_backup_path: Path | None = None
+    if had_settings_file and backup:
+        chosen_backup_path = (
+            Path(backup_file) if backup_file is not None else default_backup_path(settings_path)
+        )
+        typer.echo(f"Backup will be created at: {chosen_backup_path}")
+    elif not had_settings_file:
+        typer.echo("No existing settings file found, so no backup is needed.")
+    elif not backup:
+        typer.echo("Backup creation disabled via --no-backup.")
+
+    if dry_run:
+        typer.echo("Dry run enabled, no settings were written.")
+        return
+
+    is_non_interactive = non_interactive or (not sys.stdin.isatty())
+    if not yes:
+        if is_non_interactive:
+            typer.echo(
+                "Error: non-interactive mode requires --yes to update settings.",
+                err=True,
+            )
+            raise typer.Exit(1)
+        if not typer.confirm("Proceed with updating VS Code settings?", default=False):
+            typer.echo("Aborted. No changes were written.")
+            raise typer.Exit(1)
+
+    if chosen_backup_path is not None:
+        create_backup(settings_path, chosen_backup_path)
+        typer.echo(f"Wrote backup: {chosen_backup_path}")
+
+    write_json_atomic(settings_path, update_plan.updated)
+    typer.echo(f"Updated VS Code settings: {settings_path}")

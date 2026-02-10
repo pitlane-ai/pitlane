@@ -23,6 +23,19 @@ class ClineAdapter(BaseAdapter):
     def agent_type(self) -> str:
         return "cline"
 
+    def get_cli_version(self) -> str | None:
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["cline", "--version"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except Exception:
+            pass
+        return None
+
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["cline", "-y", "--json"]
         if timeout := config.get("timeout"):

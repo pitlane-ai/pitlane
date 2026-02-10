@@ -205,30 +205,23 @@ The intended workflow is to treat your eval like a test suite:
 2. Green: update skills or MCP sources until the assertions pass.
 3. Refactor: clean prompts, tasks, and fixtures without changing outcomes.
 
-## Schema Generation
+## VS Code and VS Code Clones
 
-The schema makes custom benchmark configs safer to edit and easier to validate.
-
-Generate the JSON Schema + docs from Pydantic:
+Install it automatically (safe by default):
 
 ```bash
-uv run agent-eval schema
+uv run agent-eval schema install
 ```
 
-This writes:
-- `schemas/agent-eval.schema.json`
-- `docs/schema.md`
-
-## VS Code: YAML Validation with Schema
-
-Wire the schema into your editor to catch errors early in the loop.
+This is intended for editors that use `.vscode/settings.json` (VS Code, Cursor, Kiro, Bob).
+It previews changes, asks for confirmation, and creates a backup by default.
 
 Map the schema in `.vscode/settings.json`:
 
 ```json
 {
   "yaml.schemas": {
-    "./schemas/agent-eval.schema.json": [
+    "./agent-eval/schemas/agent-eval.schema.json": [
       "eval.yaml",
       "examples/*.yaml",
       "**/*eval*.y*ml"
@@ -241,5 +234,19 @@ Map the schema in `.vscode/settings.json`:
 Per-file schema (optional):
 
 ```yaml
-# yaml-language-server: $schema=./schemas/agent-eval.schema.json
+# yaml-language-server: $schema=./agent-eval/schemas/agent-eval.schema.json
 ```
+
+## Schema Generation (Other Editors)
+
+If your editor does not use `.vscode/settings.json`, generate the schema/docs directly:
+
+```bash
+uv run agent-eval schema generate
+```
+
+This writes:
+- `agent-eval/schemas/agent-eval.schema.json`
+- `agent-eval/docs/schema.md`
+
+Use `--dir .` to generate into the current directory instead.

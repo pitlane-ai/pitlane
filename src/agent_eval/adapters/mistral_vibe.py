@@ -24,6 +24,19 @@ class MistralVibeAdapter(BaseAdapter):
     def agent_type(self) -> str:
         return "mistral-vibe"
 
+    def get_cli_version(self) -> str | None:
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["vibe", "--version"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except Exception:
+            pass
+        return None
+
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["vibe", "-p", prompt, "--output", "json"]
         if max_turns := config.get("max_turns"):

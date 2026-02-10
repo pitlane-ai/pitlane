@@ -48,3 +48,8 @@ class BaseAdapter(ABC):
     def agent_type(self) -> str:
         """Identifier for this agent type."""
         ...
+
+    @abstractmethod
+    def get_cli_version(self) -> str | None:
+        """Get the version of the CLI tool this adapter uses."""
+        ...

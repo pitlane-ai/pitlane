@@ -11,9 +11,8 @@ from typing import Any
 import yaml
 
 from agent_eval.adapters import get_adapter
-from agent_eval.adapters.base import AdapterResult, BaseAdapter
+from agent_eval.adapters.base import BaseAdapter
 from agent_eval.assertions.deterministic import evaluate_assertion
-from agent_eval.assertions.base import AssertionResult
 from agent_eval.config import EvalConfig, AssistantConfig, TaskConfig
 from agent_eval.metrics import collect_metrics
 from agent_eval.verbose import setup_logger
@@ -64,6 +63,13 @@ class Runner:
                 if k == self.assistant_filter
             }
 
+        cli_versions = {}
+        for assistant_name, assistant_config in assistants.items():
+            adapter = get_adapter(assistant_config.adapter)
+            version = adapter.get_cli_version()
+            if version:
+                cli_versions[f"{assistant_name} ({adapter.cli_name()})"] = version
+
         with ThreadPoolExecutor(max_workers=self.parallel_tasks) as executor:
             future_to_task = {}
             
@@ -92,17 +98,23 @@ class Runner:
                     logger.error(f"Task '{task_name}' failed for assistant '{assistant_name}': {e}")
                     raise
 
-        # Write results
         (run_dir / "results.json").write_text(
             json.dumps(all_results, indent=2, default=str)
         )
 
-        # Write metadata
+        try:
+            import importlib.metadata
+            agent_eval_version = importlib.metadata.version("agent-eval")
+        except Exception:
+            agent_eval_version = "unknown"
+
         meta = {
             "run_id": run_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "assistants": list(assistants.keys()),
             "tasks": [t.name for t in tasks],
+            "cli_versions": cli_versions,
+            "agent_eval_version": agent_eval_version,
         }
         (run_dir / "meta.yaml").write_text(yaml.dump(meta, default_flow_style=False))
 
@@ -131,9 +143,7 @@ class Runner:
         task_dir = workspace.parent  # task dir
         task_debug_file = task_dir / "debug.log"
         
-        # CRITICAL: Logger name must be unique per assistant+task to avoid handler collision
-        # when multiple assistants run the same task in parallel. Python's logging.getLogger()
-        # returns the same instance for the same name, causing logs to be mixed/redirected.
+        # note: logger name must be unique per assistant+task to avoid handler collision
         task_logger = setup_logger(
             debug_file=task_debug_file,
             verbose=self.verbose,
@@ -149,7 +159,13 @@ class Runner:
             if f.is_file()
         }
 
-        # Install skills
+        # Log CLI version information
+        cli_version = adapter.get_cli_version()
+        if cli_version:
+            task_logger.debug(f"Using {adapter.cli_name()} CLI version: {cli_version}")
+        else:
+            task_logger.debug(f"Could not detect {adapter.cli_name()} CLI version")
+
         for skill in assistant_config.skills:
             workspace_mgr.install_skill(
                 workspace=workspace,
