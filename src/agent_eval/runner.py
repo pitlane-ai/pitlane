@@ -203,11 +203,11 @@ class Runner:
         )
 
         logger.debug(
-            f"Task '{task.name}' completed: "
+            f"Task '{task.name}' completed for assistant '{assistant_name}': "
             f"{sum(1 for ar in assertion_results if ar.passed)}/{len(assertion_results)} assertions passed"
         )
         task_logger.debug(
-            f"Task '{task.name}' completed: "
+            f"Task '{task.name}' completed for assistant '{assistant_name}': "
             f"{sum(1 for ar in assertion_results if ar.passed)}/{len(assertion_results)} assertions passed"
         )
 

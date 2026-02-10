@@ -104,12 +104,12 @@ assistants:
 
 tasks:
   - name: hello-world
-    prompt: "Create a Python script that prints 'Hello, World!'"
+    prompt: "Create a Python script called hello.py that prints 'Hello, World!'"
     workdir: ./fixtures/empty
     timeout: 120
     assertions:
       - file_exists: "hello.py"
-      - command_succeeds: "python hello.py"
+      - command_succeeds: "python3 hello.py"
 """)
 
     fixtures = project_dir / "fixtures/empty"

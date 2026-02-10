@@ -97,7 +97,7 @@
                 <td>{{ metric_key }}</td>
                 {% for assistant in assistants %}
                 {% set r = results[assistant][task] %}
-                <td>{% if r %}{{ r.metrics[metric_key] if r.metrics[metric_key] is not none else "—" }}{% else %}—{% endif %}</td>
+                <td>{% if r %}{% if r.metrics[metric_key] is not none %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics[metric_key]) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics[metric_key]) }}{% else %}{{ r.metrics[metric_key] }}{% endif %}{% else %}—{% endif %}{% else %}—{% endif %}</td>
                 {% endfor %}
               </tr>
               {% endfor %}
@@ -143,7 +143,7 @@
   <div class="chart-row">
     <span class="chart-label">{{ assistant }}</span>
     <div class="chart-bar" style="width: {{ pct }}%; max-width: 400px; background: var(--c{{ loop.index0 % 6 }});">&nbsp;</div>
-    <span>{{ val if val else "—" }}</span>
+    <span>{% if val %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(val) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(val) }}{% else %}{{ val }}{% endif %}{% else %}—{% endif %}</span>
   </div>
   {% endfor %}
   {% endfor %}
