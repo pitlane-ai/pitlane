@@ -10,7 +10,16 @@ def test_init_creates_example_files(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     result = runner.invoke(app, ["init"])
     assert result.exit_code == 0
-    assert (tmp_path / "eval.yaml").exists()
+    assert (tmp_path / "agent-eval" / "eval.yaml").exists()
+    assert (tmp_path / "agent-eval" / "fixtures" / "empty" / ".gitkeep").exists()
+
+
+def test_init_with_custom_directory(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["init", "my-custom-dir"])
+    assert result.exit_code == 0
+    assert (tmp_path / "my-custom-dir" / "eval.yaml").exists()
+    assert (tmp_path / "my-custom-dir" / "fixtures" / "empty" / ".gitkeep").exists()
 
 
 def test_run_missing_config():
