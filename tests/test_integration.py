@@ -89,3 +89,31 @@ def test_full_pipeline(full_eval_setup):
         assert "codex-baseline" in html
         assert "create-script" in html
         assert "100.0% pass" in html
+
+
+
+
+@pytest.mark.integration
+def test_skill_installation_non_interactive(tmp_path):
+    """Integration test: Verify skill installation completes without hanging on prompts."""
+    from agent_eval.config import SkillRef
+    from agent_eval.workspace import WorkspaceManager
+    
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    
+    manager = WorkspaceManager(tmp_path)
+    
+    # This should complete without hanging (npx --yes prevents prompts)
+    # Using a lightweight skill for faster test execution
+    manager.install_skill(
+        workspace=ws,
+        skill=SkillRef(source="vercel-labs/skills", skill="find-skills"),
+        agent_type="claude-code",
+    )
+    
+    # Verify skill installation artifacts exist
+    # The skills CLI creates .agents/skills/<skillname>/SKILL.md
+    skill_files = list((ws / ".agents" / "skills").rglob("SKILL.md"))
+    assert len(skill_files) > 0, \
+        "Expected SKILL.md file not found under .agents/skills/ after skill installation"

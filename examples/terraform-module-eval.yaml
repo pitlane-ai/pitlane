@@ -55,11 +55,6 @@ tasks:
     prompt: >
       Create a Terraform configuration that provisions an IBM Cloud
       VPC and deploys a Virtual Server Instance (VSI) into it.
-      Use terraform-ibm-modules for both the VPC (landing-zone-vpc)
-      and the VSI (landing-zone-vsi). Wire the VPC outputs into the
-      VSI module inputs. Generate main.tf, variables.tf, outputs.tf,
-      versions.tf, and a README.md documenting the architecture,
-      usage, inputs, outputs, and requirements.
     workdir: ./fixtures/vpc-vsi-ref
     timeout: 420
     assertions:

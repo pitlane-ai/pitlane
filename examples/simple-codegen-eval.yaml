@@ -3,10 +3,14 @@ assistants:
     adapter: claude-code
     args:
       model: haiku
-  vibe-baseline:
+  vibe-devstral-2:
     adapter: mistral-vibe
     args:
       model: devstral-2
+  vibe-devstral-small:
+    adapter: mistral-vibe
+    args:
+      model: devstral-small
 
 tasks:
   - name: hello-world-python

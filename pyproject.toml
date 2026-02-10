@@ -1,6 +1,6 @@
 [project]
 name = "agent-eval"
-version = "0.1.0"
+version = "0.3.0"
 description = "Lightweight harness to evaluate AI coding assistants"
 requires-python = ">=3.11"
 dependencies = [
@@ -29,6 +29,9 @@ packages = ["src/agent_eval"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
 
 [dependency-groups]
 dev = [

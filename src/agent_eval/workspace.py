@@ -38,20 +38,27 @@ class WorkspaceManager:
         skill: SkillRef,
         agent_type: str,
     ) -> None:
-        """Run: npx skills add <ref> --agent <type> --yes [--skill <name>].
+        """Run: npx --yes skills add <ref> --agent <type> --yes [--skill <name>].
 
         Raises RuntimeError on failure.
         """
         workspace = Path(workspace)
-        cmd = ["npx", "skills", "add", skill.source, "--agent", agent_type, "--yes"]
+        cmd = ["npx", "--yes", "skills", "add", skill.source, "--agent", agent_type, "--yes"]
         if skill.skill:
             cmd.extend(["--skill", skill.skill])
-        result = subprocess.run(
-            cmd,
-            cwd=workspace,
-            capture_output=True,
-            text=True,
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(
+                f"Skill installation timed out after 30s for {skill.source}. "
+                f"Command: {' '.join(cmd)}"
+            ) from e
         if result.returncode != 0:
             raise RuntimeError(
                 f"Failed to install skill {skill.source}: {result.stderr}"

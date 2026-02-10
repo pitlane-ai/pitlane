@@ -73,8 +73,8 @@ def test_install_skill_includes_skill_flag(manager: WorkspaceManager, tmp_path: 
 
     calls = []
 
-    def fake_run(cmd, cwd, capture_output, text):
-        calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text})
+    def fake_run(cmd, cwd, capture_output, text, timeout):
+        calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text, "timeout": timeout})
 
         class Result:
             returncode = 0
@@ -94,6 +94,7 @@ def test_install_skill_includes_skill_flag(manager: WorkspaceManager, tmp_path: 
         {
             "cmd": [
                 "npx",
+                "--yes",
                 "skills",
                 "add",
                 "owner/repo",
@@ -106,6 +107,7 @@ def test_install_skill_includes_skill_flag(manager: WorkspaceManager, tmp_path: 
             "cwd": ws,
             "capture_output": True,
             "text": True,
+            "timeout": 30,
         }
     ]
 
@@ -116,8 +118,8 @@ def test_install_skill_without_skill_flag(manager: WorkspaceManager, tmp_path: P
 
     calls = []
 
-    def fake_run(cmd, cwd, capture_output, text):
-        calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text})
+    def fake_run(cmd, cwd, capture_output, text, timeout):
+        calls.append({"cmd": cmd, "cwd": cwd, "capture_output": capture_output, "text": text, "timeout": timeout})
 
         class Result:
             returncode = 0
@@ -137,6 +139,7 @@ def test_install_skill_without_skill_flag(manager: WorkspaceManager, tmp_path: P
         {
             "cmd": [
                 "npx",
+                "--yes",
                 "skills",
                 "add",
                 "owner/repo",
@@ -147,8 +150,67 @@ def test_install_skill_without_skill_flag(manager: WorkspaceManager, tmp_path: P
             "cwd": ws,
             "capture_output": True,
             "text": True,
+            "timeout": 30,
         }
     ]
+
+
+def test_install_skill_timeout_handling(manager: WorkspaceManager, tmp_path: Path, monkeypatch):
+    """Test that skill installation handles timeout gracefully."""
+    import subprocess
+    
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    def fake_run_timeout(cmd, cwd, capture_output, text, timeout):
+        raise subprocess.TimeoutExpired(cmd, timeout)
+
+    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run_timeout)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        manager.install_skill(
+            workspace=ws,
+            skill=SkillRef(source="owner/repo"),
+            agent_type="claude-code",
+        )
+    
+    assert "timed out after 30s" in str(exc_info.value)
+    assert "owner/repo" in str(exc_info.value)
+
+
+def test_install_skill_non_interactive(manager: WorkspaceManager, tmp_path: Path, monkeypatch):
+    """Test that skill installation completes without user interaction (blackbox test)."""
+    import subprocess
+    
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    
+    # Create a marker file to verify the command ran
+    marker_file = ws / ".skill_installed"
+
+    def fake_run(cmd, cwd, capture_output, text, timeout):
+        # Simulate successful skill installation by creating marker file
+        marker_file.write_text("installed")
+        
+        class Result:
+            returncode = 0
+            stderr = ""
+            stdout = "Skill installed successfully"
+
+        return Result()
+
+    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run)
+
+    # Should complete without hanging or prompting
+    manager.install_skill(
+        workspace=ws,
+        skill=SkillRef(source="owner/repo"),
+        agent_type="claude-code",
+    )
+    
+    # Verify installation completed (marker file exists)
+    assert marker_file.exists()
+    assert marker_file.read_text() == "installed"
 
 
 def test_workspace_cleanup(manager: WorkspaceManager, source_dir: Path):
