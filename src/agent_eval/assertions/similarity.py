@@ -65,12 +65,15 @@ def _score_cosine(actual: str, expected: str) -> float:
 
 
 def evaluate_similarity_assertion(
-    workdir: str | Path, kind: str, spec: dict[str, Any]
+    workdir: str | Path, kind: str, spec: dict[str, Any], *, source_dir: str | Path | None = None,
 ) -> AssertionResult:
     _require_similarity_deps()
 
     actual_text = _read_text(workdir, spec["actual"])
-    expected_text = _read_text(workdir, spec["expected"])
+    # Read expected files from original source_dir (not workspace) so that
+    # reference files don't need to be copied into the AI-visible workspace.
+    expected_base = Path(source_dir) if source_dir else Path(workdir)
+    expected_text = _read_text(expected_base, spec["expected"])
     metric = spec.get("metric")
     min_score = spec.get("min_score")
 

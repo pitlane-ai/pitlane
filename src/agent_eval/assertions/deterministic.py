@@ -106,7 +106,7 @@ def check_command_fails(workdir: str | Path, command: str) -> AssertionResult:
 
 
 def evaluate_assertion(
-    workdir: str | Path, assertion_dict: dict[str, Any] | BaseModel
+    workdir: str | Path, assertion_dict: dict[str, Any] | BaseModel, *, source_dir: str | Path | None = None,
 ) -> AssertionResult:
     """Dispatch an assertion dict to the appropriate checker.
 
@@ -130,7 +130,7 @@ def evaluate_assertion(
     if atype in _SIMILARITY_TYPES:
         from agent_eval.assertions.similarity import evaluate_similarity_assertion
 
-        return evaluate_similarity_assertion(workdir, atype, value)
+        return evaluate_similarity_assertion(workdir, atype, value, source_dir=source_dir)
 
     if atype == "file_exists":
         return check_file_exists(workdir, value)

@@ -47,6 +47,26 @@ def test_create_isolated_workspace(manager: WorkspaceManager, source_dir: Path):
     assert ws != source_dir
 
 
+def test_create_workspace_excludes_refs(manager: WorkspaceManager, tmp_path: Path):
+    """Refs dir must NOT be copied to workspace — AI assistants must not see reference files."""
+    src = tmp_path / "with_refs"
+    src.mkdir()
+    (src / "README.md").write_text("# Hello")
+    refs = src / "refs"
+    refs.mkdir()
+    (refs / "expected.py").write_text("golden output")
+
+    ws = manager.create_workspace(
+        source_dir=src,
+        run_id="run-refs",
+        assistant_name="test",
+        task_name="task-refs",
+    )
+
+    assert (ws / "README.md").exists()
+    assert not (ws / "refs").exists(), "refs/ should be excluded from workspace"
+
+
 def test_install_skill_includes_skill_flag(manager: WorkspaceManager, tmp_path: Path, monkeypatch):
     ws = tmp_path / "ws"
     ws.mkdir()

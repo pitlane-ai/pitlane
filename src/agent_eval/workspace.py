@@ -25,7 +25,11 @@ class WorkspaceManager:
         """Copy source_dir to base_dir/run_id/assistant_name/task_name/workspace."""
         source_dir = Path(source_dir)
         workspace = self.base_dir / run_id / assistant_name / task_name / "workspace"
-        shutil.copytree(source_dir, workspace)
+        shutil.copytree(
+            source_dir,
+            workspace,
+            ignore=shutil.ignore_patterns("refs"),
+        )
         return workspace
 
     def install_skill(
