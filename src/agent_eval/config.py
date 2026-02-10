@@ -18,6 +18,14 @@ class AdapterType(str, Enum):
     OPENCODE = "opencode"
 
 
+class ModelType(str, Enum):
+    HAIKU = "haiku"
+    SONNET = "sonnet"
+    OPUS = "opus"
+    DEVSTRAL_2 = "devstral-2"
+    DEVSTRAL_SMALL = "devstral-small"
+
+
 class SkillRef(BaseModel):
     source: str
     skill: str | None = None
@@ -40,6 +48,8 @@ class AssistantConfig(BaseModel):
             else:
                 result.append(item)
         return result
+
+
 
 
 class FileExistsAssertion(BaseModel):

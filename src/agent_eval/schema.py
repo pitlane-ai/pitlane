@@ -51,6 +51,11 @@ def generate_schema_doc() -> str:
     lines.append("- `assistants`: mapping of assistant names to config.")
     lines.append("- `tasks`: list of task definitions.")
     lines.append("")
+    lines.append("## Assistant Config")
+    lines.append("- `adapter`: string (required) - one of: claude-code, cline, codex, mistral-vibe, opencode")
+    lines.append("- `args`: object (optional) - adapter-specific arguments")
+    lines.append("- `skills`: array (optional) - list of skill references")
+    lines.append("")
     lines.append("## Assertions")
     for model_name in assertion_models:
         model_def = defs.get(model_name, {})
