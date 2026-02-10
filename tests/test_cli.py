@@ -16,7 +16,7 @@ def test_init_creates_example_files(tmp_path, monkeypatch):
 
 def test_init_with_custom_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    result = runner.invoke(app, ["init", "my-custom-dir"])
+    result = runner.invoke(app, ["init", "--dir", "my-custom-dir"])
     assert result.exit_code == 0
     assert (tmp_path / "my-custom-dir" / "eval.yaml").exists()
     assert (tmp_path / "my-custom-dir" / "fixtures" / "empty" / ".gitkeep").exists()

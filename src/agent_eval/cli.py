@@ -78,7 +78,7 @@ def report(
 
 @app.command()
 def init(
-    dir: str = typer.Argument("agent-eval", help="Directory to initialize eval project in"),
+    dir: str = typer.Option("agent-eval", "--dir", help="Directory to initialize eval project in"),
 ):
     """Initialize a new eval project with example config."""
     project_dir = Path(dir)
