@@ -1,0 +1,68 @@
+# Similarity Codegen Evaluation
+#
+# Extends the simple codegen example with similarity assertions.
+# The task asks for a Fibonacci module + README, then checks:
+#   1. Deterministic: files exist, tests pass, key content present
+#   2. Similarity: docs and code match a golden reference
+#
+# This is a good starting point for learning how to use
+# rouge, bleu, bertscore, and cosine_similarity assertions.
+#
+# Rule of thumb for code vs docs:
+#   - Code: use cosine_similarity or bertscore (semantic), not bleu
+#   - Docs: use rouge (topic coverage) or bertscore (meaning)
+
+assistants:
+  claude-baseline:
+    adapter: claude-code
+    args:
+      model: haiku
+
+  vibe-baseline:
+    adapter: mistral-vibe
+    args:
+      model: devstral-2
+
+tasks:
+  - name: fibonacci-module
+    prompt: >
+      Create a Python module called fib.py with a fibonacci(n) function
+      that returns the nth Fibonacci number. It should handle n=0 and n=1
+      as base cases, raise ValueError for negative inputs, and use an
+      iterative approach. Include type hints and a docstring.
+
+      Also create a README.md documenting the module with usage examples.
+
+      Finally, create test_fib.py with pytest tests covering base cases,
+      a few larger values, and the negative input error.
+    workdir: ./fixtures/codegen-similarity
+    timeout: 120
+    assertions:
+      # ── Deterministic: do the basics work? ─────────────────────
+      - file_exists: "fib.py"
+      - file_exists: "test_fib.py"
+      - file_exists: "README.md"
+      - command_succeeds: "python -m pytest test_fib.py -v"
+      - file_contains: { path: "fib.py", pattern: "def fibonacci" }
+      - file_contains: { path: "fib.py", pattern: "ValueError" }
+
+      # ── ROUGE: does the README cover the same topics? ──────────
+      # rougeL checks whether the generated README shares content
+      # with the reference — did it mention usage, examples, errors?
+      - rouge: { actual: "README.md", expected: "./refs/expected-readme.md", metric: "rougeL", min_score: 0.3 }
+
+      # ── BLEU: does the README use the same phrases? ────────────
+      # Word-level overlap with the reference. Works well for docs
+      # where you expect similar phrasing. Avoid using BLEU on code —
+      # even identical logic scores low due to naming/formatting diffs.
+      - bleu: { actual: "README.md", expected: "./refs/expected-readme.md", min_score: 0.15 }
+
+      # ── BERTScore: does the README mean the same thing? ────────
+      # Semantic check — even if the wording is different, does the
+      # README convey the same information as the reference?
+      - bertscore: { actual: "README.md", expected: "./refs/expected-readme.md", min_score: 0.7 }
+
+      # ── Cosine Similarity: is the code about the same thing? ───
+      # Best semantic metric for code. Ignores formatting and naming
+      # differences, just checks if the overall logic is similar.
+      - cosine_similarity: { actual: "fib.py", expected: "./refs/expected-fib.py", min_score: 0.7 }

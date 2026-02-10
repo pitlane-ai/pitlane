@@ -10,6 +10,11 @@ It runs your YAML-defined tasks, checks assertions, and produces a report with p
 - Simplify creating skills/MCP-based tasks so you can iterate quickly on what "good" looks like.
 - Compare performance across assistants in a consistent, repeatable way.
 
+## Prerequisites
+
+- Python 3.11+
+- [uv](https://github.com/astral-sh/uv) (recommended package manager)
+
 ## Install
 
 Install once so running repeated red/green cycles is fast and frictionless.
@@ -40,7 +45,7 @@ For faster execution on multi-task benchmarks, use parallel execution:
 agent-eval run examples/simple-codegen-eval.yaml --parallel 4
 ```
 
-Outputs are written to `runs/` by default and include `results.json`, `meta.yaml`, `debug.log`, and an HTML report.
+Outputs are written to `runs/` by default (gitignored) and include `results.json`, `meta.yaml`, `debug.log`, and an HTML report.
 
 ### Debug Output
 
@@ -54,16 +59,35 @@ Top-level keys:
 - `assistants`: mapping of assistant names to config.
 - `tasks`: list of task definitions.
 
-See `examples/simple-codegen-eval.yaml` and `examples/terraform-module-eval.yaml` for full examples.
+See the examples:
+- `examples/simple-codegen-eval.yaml` — minimal, deterministic assertions only.
+- `examples/similarity-codegen-eval.yaml` — extends simple codegen with ROUGE, BLEU, BERTScore, and cosine similarity, with guidance on which metrics suit code vs docs.
+- `examples/terraform-module-eval.yaml` — real-world Terraform eval with skills, multiple assistants, and all assertion types.
 
 ### Assistants
 
 An assistant entry tells `agent-eval` how to run a model. Each assistant has:
-- `adapter`: which runner to use (e.g. `claude-code`, `codex`).
+- `adapter`: which runner to use (run `agent-eval run --help` to list available adapters).
 - `args`: adapter-specific settings (often the model name).
-- `skills`: optional list of skills (based on the specs at agentskills.io) or MCP sources to inject for that assistant.
+- `skills`: optional list of skills (based on the specs at [agentskills.io](https://agentskills.io)) or MCP sources to inject for that assistant.
 
 Use multiple assistants to compare baseline vs skill-augmented behavior side by side.
+
+```yaml
+assistants:
+  claude-baseline:
+    adapter: claude-code
+    args:
+      model: haiku
+
+  claude-with-skill:
+    adapter: claude-code
+    args:
+      model: haiku
+    skills:
+      - source: org/repo
+        skill: my-skill-name
+```
 
 ### Tasks
 
@@ -74,10 +98,105 @@ Each task defines the prompt, workspace, and assertions. Minimal shape:
 - `timeout`
 - `assertions` (file checks, command checks, or similarity metrics)
 
-Short task design tips:
+```yaml
+tasks:
+  - name: hello-world-python
+    prompt: "Create a Python script called hello.py that prints 'Hello, World!'"
+    workdir: ./fixtures/empty
+    timeout: 120
+    assertions:
+      # Does the file exist?
+      - file_exists: "hello.py"
+      # Does running it succeed?
+      - command_succeeds: "python hello.py"
+      # Does the file contain expected content?
+      - file_contains: { path: "hello.py", pattern: "Hello, World!" }
+```
+
+### Similarity Assertions
+
+When exact text matching isn't practical (generated prose, code with variable formatting), use similarity metrics to compare an output file against a golden reference. All four share the same YAML shape:
+
+```yaml
+{ actual: "<output-file>", expected: "<reference-file>", metric: "<variant>", min_score: 0.5 }
+```
+
+- `actual` — path to the generated file (relative to the task workdir).
+- `expected` — path to the golden reference (relative to the task workdir or the eval YAML directory with `./`).
+- `metric` — optional variant (only used by ROUGE and BERTScore, ignored by the others).
+- `min_score` — threshold to pass (0.0–1.0). Omit to always pass and just record the score.
+
+#### ROUGE — does the output cover the same topics?
+
+Checks how much of the reference content shows up in the generated text. Think of it as: "did the output mention the same things as the reference?"
+
+```yaml
+- rouge: { actual: "README.md", expected: "./refs/golden.md", metric: "rougeL", min_score: 0.35 }
+```
+
+`metric` variants: `rouge1` (single words), `rouge2` (word pairs), `rougeL` (longest shared sequence, default). Scores are 0–1.
+
+**Good for:** Documentation, README quality — "did it cover the same topics?"
+**Not great for:** Code files where structure and order matter more than word coverage.
+
+#### BLEU — does the output use the same phrases?
+
+Checks how many words and phrases from the generated text also appear in the reference. Think of it as: "does the output use the right terminology?"
+
+```yaml
+- bleu: { actual: "README.md", expected: "./refs/golden.md", min_score: 0.2 }
+```
+
+No `metric` variants. Scores are 0–1.
+
+**Good for:** Documentation and prose where you expect similar phrasing to the reference.
+**Not great for code.** Even functionally identical code scores low because of naming, whitespace, and formatting differences. For code, use `cosine_similarity` or `bertscore` instead. If you need specific tokens in code, `file_contains` is more reliable.
+
+#### BERTScore — does the output mean the same thing?
+
+Uses an AI language model to judge whether two texts express the same meaning, even if they use completely different words. More expensive to run but catches things word-matching misses.
+
+```yaml
+- bertscore: { actual: "README.md", expected: "./refs/golden.md", min_score: 0.75 }
+```
+
+`metric` variants: `precision`, `recall`, `f1` (default). Scores are 0–1. Hardcoded to English. Loads a model on first use, so it's slower than ROUGE/BLEU.
+
+**Good for:** Documentation that should convey the same ideas regardless of exact wording.
+**Not great for:** Large files where speed matters, or when you need specific words to appear (use `file_contains` instead).
+
+#### Cosine Similarity — are these texts about the same thing?
+
+Converts both files into a numerical "fingerprint" of their meaning and measures how close they are. Completely ignores word choice and order — only the overall meaning matters.
+
+```yaml
+- cosine_similarity: { actual: "variables.tf", expected: "./refs/expected-vars.tf", min_score: 0.7 }
+```
+
+No `metric` variants. Scores are 0–1. Also loads a model on first use (uses `all-MiniLM-L6-v2`).
+
+**Good for:** Checking that variable definitions, output blocks, or configs are semantically similar.
+**Not great for:** Cases where specific tokens or wording must appear — use BLEU or `file_contains` instead.
+
+#### Choosing the right metric
+
+| Metric | Question it answers | Speed | Best for |
+|---|---|---|---|
+| Metric | Question it answers | Speed | Best for |
+|---|---|---|---|
+| `rouge` | Did it cover the same topics? | Fast | Docs, README coverage |
+| `bleu` | Did it use the same phrases? | Fast | Docs with expected phrasing (not code) |
+| `bertscore` | Does it mean the same thing? | Slow | Docs or code — meaning preservation |
+| `cosine_similarity` | Is it about the same thing? | Slow | Code or configs — semantic similarity |
+
+Start with deterministic assertions (`file_exists`, `command_succeeds`, `file_contains`) and add similarity metrics only where exact matching breaks down. Combine them — e.g. use `file_contains` to verify critical tokens, then `rouge` or `bertscore` to check overall quality.
+
+### Task Design Tips
+
 - Prefer deterministic assertions (file checks and commands) to keep runs stable.
 - Use similarity metrics when exact text is not required.
 - Keep workdirs small and focused so red/green loops stay fast.
+- Set similarity thresholds conservatively at first, then tighten as you iterate.
 
 ### TDD Loop
 
