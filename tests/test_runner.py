@@ -185,7 +185,21 @@ tasks:
     config = load_config(config_file)
 
     completed_result = {
-        "metrics": {"wall_clock_seconds": 0.1},
+        "metrics": {
+            "wall_clock_seconds": 0.1,
+            "exit_code": 0,
+            "files_created": 0,
+            "files_modified": 0,
+            "total_lines_generated": 0,
+            "token_usage_input": 0,
+            "token_usage_output": 0,
+            "cost_usd": 0.0,
+            "tool_calls_count": 0,
+            "assertion_pass_count": 1,
+            "assertion_fail_count": 0,
+            "assertion_pass_rate": 100.0,
+            "weighted_score": 100.0,
+        },
         "assertions": [{"name": "file_exists: test.txt", "passed": True, "message": "ok"}],
         "all_passed": True,
     }
@@ -261,6 +275,7 @@ tasks:
             "cost_usd": 0.0, "tool_calls_count": 0,
             "assertion_pass_count": 1, "assertion_fail_count": 0,
             "assertion_pass_rate": 100.0,
+            "weighted_score": 100.0,
         },
         "assertions": [{"name": "file_exists: test.txt", "passed": True, "message": "ok"}],
         "all_passed": True,
