@@ -44,15 +44,24 @@ def run(
     typer.echo("Starting evaluation run...")
     run_dir = runner.execute()
 
+    if runner.interrupted:
+        typer.echo("Run interrupted. Saving partial results...")
+
     typer.echo("Generating report...")
     report_path = generate_report(run_dir)
 
-    typer.echo(f"Run complete: {run_dir}")
+    if runner.interrupted:
+        typer.echo(f"Partial run saved: {run_dir}")
+    else:
+        typer.echo(f"Run complete: {run_dir}")
     typer.echo(f"Report: {report_path}")
     if not verbose:
         typer.echo(f"Debug log: {run_dir / 'debug.log'}")
 
-    # Exit with non-zero if any assertion failed
+    # Exit with non-zero if any assertion failed or run was interrupted
+    if runner.interrupted:
+        raise typer.Exit(1)
+
     results = json.loads((run_dir / "results.json").read_text())
     all_passed = all(
         task_result.get("all_passed", False)

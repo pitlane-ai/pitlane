@@ -37,6 +37,7 @@ class Runner:
         self.assistant_filter = assistant_filter
         self.verbose = verbose
         self.parallel_tasks = parallel_tasks
+        self.interrupted = False
 
     def execute(self) -> Path:
         """Run all tasks against all assistants. Returns the run directory."""
@@ -72,11 +73,11 @@ class Runner:
 
         with ThreadPoolExecutor(max_workers=self.parallel_tasks) as executor:
             future_to_task = {}
-            
+
             for assistant_name, assistant_config in assistants.items():
                 all_results[assistant_name] = {}
                 adapter = get_adapter(assistant_config.adapter)
-                
+
                 for task in tasks:
                     future = executor.submit(
                         self._run_task,
@@ -88,16 +89,53 @@ class Runner:
                         logger=logger,
                     )
                     future_to_task[future] = (assistant_name, task.name)
-            
-            for future in as_completed(future_to_task):
-                assistant_name, task_name = future_to_task[future]
-                try:
-                    result = future.result()
-                    all_results[assistant_name][task_name] = result
-                except Exception as e:
-                    logger.error(f"Task '{task_name}' failed for assistant '{assistant_name}': {e}")
-                    raise
 
+            try:
+                for future in as_completed(future_to_task):
+                    assistant_name, task_name = future_to_task[future]
+                    try:
+                        result = future.result()
+                        all_results[assistant_name][task_name] = result
+                    except Exception as e:
+                        logger.error(f"Task '{task_name}' failed for assistant '{assistant_name}': {e}")
+                        raise
+            except KeyboardInterrupt:
+                self.interrupted = True
+                logger.warning("Run interrupted by user (Ctrl+C). Cancelling pending tasks, and saving partial results...")
+                
+                cancelled_count = 0
+                for future in future_to_task:
+                    # this only cancels tasks not yet started
+                    if future.cancel():
+                        cancelled_count += 1
+                
+                logger.info(f"Cancelled {cancelled_count} pending task(s). Running tasks will complete naturally.")
+                logger.info("Waiting for running tasks to finish (this may take up to their timeout duration)...")
+
+                # Collect results from any futures that completed
+                for future, (assistant_name, task_name) in future_to_task.items():
+                    if assistant_name in all_results and task_name in all_results[assistant_name]:
+                        continue  # already collected
+                    if future.done() and not future.cancelled():
+                        try:
+                            result = future.result(timeout=0)
+                            all_results[assistant_name][task_name] = result
+                        except Exception as e:
+                            logger.debug(f"Failed to collect result for {assistant_name}/{task_name}: {e}")
+
+        self._write_results(run_dir, all_results, assistants, tasks, cli_versions)
+
+        return run_dir
+
+    def _write_results(
+        self,
+        run_dir: Path,
+        all_results: dict[str, dict[str, Any]],
+        assistants: dict[str, AssistantConfig],
+        tasks: list[TaskConfig],
+        cli_versions: dict[str, str],
+    ) -> None:
+        """Write results.json and meta.yaml to the run directory."""
         (run_dir / "results.json").write_text(
             json.dumps(all_results, indent=2, default=str)
         )
@@ -108,17 +146,18 @@ class Runner:
         except Exception:
             agent_eval_version = "unknown"
 
-        meta = {
-            "run_id": run_id,
+        meta: dict[str, Any] = {
+            "run_id": run_dir.name,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "assistants": list(assistants.keys()),
             "tasks": [t.name for t in tasks],
             "cli_versions": cli_versions,
             "agent_eval_version": agent_eval_version,
         }
-        (run_dir / "meta.yaml").write_text(yaml.dump(meta, default_flow_style=False))
+        if self.interrupted:
+            meta["interrupted"] = True
 
-        return run_dir
+        (run_dir / "meta.yaml").write_text(yaml.dump(meta, default_flow_style=False))
 
     def _run_task(
         self,
