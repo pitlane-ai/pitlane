@@ -52,7 +52,7 @@ def test_load_minimal_config(tmp_yaml):
     assert task.workdir == "/tmp"
     assert task.timeout == 300
     assert [a.model_dump() for a in task.assertions] == [
-        {"file_exists": "hello.py"}
+        {"file_exists": "hello.py", "weight": 1.0}
     ]
 
 
@@ -157,6 +157,46 @@ def test_assertion_validation_accepts_known(tmp_yaml):
               - cosine_similarity: { actual: "a.txt", expected: "b.txt", min_score: 0.1 }
     """)
     load_config(path)
+
+
+def test_assertion_weight_accepted(tmp_yaml):
+    path = tmp_yaml("""
+        assistants:
+          a:
+            adapter: claude-code
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - file_exists: "x.py"
+                weight: 3.0
+              - command_succeeds: "echo ok"
+                weight: 0.5
+              - rouge: { actual: "a.txt", expected: "b.txt", min_score: 0.1 }
+                weight: 2.0
+    """)
+    cfg = load_config(path)
+    assertions = cfg.tasks[0].assertions
+    assert assertions[0].weight == 3.0
+    assert assertions[1].weight == 0.5
+    assert assertions[2].weight == 2.0
+
+
+def test_assertion_weight_defaults_to_one(tmp_yaml):
+    path = tmp_yaml("""
+        assistants:
+          a:
+            adapter: claude-code
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - file_exists: "x.py"
+    """)
+    cfg = load_config(path)
+    assert cfg.tasks[0].assertions[0].weight == 1.0
 
 
 def test_assertion_validation_rejects_unknown(tmp_yaml):

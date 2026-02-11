@@ -1,0 +1,61 @@
+# Weighted Grading Evaluation
+#
+# Demonstrates how to use assertion weights and continuous scoring
+# for finer-grained grading beyond simple pass/fail.
+#
+# Key ideas:
+#   - weight: controls how much each assertion matters (default 1.0)
+#   - weighted_score: uses continuous scores so similarity metrics
+#     contribute proportionally rather than just pass/fail
+#   - Similarity scores are normalized against min_score so that
+#     meeting the threshold = 100%, not the raw metric value
+#
+# Example: if "terraform validate" has weight 3 and "file_exists"
+# has weight 1, a passing validate is worth 3x more in the grade.
+
+assistants:
+  claude-baseline:
+    adapter: claude-code
+    args:
+      model: haiku
+
+tasks:
+  - name: fibonacci-module-weighted
+    prompt: >
+      Create a Python module called fib.py with a fibonacci(n) function
+      that returns the nth Fibonacci number. It should handle n=0 and n=1
+      as base cases, raise ValueError for negative inputs, and use an
+      iterative approach. Include type hints and a docstring.
+
+      Also create a README.md documenting the module with usage examples.
+
+      Finally, create test_fib.py with pytest tests covering base cases,
+      a few larger values, and the negative input error.
+    workdir: ./fixtures/codegen-similarity
+    timeout: 120
+    assertions:
+      # ── Core functionality (high weight) ─────────────────────────
+      # Tests passing is the most important signal
+      - command_succeeds: "python -m pytest test_fib.py -v"
+        weight: 3.0
+
+      # ── File structure (default weight) ──────────────────────────
+      - file_exists: "fib.py"
+      - file_exists: "test_fib.py"
+      - file_exists: "README.md"
+
+      # ── Code quality (medium weight) ─────────────────────────────
+      - file_contains: { path: "fib.py", pattern: "def fibonacci" }
+        weight: 2.0
+      - file_contains: { path: "fib.py", pattern: "ValueError" }
+        weight: 2.0
+
+      # ── Documentation quality (uses continuous scoring) ──────────
+      # These assertions use min_score thresholds. The weighted_score
+      # normalizes against the threshold: meeting it = 1.0, below
+      # scales proportionally. This avoids raw BLEU/ROUGE values
+      # (often <0.5) unfairly dragging down the overall grade.
+      - rouge: { actual: "README.md", expected: "./refs/expected-readme.md", metric: "rougeL", min_score: 0.3 }
+        weight: 1.5
+      - cosine_similarity: { actual: "fib.py", expected: "./refs/expected-fib.py", min_score: 0.7 }
+        weight: 1.5

@@ -38,6 +38,15 @@ def collect_metrics(
     total = passed + failed
     pass_rate = (passed / total * 100) if total > 0 else 0.0
 
+    # Weighted score: sum(weight_i * score_i) / sum(weight_i) * 100
+    # Uses continuous scores (0.0-1.0) rather than binary pass/fail,
+    # so similarity metrics contribute proportionally to their score.
+    total_weight = sum(r.weight for r in assertion_results)
+    if total_weight > 0:
+        weighted_score = sum(r.weight * r.score for r in assertion_results) / total_weight * 100
+    else:
+        weighted_score = 0.0
+
     # Token usage
     tu = adapter_result.token_usage or {}
 
@@ -54,4 +63,5 @@ def collect_metrics(
         "assertion_pass_count": passed,
         "assertion_fail_count": failed,
         "assertion_pass_rate": round(pass_rate, 2),
+        "weighted_score": round(weighted_score, 2),
     }

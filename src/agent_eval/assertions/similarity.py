@@ -93,8 +93,18 @@ def evaluate_similarity_assertion(
     if min_score is not None:
         message = f"{message} min_score={min_score:.4f}"
 
+    # Normalize score for weighted grade computation.
+    # With min_score: scale so that meeting the threshold = 1.0 and below
+    # scales proportionally (e.g. 0.35 vs threshold 0.7 → 0.5).
+    # Without min_score: use raw score (observational).
+    if min_score is not None and min_score > 0:
+        normalized = min(score / min_score, 1.0)
+    else:
+        normalized = score
+
     return AssertionResult(
         name=f"{kind}:{spec['actual']}:{spec['expected']}",
         passed=passed,
         message=message,
+        score=normalized,
     )

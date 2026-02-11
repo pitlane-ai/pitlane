@@ -55,6 +55,7 @@ class AssistantConfig(BaseModel):
 class FileExistsAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     file_exists: str
+    weight: float = 1.0
 
 
 class FileContainsSpec(BaseModel):
@@ -66,16 +67,19 @@ class FileContainsSpec(BaseModel):
 class FileContainsAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     file_contains: FileContainsSpec
+    weight: float = 1.0
 
 
 class CommandSucceedsAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     command_succeeds: str
+    weight: float = 1.0
 
 
 class CommandFailsAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     command_fails: str
+    weight: float = 1.0
 
 
 class SimilaritySpec(BaseModel):
@@ -89,21 +93,25 @@ class SimilaritySpec(BaseModel):
 class BleuAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     bleu: SimilaritySpec
+    weight: float = 1.0
 
 
 class RougeAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     rouge: SimilaritySpec
+    weight: float = 1.0
 
 
 class BERTScoreAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     bertscore: SimilaritySpec
+    weight: float = 1.0
 
 
 class CosineSimilarityAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     cosine_similarity: SimilaritySpec
+    weight: float = 1.0
 
 
 Assertion = (

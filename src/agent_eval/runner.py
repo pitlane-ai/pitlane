@@ -214,7 +214,13 @@ class Runner:
         return {
             "metrics": metrics,
             "assertions": [
-                {"name": ar.name, "passed": ar.passed, "message": ar.message}
+                {
+                    "name": ar.name,
+                    "passed": ar.passed,
+                    "message": ar.message,
+                    "score": ar.score,
+                    "weight": ar.weight,
+                }
                 for ar in assertion_results
             ],
             "all_passed": all(ar.passed for ar in assertion_results),

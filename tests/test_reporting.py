@@ -25,11 +25,12 @@ def sample_run_dir(tmp_path):
                     "assertion_pass_count": 3,
                     "assertion_fail_count": 0,
                     "assertion_pass_rate": 100.0,
+                    "weighted_score": 100.0,
                 },
                 "assertions": [
-                    {"name": "file_exists: main.tf", "passed": True, "message": ""},
-                    {"name": "file_exists: variables.tf", "passed": True, "message": ""},
-                    {"name": "command_succeeds: terraform validate", "passed": True, "message": ""},
+                    {"name": "file_exists: main.tf", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
+                    {"name": "file_exists: variables.tf", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
+                    {"name": "command_succeeds: terraform validate", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
                 ],
                 "all_passed": True,
             }
@@ -49,11 +50,12 @@ def sample_run_dir(tmp_path):
                     "assertion_pass_count": 2,
                     "assertion_fail_count": 1,
                     "assertion_pass_rate": 66.67,
+                    "weighted_score": 66.67,
                 },
                 "assertions": [
-                    {"name": "file_exists: main.tf", "passed": True, "message": ""},
-                    {"name": "file_exists: variables.tf", "passed": False, "message": "File not found"},
-                    {"name": "command_succeeds: terraform validate", "passed": True, "message": ""},
+                    {"name": "file_exists: main.tf", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
+                    {"name": "file_exists: variables.tf", "passed": False, "message": "File not found", "score": 0.0, "weight": 1.0},
+                    {"name": "command_succeeds: terraform validate", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
                 ],
                 "all_passed": False,
             }

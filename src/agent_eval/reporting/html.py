@@ -22,7 +22,7 @@ def generate_report(run_dir: Path) -> Path:
         "wall_clock_seconds", "exit_code", "files_created", "files_modified",
         "total_lines_generated", "token_usage_input", "token_usage_output",
         "cost_usd", "tool_calls_count", "assertion_pass_count",
-        "assertion_fail_count", "assertion_pass_rate",
+        "assertion_fail_count", "assertion_pass_rate", "weighted_score",
     ]
 
     template_dir = Path(__file__).parent / "templates"

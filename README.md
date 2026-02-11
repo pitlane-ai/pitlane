@@ -63,6 +63,7 @@ See the examples:
 - `examples/simple-codegen-eval.yaml` — minimal, deterministic assertions only.
 - `examples/similarity-codegen-eval.yaml` — extends simple codegen with ROUGE, BLEU, BERTScore, and cosine similarity, with guidance on which metrics suit code vs docs.
 - `examples/terraform-module-eval.yaml` — real-world Terraform eval with skills, multiple assistants, and all assertion types.
+- `examples/weighted-grading-eval.yaml` — demonstrates weighted assertions and continuous scoring for finer-grained grading.
 
 ### Assistants
 
@@ -190,6 +191,31 @@ No `metric` variants. Scores are 0–1. Also loads a model on first use (uses `a
 | `cosine_similarity` | Is it about the same thing? | Slow | Code or configs — semantic similarity |
 
 Start with deterministic assertions (`file_exists`, `command_succeeds`, `file_contains`) and add similarity metrics only where exact matching breaks down. Combine them — e.g. use `file_contains` to verify critical tokens, then `rouge` or `bertscore` to check overall quality.
+
+### Weighted Grading
+
+By default every assertion counts equally toward the pass rate. Add a `weight` field to make some assertions count more than others, and get a `weighted_score` metric that uses continuous scores instead of binary pass/fail.
+
+```yaml
+assertions:
+  - file_exists: "main.tf"
+  - command_succeeds: "terraform validate"
+    weight: 3.0            # 3x more important than default
+  - rouge: { actual: "README.md", expected: "./refs/golden.md", metric: "rougeL", min_score: 0.3 }
+    weight: 2.0
+```
+
+**How it works:**
+
+- `weight` defaults to 1.0 when omitted — fully backward compatible.
+- Binary assertions (file checks, commands) score 1.0 on pass, 0.0 on fail.
+- Similarity assertions with `min_score` are normalized against the threshold: meeting the threshold = 1.0, half the threshold = 0.5. This avoids raw metric values (e.g. BLEU 0.3) dragging down the grade even when they pass.
+- Similarity assertions without `min_score` use the raw metric value.
+- The `weighted_score` metric is: `sum(weight * score) / sum(weight) * 100`.
+
+Both `assertion_pass_rate` (unweighted binary) and `weighted_score` appear in `results.json` and the HTML report. Use `assertion_pass_rate` for a quick pass/fail overview and `weighted_score` when you want to express that some assertions matter more or want credit for partial similarity.
+
+See `examples/weighted-grading-eval.yaml` for a working example.
 
 ### Task Design Tips
 
