@@ -223,7 +223,7 @@ class Runner:
         # Evaluate assertions
         assertion_results = []
         for assertion_def in task.assertions:
-            ar = evaluate_assertion(workspace, assertion_def, source_dir=source_dir)
+            ar = evaluate_assertion(workspace, assertion_def, source_dir=source_dir, logger=task_logger)
             assertion_results.append(ar)
 
         # Collect metrics

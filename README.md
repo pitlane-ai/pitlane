@@ -114,6 +114,54 @@ tasks:
       - file_contains: { path: "hello.py", pattern: "Hello, World!" }
 ```
 
+### Custom Script Assertions
+
+When you need more complex validation logic than simple commands provide, use `custom_script` to run a dedicated test script. This is useful for multi-step validation, complex parsing, or reusable test logic.
+
+**Simple form** (expects exit code 0):
+```yaml
+- custom_script: "scripts/validate_output.sh"
+- custom_script: "python scripts/validate.py"
+- custom_script: "node scripts/check.js"
+```
+
+**Advanced form** with options:
+```yaml
+- custom_script:
+    script: "python scripts/validate_output.py"
+    args: ["--strict", "--format=json"]
+    timeout: 30
+    expected_exit_code: 0
+```
+
+**Options:**
+- `script` — Shell command to execute (e.g., `python script.py`, `node script.js`, `./script.sh`)
+- `args` — List of arguments to pass to the script (optional)
+- `timeout` — Maximum seconds to wait for completion (default: 60)
+- `expected_exit_code` — Exit code that indicates success (default: 0)
+
+The `script` field is executed as a shell command in the workdir, so you can use any interpreter:
+- **Python:** `python validate.py` or `python3 validate.py`
+- **Node.js:** `node check.js`
+- **Executable scripts:** `./validate.sh` (must have shebang and be executable)
+- **Any command:** Works like `command_succeeds` but with more control over timeout and exit codes
+
+Your script receives the workdir as its working directory, so it can access generated files directly. The assertion passes if the script exits with the expected code.
+
+**Example validation script** (`scripts/validate_tf.sh`):
+```bash
+#!/bin/bash
+# Check if Terraform config is valid and contains required resources
+terraform validate || exit 1
+grep -q "aws_s3_bucket" main.tf || exit 2
+exit 0
+```
+
+Use it in your eval:
+```yaml
+- custom_script: "scripts/validate_tf.sh"
+```
+
 ### Similarity Assertions
 
 When exact text matching isn't practical (generated prose, code with variable formatting), use similarity metrics to compare an output file against a golden reference. All four share the same YAML shape:
