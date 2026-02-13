@@ -1,6 +1,4 @@
 import json
-import pytest
-from pathlib import Path
 from agent_eval.adapters.mistral_vibe import MistralVibeAdapter
 
 

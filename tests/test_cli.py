@@ -1,6 +1,4 @@
-import pytest
 import json
-from pathlib import Path
 from typer.testing import CliRunner
 from agent_eval.cli import app
 

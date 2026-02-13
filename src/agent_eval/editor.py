@@ -63,7 +63,7 @@ def plan_vscode_settings_update(
     preview_lines = [
         "Planned updates to VS Code settings:",
         f"- `yaml.schemas[{schema_ref!r}]` -> {YAML_SCHEMA_TARGETS}",
-        f"- `yaml.validate` -> true",
+        "- `yaml.validate` -> true",
     ]
     if old_schema_targets is not None:
         preview_lines.append(f"- Previous `yaml.schemas[{schema_ref!r}]`: {old_schema_targets}")

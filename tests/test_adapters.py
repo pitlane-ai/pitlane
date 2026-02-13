@@ -1,6 +1,5 @@
 """Tests for the adapter system: AdapterResult, BaseAdapter, factory, and stubs."""
 
-from pathlib import Path
 
 import pytest
 

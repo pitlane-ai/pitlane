@@ -1,6 +1,5 @@
 import json
 import pytest
-from pathlib import Path
 from agent_eval.reporting.html import generate_report
 
 

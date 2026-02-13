@@ -58,7 +58,7 @@ def test_logger_creates_parent_directories():
     """Logger should create parent directories for debug file."""
     with tempfile.TemporaryDirectory() as tmpdir:
         debug_file = Path(tmpdir) / "nested" / "dir" / "debug.log"
-        logger = setup_logger(debug_file=debug_file, verbose=False)
+        setup_logger(debug_file=debug_file, verbose=False)
         
         assert debug_file.exists()
         assert debug_file.parent.exists()

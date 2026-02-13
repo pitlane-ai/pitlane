@@ -1,7 +1,4 @@
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 from agent_eval.adapters.claude_code import ClaudeCodeAdapter
 
 

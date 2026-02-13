@@ -2,8 +2,7 @@ import json
 import pytest
 import yaml
 from concurrent.futures import as_completed
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from agent_eval.runner import Runner
 from agent_eval.adapters.base import AdapterResult
 from agent_eval.config import load_config

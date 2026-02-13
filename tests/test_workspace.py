@@ -180,7 +180,6 @@ def test_install_skill_timeout_handling(manager: WorkspaceManager, tmp_path: Pat
 
 def test_install_skill_non_interactive(manager: WorkspaceManager, tmp_path: Path, monkeypatch):
     """Test that skill installation completes without user interaction (blackbox test)."""
-    import subprocess
     
     ws = tmp_path / "ws"
     ws.mkdir()

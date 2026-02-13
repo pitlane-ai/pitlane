@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from agent_eval.metrics import collect_metrics
 from agent_eval.adapters.base import AdapterResult
 from agent_eval.assertions.base import AssertionResult
