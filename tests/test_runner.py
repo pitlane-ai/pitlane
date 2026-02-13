@@ -1,10 +1,12 @@
 import json
+import math
 import pytest
 import yaml
 from concurrent.futures import as_completed
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from agent_eval.runner import Runner
+from agent_eval.runner import Runner, IterationResult
+from agent_eval.metrics import compute_stats, aggregate_results
 from agent_eval.adapters.base import AdapterResult
 from agent_eval.config import load_config
 
@@ -148,6 +150,149 @@ def test_runner_default_parallel_tasks(tmp_path, eval_config):
     assert runner.parallel_tasks == 1
 
 
+def test_runner_default_repeat(tmp_path, eval_config):
+    """Test that default repeat is 1."""
+    runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
+    assert runner.repeat == 1
+
+
+def test_runner_repeat_execution(tmp_path, eval_config):
+    """Test that repeat=3 runs the task 3 times and aggregates results."""
+    runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False, repeat=3)
+
+    call_count = 0
+
+    def mock_run(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return AdapterResult(
+            stdout="", stderr="", exit_code=0,
+            duration_seconds=float(call_count),
+            token_usage={"input": 100 * call_count, "output": 50 * call_count},
+            cost_usd=0.01 * call_count,
+        )
+
+    with patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", side_effect=mock_run):
+        run_dir = runner.execute()
+
+    assert call_count == 3
+
+    results = json.loads((run_dir / "results.json").read_text())
+    task_result = results["mock-claude"]["simple-test"]
+
+    # Should have aggregated structure
+    assert "repeat" in task_result
+    assert task_result["repeat"]["count"] == 3
+    assert len(task_result["repeat"]["iterations"]) == 3
+    assert "metrics_stats" in task_result
+
+    # Metrics should be averages
+    assert task_result["metrics"]["wall_clock_seconds"] is not None
+
+    # Stats should have avg, min, max, stddev
+    wc_stats = task_result["metrics_stats"]["wall_clock_seconds"]
+    assert "avg" in wc_stats
+    assert "min" in wc_stats
+    assert "max" in wc_stats
+    assert "stddev" in wc_stats
+
+
+def test_runner_repeat_meta_includes_repeat_count(tmp_path, eval_config):
+    """Test that meta.yaml includes the repeat count."""
+    import yaml
+
+    runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False, repeat=5)
+
+    mock_result = AdapterResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+    )
+    with patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result):
+        run_dir = runner.execute()
+
+    meta = yaml.safe_load((run_dir / "meta.yaml").read_text())
+    assert meta["repeat"] == 5
+
+
+def test_compute_stats_basic():
+    """Test compute_stats with normal values."""
+    stats = compute_stats([1.0, 2.0, 3.0])
+    assert stats.avg == 2.0
+    assert stats.min == 1.0
+    assert stats.max == 3.0
+    assert stats.stddev == 0.8165  # population std dev
+
+
+def test_compute_stats_single_value():
+    """Test compute_stats with a single value."""
+    stats = compute_stats([5.0])
+    assert stats.avg == 5.0
+    assert stats.min == 5.0
+    assert stats.max == 5.0
+    assert stats.stddev == 0.0
+
+
+def test_compute_stats_with_nones():
+    """Test compute_stats filters out None values."""
+    stats = compute_stats([1.0, None, 3.0])
+    assert stats.avg == 2.0
+    assert stats.min == 1.0
+    assert stats.max == 3.0
+
+
+def test_compute_stats_all_nones():
+    """Test compute_stats with all None values."""
+    stats = compute_stats([None, None])
+    assert stats.avg is None
+    assert stats.min is None
+    assert stats.max is None
+    assert stats.stddev is None
+
+
+def test_aggregate_results():
+    """Test aggregate_results produces correct structure."""
+    
+    run_results = [
+        IterationResult(
+            metrics={"wall_clock_seconds": 1.0, "exit_code": 0, "assertion_pass_rate": 100.0},
+            assertions=[{"name": "file_exists:test.py", "passed": True, "message": "exists"}],
+            all_passed=True,
+        ),
+        IterationResult(
+            metrics={"wall_clock_seconds": 3.0, "exit_code": 0, "assertion_pass_rate": 100.0},
+            assertions=[{"name": "file_exists:test.py", "passed": True, "message": "exists"}],
+            all_passed=True,
+        ),
+        IterationResult(
+            metrics={"wall_clock_seconds": 2.0, "exit_code": 1, "assertion_pass_rate": 0.0},
+            assertions=[{"name": "file_exists:test.py", "passed": False, "message": "not found"}],
+            all_passed=False,
+        ),
+    ]
+
+    result = aggregate_results(run_results)
+
+    assert result.repeat.count == 3
+    assert result.repeat.all_passed_count == 2
+    assert result.repeat.all_passed_rate == pytest.approx(66.7, abs=0.1)
+    assert result.all_passed is False
+
+    # Metrics should be averages
+    assert result.metrics["wall_clock_seconds"] == 2.0
+
+    # Stats
+    assert result.metrics_stats["wall_clock_seconds"].avg == 2.0
+    assert result.metrics_stats["wall_clock_seconds"].min == 1.0
+    assert result.metrics_stats["wall_clock_seconds"].max == 3.0
+
+    # Assertions summary
+    assert len(result.assertions) == 1
+    assert result.assertions[0].pass_rate == pytest.approx(66.7, abs=0.1)
+    assert result.assertions[0].message == "Passed 2/3 iterations"
+
+    # Iterations preserved
+    assert len(result.repeat.iterations) == 3
+
+
 def test_runner_interrupt_saves_partial_results(tmp_path):
     """Test that interrupting a run saves partial results and generates report."""
     fixture_dir = tmp_path / "fixtures" / "empty"
@@ -200,7 +345,7 @@ tasks:
             "assertion_pass_rate": 100.0,
             "weighted_score": 100.0,
         },
-        "assertions": [{"name": "file_exists: test.txt", "passed": True, "message": "ok"}],
+        "assertions": [{"name": "file_exists: test.txt", "passed": True, "message": "ok", "score": 1.0, "weight": 1.0}],
         "all_passed": True,
     }
 
@@ -227,8 +372,14 @@ tasks:
 
     results = json.loads((run_dir / "results.json").read_text())
     assert "mock-claude" in results
-    # At least one task should have completed
+    # At least one task should have completed (results are now aggregated)
     assert len(results["mock-claude"]) >= 1
+    
+    # Verify aggregated structure exists for completed tasks
+    for task_name, task_result in results["mock-claude"].items():
+        assert "repeat" in task_result
+        assert "metrics" in task_result
+        assert "assertions" in task_result
 
     # Meta should indicate interrupted
     meta = yaml.safe_load((run_dir / "meta.yaml").read_text())
@@ -277,7 +428,7 @@ tasks:
             "assertion_pass_rate": 100.0,
             "weighted_score": 100.0,
         },
-        "assertions": [{"name": "file_exists: test.txt", "passed": True, "message": "ok"}],
+        "assertions": [{"name": "file_exists: test.txt", "passed": True, "message": "ok", "score": 1.0, "weight": 1.0}],
         "all_passed": True,
     }
 

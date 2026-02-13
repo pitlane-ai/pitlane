@@ -11,6 +11,14 @@ def generate_report(run_dir: Path) -> Path:
     results_file = run_dir / "results.json"
     results = json.loads(results_file.read_text())
 
+    # Detect repeat count from meta or results structure
+    repeat = 1
+    meta_file = run_dir / "meta.yaml"
+    if meta_file.exists():
+        import yaml
+        meta = yaml.safe_load(meta_file.read_text())
+        repeat = meta.get("repeat", 1)
+
     assistants = list(results.keys())
     tasks = []
     for assistant_results in results.values():
@@ -34,6 +42,7 @@ def generate_report(run_dir: Path) -> Path:
         tasks=tasks,
         results=results,
         metric_keys=metric_keys,
+        repeat=repeat,
     )
 
     report_path = run_dir / "report.html"

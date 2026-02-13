@@ -33,11 +33,17 @@
   .chart-label { width: 140px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .chart-bar { height: 20px; border-radius: 3px; transition: width 0.3s; }
   .colors { --c0: #4285f4; --c1: #ea4335; --c2: #fbbc04; --c3: #34a853; --c4: #ff6d01; --c5: #46bdc6; }
+  .repeat-badge { display: inline-block; padding: 2px 8px; background: #e3f2fd; color: #1565c0; border-radius: 10px; font-size: 12px; font-weight: 600; margin-left: 8px; }
+  .stats-table { font-size: 12px; }
+  .stats-table td, .stats-table th { padding: 4px 10px; }
+  .iter-details { display: none; background: #f9f9f9; padding: 12px; margin-top: 8px; border-radius: 4px; }
+  .iter-details.open { display: block; }
+  .iter-toggle { cursor: pointer; color: #1565c0; font-size: 12px; text-decoration: underline; }
 </style>
 </head>
 <body class="colors">
-<h1>agent-eval Report</h1>
-<p class="meta">Generated from run data</p>
+<h1>agent-eval Report{% if repeat > 1 %}<span class="repeat-badge">{{ repeat }}x repeat</span>{% endif %}</h1>
+<p class="meta">Generated from run data{% if repeat > 1 %} — each task repeated {{ repeat }} times, showing averages ± stddev{% endif %}</p>
 <a href="debug.log" class="debug-link">📋 View main debug.log</a>
 {% for assistant in assistants %}
   {% for task in tasks %}
@@ -71,8 +77,13 @@
       {% else %}
       <td class="fail">
       {% endif %}
+        {% if repeat > 1 and r.repeat %}
+        {{ r.repeat.all_passed_rate }}% runs pass<br>
+        <span class="metric">avg {{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {% if r.metrics.tool_calls_count is not none %}{{ "%.0f"|format(r.metrics.tool_calls_count) }}{% else %}?{% endif %} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
+        {% else %}
         {{ r.metrics.assertion_pass_rate }}% pass | {{ r.metrics.weighted_score }}% weighted<br>
         <span class="metric">{{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {% if r.metrics.tool_calls_count is not none %}{{ r.metrics.tool_calls_count }}{% else %}unknown{% endif %} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
+        {% endif %}
       </td>
       {% else %}
       <td>—</td>
@@ -82,6 +93,42 @@
     <tr>
       <td colspan="{{ assistants|length + 1 }}">
         <div class="details" id="details-{{ task }}">
+          {% if repeat > 1 %}
+          {# --- Repeat mode: show stats table --- #}
+          <h4 style="margin: 0 0 8px;">Metrics (avg ± stddev across {{ repeat }} runs)</h4>
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                {% for assistant in assistants %}
+                <th>{{ assistant }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for metric_key in metric_keys %}
+              <tr>
+                <td>{{ metric_key }}</td>
+                {% for assistant in assistants %}
+                {% set r = results[assistant][task] %}
+                <td>
+                  {% if r and r.metrics_stats and r.metrics_stats[metric_key] %}
+                  {% set s = r.metrics_stats[metric_key] %}
+                  {% if s.avg is not none %}
+                    {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(s.avg) }} ± {{ "%.1f"|format(s.stddev) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(s.avg) }} ± {{ "%.4f"|format(s.stddev) }}{% else %}{{ s.avg }} ± {{ s.stddev }}{% endif %}
+                    <br><span class="metric">min={{ s.min }} max={{ s.max }}</span>
+                  {% else %}—{% endif %}
+                  {% elif r and r.metrics[metric_key] is not none %}
+                    {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics[metric_key]) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics[metric_key]) }}{% else %}{{ r.metrics[metric_key] }}{% endif %}
+                  {% else %}—{% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          {# --- Single run mode --- #}
           <table>
             <thead>
               <tr>
@@ -103,16 +150,31 @@
               {% endfor %}
             </tbody>
           </table>
-          <h4 style="margin: 12px 0 8px;">Assertions</h4>
+          {% endif %}
+
+          <h4 style="margin: 12px 0 8px;">Assertions{% if repeat > 1 %} (pass rate across iterations){% endif %}</h4>
           {% for assistant in assistants %}
           <p><strong>{{ assistant }}</strong></p>
           {% set r = results[assistant][task] %}
           {% if r %}
           <ul class="assertion-list">
             {% for a in r.assertions %}
-            <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}{% if a.weight is defined and a.weight != 1.0 %} [weight={{ a.weight }}]{% endif %}{% if a.score is defined %} [score={{ "%.4f"|format(a.score) }}]{% endif %}</li>
+            <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}{% if repeat > 1 and a.pass_rate is defined %} ({{ a.pass_rate }}%){% endif %}{% if a.weight is defined and a.weight != 1.0 %} [weight={{ a.weight }}]{% endif %}{% if a.score is defined %} [score={{ "%.4f"|format(a.score) }}]{% endif %}</li>
             {% endfor %}
           </ul>
+          {% if repeat > 1 and r.repeat %}
+          <span class="iter-toggle" onclick="toggleIterDetails('{{ assistant }}-{{ task }}')">Show individual iterations</span>
+          <div class="iter-details" id="iter-{{ assistant }}-{{ task }}">
+            {% for iter_result in r.repeat.iterations %}
+            <p style="font-size:12px; margin: 8px 0 4px;"><strong>Iteration {{ loop.index }}</strong> — {% if iter_result.all_passed %}PASS{% else %}FAIL{% endif %}</p>
+            <ul class="assertion-list" style="font-size:12px;">
+              {% for a in iter_result.assertions %}
+              <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}</li>
+              {% endfor %}
+            </ul>
+            {% endfor %}
+          </div>
+          {% endif %}
           {% endif %}
           {% endfor %}
         </div>
@@ -125,7 +187,7 @@
 <h2>Metrics Comparison</h2>
 {% for metric_key in ["wall_clock_seconds", "cost_usd", "token_usage_input", "tool_calls_count", "assertion_pass_rate", "weighted_score"] %}
 <div class="chart-section">
-  <h3>{{ metric_key }}</h3>
+  <h3>{{ metric_key }}{% if repeat > 1 %} (avg){% endif %}</h3>
   {% for task in tasks %}
   <p style="font-size:12px; color:#666; margin: 4px 0;">{{ task }}</p>
   {% set max_val = [] %}
@@ -143,7 +205,7 @@
   <div class="chart-row">
     <span class="chart-label">{{ assistant }}</span>
     <div class="chart-bar" style="width: {{ pct }}%; max-width: 400px; background: var(--c{{ loop.index0 % 6 }});">&nbsp;</div>
-    <span>{% if val %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(val) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(val) }}{% else %}{{ val }}{% endif %}{% else %}—{% endif %}</span>
+    <span>{% if val %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(val) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(val) }}{% else %}{{ val }}{% endif %}{% else %}—{% endif %}{% if repeat > 1 and r and r.metrics_stats and r.metrics_stats[metric_key] and r.metrics_stats[metric_key].stddev is not none %} <span class="metric">± {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics_stats[metric_key].stddev) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics_stats[metric_key].stddev) }}{% else %}{{ r.metrics_stats[metric_key].stddev }}{% endif %}</span>{% endif %}</span>
   </div>
   {% endfor %}
   {% endfor %}
@@ -153,6 +215,10 @@
 <script>
 function toggleDetails(task) {
   var el = document.getElementById('details-' + task);
+  if (el) el.classList.toggle('open');
+}
+function toggleIterDetails(id) {
+  var el = document.getElementById('iter-' + id);
   if (el) el.classList.toggle('open');
 }
 </script>

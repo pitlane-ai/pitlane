@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -14,9 +14,28 @@ from agent_eval.adapters import get_adapter
 from agent_eval.adapters.base import BaseAdapter
 from agent_eval.assertions.deterministic import evaluate_assertion
 from agent_eval.config import EvalConfig, AssistantConfig, TaskConfig
-from agent_eval.metrics import collect_metrics
+from agent_eval.metrics import (
+    collect_metrics,
+    aggregate_results,
+)
 from agent_eval.verbose import setup_logger
 from agent_eval.workspace import WorkspaceManager
+
+# Type aliases for clarity
+AssistantName = str
+TaskName = str
+
+
+@dataclass
+class IterationResult:
+    """Results from a single iteration."""
+    metrics: dict[str, float | None]
+    assertions: list[dict[str, Any]]
+    all_passed: bool
+    iteration_index: int = 0
+    
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 class Runner:
@@ -30,6 +49,7 @@ class Runner:
         assistant_filter: str | None = None,
         verbose: bool = False,
         parallel_tasks: int = 1,
+        repeat: int = 1,
     ):
         self.config = config
         self.output_dir = output_dir
@@ -37,6 +57,7 @@ class Runner:
         self.assistant_filter = assistant_filter
         self.verbose = verbose
         self.parallel_tasks = parallel_tasks
+        self.repeat = repeat
         self.interrupted = False
 
     def execute(self) -> Path:
@@ -79,23 +100,39 @@ class Runner:
                 adapter = get_adapter(assistant_config.adapter)
 
                 for task in tasks:
-                    future = executor.submit(
-                        self._run_task,
-                        workspace_mgr=workspace_mgr,
-                        adapter=adapter,
-                        assistant_name=assistant_name,
-                        assistant_config=assistant_config,
-                        task=task,
-                        logger=logger,
-                    )
-                    future_to_task[future] = (assistant_name, task.name)
+                    for iteration in range(self.repeat):
+                        future = executor.submit(
+                            self._run_task,
+                            workspace_mgr=workspace_mgr,
+                            adapter=adapter,
+                            assistant_name=assistant_name,
+                            assistant_config=assistant_config,
+                            task=task,
+                            logger=logger,
+                            iteration=iteration,
+                        )
+                        future_to_task[future] = (assistant_name, task.name, iteration)
+
+            # Collect per-iteration results
+            iteration_results: dict[AssistantName, dict[TaskName, list[IterationResult]]] = {}
+            for assistant_name in assistants:
+                iteration_results[assistant_name] = {}
 
             try:
                 for future in as_completed(future_to_task):
-                    assistant_name, task_name = future_to_task[future]
+                    assistant_name, task_name, iteration = future_to_task[future]
                     try:
-                        result = future.result()
-                        all_results[assistant_name][task_name] = result
+                        result_dict = future.result()
+                        # Convert dict to IterationResult object
+                        result = IterationResult(
+                            metrics=result_dict["metrics"],
+                            assertions=result_dict["assertions"],
+                            all_passed=result_dict["all_passed"],
+                            iteration_index=iteration,
+                        )
+                        if task_name not in iteration_results[assistant_name]:
+                            iteration_results[assistant_name][task_name] = []
+                        iteration_results[assistant_name][task_name].append(result)
                     except Exception as e:
                         logger.error(f"Task '{task_name}' failed for assistant '{assistant_name}': {e}")
                         raise
@@ -113,15 +150,31 @@ class Runner:
                 logger.info("Waiting for running tasks to finish (this may take up to their timeout duration)...")
 
                 # Collect results from any futures that completed
-                for future, (assistant_name, task_name) in future_to_task.items():
-                    if assistant_name in all_results and task_name in all_results[assistant_name]:
-                        continue  # already collected
+                for future, (assistant_name, task_name, iteration) in future_to_task.items():
+                    if task_name not in iteration_results[assistant_name]:
+                        iteration_results[assistant_name][task_name] = []
                     if future.done() and not future.cancelled():
                         try:
-                            result = future.result(timeout=0)
-                            all_results[assistant_name][task_name] = result
+                            result_dict = future.result(timeout=0)
+                            result = IterationResult(
+                                metrics=result_dict["metrics"],
+                                assertions=result_dict["assertions"],
+                                all_passed=result_dict["all_passed"],
+                                iteration_index=iteration,
+                            )
+                            # Only add if not already collected
+                            if not any(r.iteration_index == iteration for r in iteration_results[assistant_name][task_name]):
+                                iteration_results[assistant_name][task_name].append(result)
                         except Exception as e:
                             logger.debug(f"Failed to collect result for {assistant_name}/{task_name}: {e}")
+
+        # Build final results: always aggregate (single run is just 1 iteration)
+        for assistant_name in iteration_results:
+            for task_name in iteration_results[assistant_name]:
+                results_list = iteration_results[assistant_name][task_name]
+                results_list.sort(key=lambda r: r.iteration_index)
+                aggregated = aggregate_results(results_list)
+                all_results[assistant_name][task_name] = aggregated.to_dict()
 
         self._write_results(run_dir, all_results, assistants, tasks, cli_versions)
 
@@ -153,6 +206,7 @@ class Runner:
             "tasks": [t.name for t in tasks],
             "cli_versions": cli_versions,
             "agent_eval_version": agent_eval_version,
+            "repeat": self.repeat,
         }
         if self.interrupted:
             meta["interrupted"] = True
@@ -167,26 +221,28 @@ class Runner:
         assistant_config: AssistantConfig,
         task: TaskConfig,
         logger: logging.Logger,
+        iteration: int,
     ) -> dict[str, Any]:
         """Run a single task for a single assistant."""
 
         source_dir = Path(task.workdir)
+        task_name_with_iter = f"{task.name}/iter-{iteration}"
         workspace = workspace_mgr.create_workspace(
             source_dir=source_dir,
             run_id=".",  # already inside run_dir
             assistant_name=assistant_name,
-            task_name=task.name,
+            task_name=task_name_with_iter,
         )
 
         # task-specific debug log
         task_dir = workspace.parent  # task dir
         task_debug_file = task_dir / "debug.log"
-        
-        # note: logger name must be unique per assistant+task to avoid handler collision
+
+        # note: logger name must be unique per assistant+task+iteration to avoid handler collision
         task_logger = setup_logger(
             debug_file=task_debug_file,
             verbose=self.verbose,
-            logger_name=f"agent_eval_{assistant_name}_{task.name}"
+            logger_name=f"agent_eval_{assistant_name}_{task.name}_iter{iteration}"
         )
         
         logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")
