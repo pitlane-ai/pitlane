@@ -18,6 +18,7 @@ def run(
     output_dir: str = typer.Option("runs", help="Output directory for run results"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug output to terminal"),
     parallel: int = typer.Option(1, "--parallel", "-p", min=1, max=100, help="Number of parallel tasks to run"),
+    repeat: int = typer.Option(1, "--repeat", "-r", min=1, max=100, help="Number of times to repeat each task"),
 ):
     """Run evaluation tasks against configured assistants."""
     from agent_eval.config import load_config
@@ -39,6 +40,7 @@ def run(
         assistant_filter=assistant,
         verbose=verbose,
         parallel_tasks=parallel,
+        repeat=repeat,
     )
 
     typer.echo("Starting evaluation run...")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -63,9 +64,16 @@ def _score_cosine(actual: str, expected: str) -> float:
 
 
 def evaluate_similarity_assertion(
-    workdir: str | Path, kind: str, spec: dict[str, Any], *, source_dir: str | Path | None = None,
+    workdir: str | Path,
+    kind: str,
+    spec: dict[str, Any],
+    *,
+    source_dir: str | Path | None = None,
+    logger: logging.Logger,
 ) -> AssertionResult:
     _require_similarity_deps()
+
+    logger.info(f"Evaluating {kind} similarity: {spec.get('actual')} vs {spec.get('expected')}")
 
     actual_text = _read_text(workdir, spec["actual"])
     # Read expected files from original source_dir (not workspace) so that
@@ -87,6 +95,9 @@ def evaluate_similarity_assertion(
         raise ValueError(f"Unknown similarity assertion type: '{kind}'")
 
     passed = True if min_score is None else score >= min_score
+
+    logger.info(f"{kind} score: {score:.4f}, min_score: {min_score}, passed={passed}")
+
     message = f"score={score:.4f}"
     if min_score is not None:
         message = f"{message} min_score={min_score:.4f}"

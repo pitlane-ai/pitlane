@@ -114,6 +114,21 @@ class CosineSimilarityAssertion(BaseModel):
     weight: float = 1.0
 
 
+class CustomScriptSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    interpreter: str | None = None
+    interpreter_args: list[str] = []
+    script: str
+    script_args: list[str] = []
+    timeout: int = 60
+    expected_exit_code: int = 0
+
+
+class CustomScriptAssertion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    custom_script: str | CustomScriptSpec
+
+
 Assertion = (
     FileExistsAssertion
     | FileContainsAssertion
@@ -123,6 +138,7 @@ Assertion = (
     | RougeAssertion
     | BERTScoreAssertion
     | CosineSimilarityAssertion
+    | CustomScriptAssertion
 )
 
 
