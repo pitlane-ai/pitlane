@@ -10,10 +10,10 @@ from agent_eval.assertions.base import AssertionResult
 
 def _require_similarity_deps() -> None:
     try:
-        import evaluate  # noqa: F401
-        import sentence_transformers  # noqa: F401
-        import bert_score  # noqa: F401
-    except Exception as exc:  # pragma: no cover - import errors vary by environment
+        import evaluate  
+        import sentence_transformers  
+        import bert_score  
+    except Exception as exc: 
         raise ValueError(
             "Similarity assertions require installed deps. Run: uv sync"
         ) from exc
