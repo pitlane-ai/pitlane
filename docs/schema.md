@@ -3,15 +3,18 @@
 This doc is generated from the Pydantic models.
 
 ## Top-level keys
+
 - `assistants`: mapping of assistant names to config.
 - `tasks`: list of task definitions.
 
 ## Assistant Config
+
 - `adapter`: string (required) - one of: claude-code, cline, codex, mistral-vibe, opencode
 - `args`: object (optional) - adapter-specific arguments
 - `skills`: array (optional) - list of skill references
 
 ## Assertions
+
 - `file_exists`: string
 - `file_contains`: { path, pattern }
 - `command_succeeds`: string
@@ -32,7 +35,7 @@ Run custom validation scripts with full control over interpreter, arguments, and
 assertions:
   # Simple shell script
   - custom_script: "./validate.sh"
-  
+
   # Python script with interpreter
   - custom_script:
       interpreter: python
@@ -53,13 +56,13 @@ assertions:
       timeout: 120
       expected_exit_code: 0
       weight: 2.0
-  
+
   # Node.js script
   - custom_script:
       interpreter: node
       script: validator.js
       script_args: ["--config", "strict.json"]
-  
+
   # Ruby script expecting failure
   - custom_script:
       interpreter: ruby
@@ -80,11 +83,13 @@ assertions:
 ### Command Construction
 
 The command is built as:
+
 ```
 {interpreter} {interpreter_args...} {script} {script_args...}
 ```
 
 Examples:
+
 - `python -u scripts/validate.py --strict --format=json`
 - `node validator.js --config strict.json`
 - `./validate.sh --strict` (no interpreter)
