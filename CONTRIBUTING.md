@@ -15,7 +15,7 @@ This guide covers development setup, testing, and how to submit changes.
 1. Fork and clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/agent-eval.git
+git clone https://github.com/vburckhardt/agent-eval.git
 cd agent-eval
 ```
 
@@ -27,9 +27,17 @@ uv sync
 
 3. Install the CLI in development mode:
 
-```bash
-uv tool install .
-```
+   ```bash
+   uv tool install .
+   ```
+
+4. Install pre-commit hooks:
+
+   ```bash
+   uv run pre-commit install
+   ```
+
+   This will automatically run code quality checks before each commit.
 
 ## Running Tests
 
@@ -61,7 +69,7 @@ uv run pytest --cov=src/agent_eval --cov-report=html
 
 ### Adding a New Adapter
 
-To support a new AI coding assistant:
+We currently support Claude Code, Mistral Vibe, and OpenCode. To add support for a new AI coding assistant:
 
 1. Create `src/agent_eval/adapters/your_adapter.py`
 2. Inherit from `BaseAdapter` in `adapters/base.py`
@@ -73,8 +81,9 @@ To support a new AI coding assistant:
    - `conversation` - List of message exchanges
    - `token_usage` - Token counts (if available)
    - `cost_usd` - Estimated cost (if available)
-5. Add tests in `tests/test_adapter_your_adapter.py`
+5. Add comprehensive tests in `tests/test_adapter_your_adapter.py`
 6. Update the adapter registry in `adapters/__init__.py`
+7. Add the adapter to the supported assistants table in README.md
 
 Example adapter structure:
 
@@ -85,11 +94,11 @@ class YourAdapter(BaseAdapter):
     @staticmethod
     def cli_name() -> str:
         return "your-assistant"
-    
+
     @staticmethod
     def agent_type() -> str:
         return "YourAssistant"
-    
+
     def run(self, task_prompt: str, workdir: Path, timeout: int) -> AdapterResult:
         # Implementation here
         pass
@@ -120,11 +129,25 @@ See existing adapters for complete examples.
 - Keep functions focused and testable
 - Add docstrings for public APIs
 
-Run the linter:
+### Pre-commit Hooks
+
+The project uses pre-commit hooks to ensure code quality. These run automatically before each commit if you installed them (see setup step 4).
+
+Run all checks manually:
 
 ```bash
-uv run ruff check src/ tests/
+uv run pre-commit run --all-files
 ```
+
+The pre-commit hooks include:
+
+- Ruff linting and formatting
+- mypy type checking
+- pytest (fast tests only)
+- YAML validation
+- Markdown linting
+- Secret detection
+- File quality checks (trailing whitespace, end-of-file fixes, etc.)
 
 ## Testing Guidelines
 
@@ -138,37 +161,38 @@ uv run ruff check src/ tests/
 
 1. Create a feature branch:
 
-```bash
-git checkout -b feature/your-feature-name
-```
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
 2. Make your changes and add tests
 
 3. Run tests:
 
-```bash
-uv run pytest
-```
+   ```bash
+   uv run pytest
+   ```
 
 4. Commit with a clear message:
 
-```bash
-git commit -m "feat: add support for new assistant"
-```
+   ```bash
+   git commit -m "feat: add support for new assistant"
+   ```
 
-Use conventional commit prefixes:
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `test:` - Test additions or changes
-- `refactor:` - Code refactoring
-- `chore:` - Maintenance tasks
+   Use conventional commit prefixes:
+
+   - `feat:` - New features
+   - `fix:` - Bug fixes
+   - `docs:` - Documentation changes
+   - `test:` - Test additions or changes
+   - `refactor:` - Code refactoring
+   - `chore:` - Maintenance tasks
 
 5. Push to your fork:
 
-```bash
-git push origin feature/your-feature-name
-```
+   ```bash
+   git push origin feature/your-feature-name
+   ```
 
 6. Open a pull request on GitHub
 

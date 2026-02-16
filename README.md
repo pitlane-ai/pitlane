@@ -1,12 +1,20 @@
 # agent-eval
 
+[![CI](https://github.com/vburckhardt/agent-eval/workflows/CI/badge.svg)](https://github.com/vburckhardt/agent-eval/actions)
+[![codecov](https://codecov.io/gh/vburckhardt/agent-eval/branch/main/graph/badge.svg)](https://codecov.io/gh/vburckhardt/agent-eval)
+[![PyPI version](https://badge.fury.io/py/agent-eval.svg)](https://badge.fury.io/py/agent-eval)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
+
 A lightweight evaluation harness for AI coding assistants. Define benchmarks in YAML, run them across multiple assistants, and get comparable metrics on what works.
 
 ## What It Does
 
-`agent-eval` lets you test whether your skills, MCP servers, or prompts actually improve AI assistant performance. Write a benchmark once, run it against Claude Code, Codex, Cline, Mistral Vibe, or OpenCode, and see which configurations perform best.
+`agent-eval` lets you test whether your skills, MCP servers, or prompts actually improve AI assistant performance. Write a benchmark once, run it against multiple assistants, and see which configurations perform best.
 
 **Key features:**
+
 - YAML-based benchmark definitions (easy to version and diff)
 - Deterministic assertions (file checks, command execution, custom scripts)
 - Similarity metrics (ROUGE, BLEU, BERTScore, cosine similarity)
@@ -45,7 +53,7 @@ Results appear in `runs/` with an HTML report showing pass rates and metrics acr
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/agent-eval.git
+git clone https://github.com/vburckhardt/agent-eval.git
 cd agent-eval
 
 # Install dependencies
@@ -180,13 +188,22 @@ assistants:
         skill: my-skill-name
 ```
 
-**Available adapters:** `claude-code`, `codex`, `cline`, `mistral-vibe`, `opencode`
+## Supported Assistants
 
-Run `agent-eval run --help` to see all adapters.
+Currently supported AI coding assistants:
+
+| Assistant | Adapter Name | Status |
+|-----------|--------------|--------|
+| [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
+| [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
+| [OpenCode](https://github.com/opencode-ai/opencode) | `opencode` | ✅ Tested |
+
+**Want to add support for another assistant?** See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-adapter) for instructions on implementing new adapters.
 
 ### Tasks
 
 Each task specifies:
+
 - `name`: Unique identifier
 - `prompt`: Instructions for the assistant
 - `workdir`: Fixture directory (copied for each run)
@@ -201,18 +218,18 @@ Each task specifies:
 assertions:
   # File exists
   - file_exists: "main.py"
-  
+
   # Command succeeds (exit code 0)
   - command_succeeds: "python main.py"
-  
+
   # Command fails (non-zero exit)
   - command_fails: "python main.py --invalid"
-  
+
   # File contains pattern (regex)
   - file_contains:
       path: "main.py"
       pattern: "def main\\(\\):"
-  
+
   # Custom script validation
   - custom_script:
       script: "./validate.sh"
@@ -226,6 +243,7 @@ assertions:
 When you need more complex validation logic than simple commands provide, use `custom_script` to run a dedicated test script. This is useful for multi-step validation, complex parsing, or reusable test logic.
 
 **Simple form** (expects exit code 0):
+
 ```yaml
 - custom_script: "scripts/validate_output.sh"
 - custom_script: "python scripts/validate.py"
@@ -233,6 +251,7 @@ When you need more complex validation logic than simple commands provide, use `c
 ```
 
 **Advanced form** with options:
+
 ```yaml
 - custom_script:
     script: "python scripts/validate_output.py"
@@ -242,12 +261,14 @@ When you need more complex validation logic than simple commands provide, use `c
 ```
 
 **Options:**
+
 - `script` — Shell command to execute (e.g., `python script.py`, `node script.js`, `./script.sh`)
 - `args` — List of arguments to pass to the script (optional)
 - `timeout` — Maximum seconds to wait for completion (default: 60)
 - `expected_exit_code` — Exit code that indicates success (default: 0)
 
 The `script` field is executed as a shell command in the workdir, so you can use any interpreter:
+
 - **Python:** `python validate.py` or `python3 validate.py`
 - **Node.js:** `node check.js`
 - **Executable scripts:** `./validate.sh` (must have shebang and be executable)
@@ -256,6 +277,7 @@ The `script` field is executed as a shell command in the workdir, so you can use
 Your script receives the workdir as its working directory, so it can access generated files directly. The assertion passes if the script exits with the expected code.
 
 **Example validation script** (`scripts/validate_tf.sh`):
+
 ```bash
 #!/bin/bash
 # Check if Terraform config is valid and contains required resources
@@ -265,6 +287,7 @@ exit 0
 ```
 
 Use it in your eval:
+
 ```yaml
 - custom_script: "scripts/validate_tf.sh"
 ```
@@ -283,19 +306,19 @@ assertions:
       expected: "./refs/golden.md"
       metric: "rougeL"
       min_score: 0.35
-  
+
   # BLEU: phrase matching (good for docs, not code)
   - bleu:
       actual: "README.md"
       expected: "./refs/golden.md"
       min_score: 0.2
-  
+
   # BERTScore: semantic similarity (good for docs/code)
   - bertscore:
       actual: "README.md"
       expected: "./refs/golden.md"
       min_score: 0.75
-  
+
   # Cosine similarity: overall meaning (good for code/configs)
   - cosine_similarity:
       actual: "variables.tf"
@@ -390,6 +413,7 @@ agent-eval schema generate
 ```
 
 Outputs:
+
 - `agent-eval/schemas/agent-eval.schema.json`
 - `agent-eval/docs/schema.md`
 
