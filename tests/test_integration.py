@@ -114,9 +114,9 @@ def test_skill_installation_non_interactive(tmp_path):
     # Verify skill installation artifacts exist
     # The skills CLI creates .agents/skills/<skillname>/SKILL.md
     skill_files = list((ws / ".agents" / "skills").rglob("SKILL.md"))
-    assert (
-        len(skill_files) > 0
-    ), "Expected SKILL.md file not found under .agents/skills/ after skill installation"
+    assert len(skill_files) > 0, (
+        "Expected SKILL.md file not found under .agents/skills/ after skill installation"
+    )
 
 
 @pytest.mark.integration

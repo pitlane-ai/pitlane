@@ -3,8 +3,6 @@
     "AdapterType": {
       "enum": [
         "claude-code",
-        "cline",
-        "codex",
         "mistral-vibe",
         "opencode"
       ],

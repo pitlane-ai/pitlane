@@ -1,6 +1,6 @@
 {
   "yaml.schemas": {
-    "./schemas/agent-eval.schema.json": [
+    "./agent-eval/schemas/agent-eval.schema.json": [
       "eval.yaml",
       "examples/*.yaml",
       "**/*eval*.y*ml"

@@ -36,5 +36,9 @@ markers = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-cov>=6.0.0",
     "ruff>=0.15.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.0",
+    "types-pyyaml>=6.0.0",
 ]
