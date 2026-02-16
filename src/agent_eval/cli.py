@@ -16,9 +16,15 @@ def run(
     task: str | None = typer.Option(None, help="Run only this task"),
     assistant: str | None = typer.Option(None, help="Run only this assistant"),
     output_dir: str = typer.Option("runs", help="Output directory for run results"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debug output to terminal"),
-    parallel: int = typer.Option(1, "--parallel", "-p", min=1, max=100, help="Number of parallel tasks to run"),
-    repeat: int = typer.Option(1, "--repeat", "-r", min=1, max=100, help="Number of times to repeat each task"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable debug output to terminal"
+    ),
+    parallel: int = typer.Option(
+        1, "--parallel", "-p", min=1, max=100, help="Number of parallel tasks to run"
+    ),
+    repeat: int = typer.Option(
+        1, "--repeat", "-r", min=1, max=100, help="Number of times to repeat each task"
+    ),
 ):
     """Run evaluation tasks against configured assistants."""
     from agent_eval.config import load_config
@@ -92,7 +98,9 @@ def report(
 
 @app.command()
 def init(
-    dir: str = typer.Option("agent-eval", "--dir", help="Directory to initialize eval project in"),
+    dir: str = typer.Option(
+        "agent-eval", "--dir", help="Directory to initialize eval project in"
+    ),
 ):
     """Initialize a new eval project with example config."""
     project_dir = Path(dir)
@@ -134,9 +142,12 @@ tasks:
 
 @schema_app.command("generate")
 def schema_generate(
-    dir: str = typer.Option("agent-eval", "--dir", help="Project directory for default schema/doc outputs"),
+    dir: str = typer.Option(
+        "agent-eval", "--dir", help="Project directory for default schema/doc outputs"
+    ),
     out: str | None = typer.Option(
-        None, help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)"
+        None,
+        help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)",
     ),
     doc: str | None = typer.Option(
         None, help="Output path for schema docs (defaults to <dir>/docs/schema.md)"
@@ -146,7 +157,11 @@ def schema_generate(
     from agent_eval.schema import write_json_schema, write_schema_doc
 
     project_dir = Path(dir)
-    out_path = Path(out) if out is not None else project_dir / "schemas" / "agent-eval.schema.json"
+    out_path = (
+        Path(out)
+        if out is not None
+        else project_dir / "schemas" / "agent-eval.schema.json"
+    )
     doc_path = Path(doc) if doc is not None else project_dir / "docs" / "schema.md"
     write_json_schema(out_path)
     write_schema_doc(doc_path)
@@ -156,9 +171,14 @@ def schema_generate(
 
 @schema_app.command("install")
 def schema_install(
-    dir: str = typer.Option("agent-eval", "--dir", help="Project directory for default outputs and editor settings"),
+    dir: str = typer.Option(
+        "agent-eval",
+        "--dir",
+        help="Project directory for default outputs and editor settings",
+    ),
     out: str | None = typer.Option(
-        None, help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)"
+        None,
+        help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)",
     ),
     doc: str | None = typer.Option(
         None, help="Output path for schema docs (defaults to <dir>/docs/schema.md)"
@@ -180,15 +200,15 @@ def schema_install(
         "--non-interactive",
         help="Disable interactive prompts; requires --yes to apply changes",
     ),
-    yes: bool = typer.Option(False, "--yes", help="Apply changes without interactive confirmation"),
+    yes: bool = typer.Option(
+        False, "--yes", help="Apply changes without interactive confirmation"
+    ),
     backup: bool = typer.Option(
         True,
         "--backup/--no-backup",
         help="Create a backup before writing settings.json",
     ),
-    backup_file: str | None = typer.Option(
-        None, help="Optional explicit backup path"
-    ),
+    backup_file: str | None = typer.Option(None, help="Optional explicit backup path"),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Print planned changes without writing settings"
     ),
@@ -204,9 +224,15 @@ def schema_install(
     from agent_eval.schema import write_json_schema, write_schema_doc
 
     project_dir = Path(dir)
-    out_path = Path(out) if out is not None else project_dir / "schemas" / "agent-eval.schema.json"
+    out_path = (
+        Path(out)
+        if out is not None
+        else project_dir / "schemas" / "agent-eval.schema.json"
+    )
     doc_path = Path(doc) if doc is not None else project_dir / "docs" / "schema.md"
-    settings_path = Path(settings) if settings is not None else Path(".vscode") / "settings.json"
+    settings_path = (
+        Path(settings) if settings is not None else Path(".vscode") / "settings.json"
+    )
     if schema_ref is None:
         if out_path.is_absolute():
             try:
@@ -247,7 +273,9 @@ def schema_install(
     chosen_backup_path: Path | None = None
     if had_settings_file and backup:
         chosen_backup_path = (
-            Path(backup_file) if backup_file is not None else default_backup_path(settings_path)
+            Path(backup_file)
+            if backup_file is not None
+            else default_backup_path(settings_path)
         )
         typer.echo(f"Backup will be created at: {chosen_backup_path}")
     elif not had_settings_file:

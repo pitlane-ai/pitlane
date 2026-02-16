@@ -16,11 +16,12 @@ if TYPE_CHECKING:
 @dataclass
 class MetricStatistics:
     """Statistics for a single metric across iterations."""
+
     avg: float | None
     min: float | None
     max: float | None
     stddev: float | None
-    
+
     def to_dict(self) -> dict[str, float | None]:
         return asdict(self)
 
@@ -28,11 +29,12 @@ class MetricStatistics:
 @dataclass
 class AssertionSummary:
     """Summary of assertion results across iterations."""
+
     name: str
     passed: bool
     message: str
     pass_rate: float
-    
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
@@ -40,11 +42,12 @@ class AssertionSummary:
 @dataclass
 class RepeatSummary:
     """Summary of repeated iterations."""
+
     count: int
     all_passed_count: int
     all_passed_rate: float
     iterations: list[IterationResult]
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "count": self.count,
@@ -57,12 +60,13 @@ class RepeatSummary:
 @dataclass
 class AggregatedResult:
     """Aggregated results across multiple iterations."""
+
     metrics: dict[str, float | None]
     metrics_stats: dict[str, MetricStatistics]
     assertions: list[AssertionSummary]
     all_passed: bool
     repeat: RepeatSummary
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "metrics": self.metrics,
@@ -78,7 +82,7 @@ def compute_stats(values: list[float | int | None]) -> MetricStatistics:
     nums = [v for v in values if v is not None]
     if not nums:
         return MetricStatistics(avg=None, min=None, max=None, stddev=None)
-    
+
     arr = np.array(nums)
     return MetricStatistics(
         avg=round(float(np.mean(arr)), 4),
@@ -96,7 +100,7 @@ def aggregate_results(run_results: list[IterationResult]) -> AggregatedResult:  
     # Build per-metric stats (combine duplicate loops)
     averaged_metrics: dict[str, float | None] = {}
     metric_statistics: dict[str, MetricStatistics] = {}
-    
+
     for metric_name in metric_names:
         metric_values = [run.metrics.get(metric_name) for run in run_results]
         statistics = compute_stats(metric_values)
@@ -106,14 +110,15 @@ def aggregate_results(run_results: list[IterationResult]) -> AggregatedResult:  
     # Aggregate assertions: report per-assertion pass rate across iterations
     first_run_assertions = run_results[0].assertions
     assertion_summaries: list[AssertionSummary] = []
-    
+
     for assertion_index, assertion in enumerate(first_run_assertions):
         pass_count = sum(
-            1 for run in run_results
+            1
+            for run in run_results
             if assertion_index < len(run.assertions)
             and run.assertions[assertion_index]["passed"]
         )
-        
+
         summary = AssertionSummary(
             name=assertion["name"],
             passed=pass_count == iteration_count,
@@ -123,7 +128,7 @@ def aggregate_results(run_results: list[IterationResult]) -> AggregatedResult:  
         assertion_summaries.append(summary)
 
     successful_iteration_count = sum(1 for run in run_results if run.all_passed)
-    
+
     repeat_summary = RepeatSummary(
         count=iteration_count,
         all_passed_count=successful_iteration_count,
@@ -149,12 +154,12 @@ def collect_metrics(
     """Collect all metrics for a single adapter run."""
     # File diff
     files_after = {
-        str(f.relative_to(workspace))
-        for f in workspace.rglob("*")
-        if f.is_file()
+        str(f.relative_to(workspace)) for f in workspace.rglob("*") if f.is_file()
     }
     files_created = len(files_after - files_before)
-    files_modified = len(files_before & files_after)  # simplified: assumes all pre-existing were touched
+    files_modified = len(
+        files_before & files_after
+    )  # simplified: assumes all pre-existing were touched
 
     # Count lines in new/modified files
     total_lines = 0
@@ -176,7 +181,9 @@ def collect_metrics(
     # so similarity metrics contribute proportionally to their score.
     total_weight = sum(r.weight for r in assertion_results)
     if total_weight > 0:
-        weighted_score = sum(r.weight * r.score for r in assertion_results) / total_weight * 100
+        weighted_score = (
+            sum(r.weight * r.score for r in assertion_results) / total_weight * 100
+        )
     else:
         weighted_score = 0.0
 

@@ -20,17 +20,17 @@ async def run_command_with_streaming(
 ) -> tuple[str, str, int]:
     """
     Run command with optional real-time output streaming using asyncio.
-    
+
     Args:
         cmd: Command and arguments to execute
         workdir: Working directory for command execution
         timeout: Timeout in seconds
         logger: Optional logger for streaming output
         env: Optional environment variables
-    
+
     Returns:
         Tuple of (stdout, stderr, exit_code)
-    
+
     Raises:
         subprocess.TimeoutExpired: If command exceeds timeout
     """
@@ -43,16 +43,15 @@ async def run_command_with_streaming(
         env=env,
     )
 
-    stdout_lines = []
-    stderr_lines = []
+    stdout_lines: list[str] = []
+    stderr_lines: list[str] = []
 
     async def read_stream(stream, lines, prefix):
-        """Read stream line by line and optionally log."""
         while True:
             line = await stream.readline()
             if not line:
                 break
-            line_str = line.decode('utf-8')
+            line_str = line.decode("utf-8")
             lines.append(line_str)
             if logger:
                 logger.debug(f"[{prefix}] {line_str.rstrip()}")
@@ -72,6 +71,8 @@ async def run_command_with_streaming(
         await proc.wait()
         raise subprocess.TimeoutExpired(cmd, timeout)
 
-    stdout = ''.join(stdout_lines)
-    stderr = ''.join(stderr_lines)
-    return stdout, stderr, proc.returncode
+    stdout = "".join(stdout_lines)
+    stderr = "".join(stderr_lines)
+    returncode = proc.returncode
+    assert returncode is not None
+    return stdout, stderr, returncode

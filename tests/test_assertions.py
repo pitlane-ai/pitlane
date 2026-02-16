@@ -52,7 +52,10 @@ def test_file_contains_fail(tmp_path):
 def test_file_contains_missing_file(tmp_path):
     result = check_file_contains(tmp_path, "nope.tf", r"anything", _test_logger)
     assert result.passed is False
-    assert "not found" in result.message.lower() or "does not exist" in result.message.lower()
+    assert (
+        "not found" in result.message.lower()
+        or "does not exist" in result.message.lower()
+    )
 
 
 # --- check_command_succeeds ---
@@ -197,8 +200,14 @@ def test_similarity_score_normalized_against_min_score(tmp_path):
     # Normalized: min(0.42 / 0.3, 1.0) = 1.0 (capped)
     with patch("agent_eval.assertions.similarity._score_rouge", return_value=0.42):
         r = evaluate_similarity_assertion(
-            tmp_path, "rouge",
-            {"actual": "a.txt", "expected": "b.txt", "metric": "rougeL", "min_score": 0.3},
+            tmp_path,
+            "rouge",
+            {
+                "actual": "a.txt",
+                "expected": "b.txt",
+                "metric": "rougeL",
+                "min_score": 0.3,
+            },
             logger=_test_logger,
         )
     assert r.passed is True
@@ -208,8 +217,14 @@ def test_similarity_score_normalized_against_min_score(tmp_path):
     # Normalized: min(0.15 / 0.3, 1.0) = 0.5
     with patch("agent_eval.assertions.similarity._score_rouge", return_value=0.15):
         r = evaluate_similarity_assertion(
-            tmp_path, "rouge",
-            {"actual": "a.txt", "expected": "b.txt", "metric": "rougeL", "min_score": 0.3},
+            tmp_path,
+            "rouge",
+            {
+                "actual": "a.txt",
+                "expected": "b.txt",
+                "metric": "rougeL",
+                "min_score": 0.3,
+            },
             logger=_test_logger,
         )
     assert r.passed is False
@@ -226,7 +241,8 @@ def test_similarity_score_raw_when_no_min_score(tmp_path):
 
     with patch("agent_eval.assertions.similarity._score_rouge", return_value=0.42):
         r = evaluate_similarity_assertion(
-            tmp_path, "rouge",
+            tmp_path,
+            "rouge",
             {"actual": "a.txt", "expected": "b.txt", "metric": "rougeL"},
             logger=_test_logger,
         )
@@ -252,7 +268,7 @@ def test_custom_script_with_interpreter(tmp_path):
     """Test custom script with interpreter."""
     script = tmp_path / "test.py"
     script.write_text("import sys; sys.exit(0)")
-    
+
     result = evaluate_assertion(
         tmp_path,
         {
@@ -270,7 +286,7 @@ def test_custom_script_with_interpreter_args(tmp_path):
     """Test custom script with interpreter and interpreter args."""
     script = tmp_path / "test.py"
     script.write_text("import sys; print('hello'); sys.exit(0)")
-    
+
     result = evaluate_assertion(
         tmp_path,
         {
@@ -295,7 +311,7 @@ if '--strict' in sys.argv and '--format=json' in sys.argv:
 else:
     sys.exit(1)
 """)
-    
+
     result = evaluate_assertion(
         tmp_path,
         {
@@ -320,7 +336,7 @@ if len(sys.argv) == 3 and sys.argv[1] == '--arg1' and sys.argv[2] == '--arg2':
 else:
     sys.exit(1)
 """)
-    
+
     result = evaluate_assertion(
         tmp_path,
         {
@@ -343,7 +359,7 @@ def test_custom_script_expected_exit_code(tmp_path):
     script = tmp_path / "test.sh"
     script.write_text("#!/bin/bash\nexit 42\n")
     script.chmod(0o755)
-    
+
     result = evaluate_assertion(
         tmp_path,
         {
@@ -363,7 +379,7 @@ def test_custom_script_timeout(tmp_path):
     script = tmp_path / "test.sh"
     script.write_text("#!/bin/bash\nsleep 10\n")
     script.chmod(0o755)
-    
+
     result = evaluate_assertion(
         tmp_path,
         {
@@ -383,7 +399,10 @@ def test_custom_script_not_found(tmp_path):
     result = evaluate_assertion(tmp_path, {"custom_script": "nonexistent.sh"})
     assert result.passed is False
     assert result.score == 0.0
-    assert "not found" in result.message.lower() or "no such file" in result.message.lower()
+    assert (
+        "not found" in result.message.lower()
+        or "no such file" in result.message.lower()
+    )
 
 
 def test_assertions_log_execution(tmp_path, caplog):
@@ -396,7 +415,9 @@ def test_assertions_log_execution(tmp_path, caplog):
     # Test file_exists logging
     (tmp_path / "test.txt").write_text("content")
     with caplog.at_level(logging.INFO, logger="test_assertion_logger"):
-        result = evaluate_assertion(tmp_path, {"file_exists": "test.txt"}, logger=logger)
+        result = evaluate_assertion(
+            tmp_path, {"file_exists": "test.txt"}, logger=logger
+        )
         assert result.passed is True
 
     assert any("Checking file_exists" in record.message for record in caplog.records)
@@ -409,7 +430,9 @@ def test_assertions_log_execution(tmp_path, caplog):
     script.chmod(0o755)
 
     with caplog.at_level(logging.INFO, logger="test_assertion_logger"):
-        result = evaluate_assertion(tmp_path, {"custom_script": "./test.sh"}, logger=logger)
+        result = evaluate_assertion(
+            tmp_path, {"custom_script": "./test.sh"}, logger=logger
+        )
         assert result.passed is True
 
     assert any("Running custom_script" in record.message for record in caplog.records)

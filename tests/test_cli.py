@@ -60,11 +60,15 @@ def test_schema_install_requires_yes_in_non_interactive_mode(tmp_path, monkeypat
     assert not (tmp_path / ".vscode" / "settings.json").exists()
 
 
-def test_schema_install_writes_settings_and_preserves_unrelated_keys(tmp_path, monkeypatch):
+def test_schema_install_writes_settings_and_preserves_unrelated_keys(
+    tmp_path, monkeypatch
+):
     monkeypatch.chdir(tmp_path)
     settings_path = tmp_path / ".vscode" / "settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
-    settings_path.write_text(json.dumps({"editor.tabSize": 2, "yaml.schemas": {"foo.json": ["*.foo"]}}))
+    settings_path.write_text(
+        json.dumps({"editor.tabSize": 2, "yaml.schemas": {"foo.json": ["*.foo"]}})
+    )
 
     result = runner.invoke(app, ["schema", "install", "--yes"])
     assert result.exit_code == 0
@@ -100,4 +104,3 @@ def test_schema_install_errors_on_invalid_json(tmp_path, monkeypatch):
     result = runner.invoke(app, ["schema", "install", "--yes"])
     assert result.exit_code != 0
     assert "Invalid JSON" in result.output
-

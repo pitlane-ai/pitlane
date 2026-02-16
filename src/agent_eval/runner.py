@@ -21,19 +21,17 @@ from agent_eval.metrics import (
 from agent_eval.verbose import setup_logger
 from agent_eval.workspace import WorkspaceManager
 
-# Type aliases for clarity
 AssistantName = str
 TaskName = str
 
 
 @dataclass
 class IterationResult:
-    """Results from a single iteration."""
     metrics: dict[str, float | None]
     assertions: list[dict[str, Any]]
     all_passed: bool
     iteration_index: int = 0
-    
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
@@ -68,7 +66,9 @@ class Runner:
 
         # Setup main logger for high-level messages only
         debug_file = run_dir / "debug.log"
-        logger = setup_logger(debug_file, verbose=self.verbose, logger_name="agent_eval_main")
+        logger = setup_logger(
+            debug_file, verbose=self.verbose, logger_name="agent_eval_main"
+        )
         logger.debug("Starting evaluation run")
 
         workspace_mgr = WorkspaceManager(base_dir=run_dir)
@@ -81,8 +81,7 @@ class Runner:
         assistants = self.config.assistants
         if self.assistant_filter:
             assistants = {
-                k: v for k, v in assistants.items()
-                if k == self.assistant_filter
+                k: v for k, v in assistants.items() if k == self.assistant_filter
             }
 
         cli_versions = {}
@@ -114,7 +113,9 @@ class Runner:
                         future_to_task[future] = (assistant_name, task.name, iteration)
 
             # Collect per-iteration results
-            iteration_results: dict[AssistantName, dict[TaskName, list[IterationResult]]] = {}
+            iteration_results: dict[
+                AssistantName, dict[TaskName, list[IterationResult]]
+            ] = {}
             for assistant_name in assistants:
                 iteration_results[assistant_name] = {}
 
@@ -134,23 +135,35 @@ class Runner:
                             iteration_results[assistant_name][task_name] = []
                         iteration_results[assistant_name][task_name].append(result)
                     except Exception as e:
-                        logger.error(f"Task '{task_name}' failed for assistant '{assistant_name}': {e}")
+                        logger.error(
+                            f"Task '{task_name}' failed for assistant '{assistant_name}': {e}"
+                        )
                         raise
             except KeyboardInterrupt:
                 self.interrupted = True
-                logger.warning("Run interrupted by user (Ctrl+C). Cancelling pending tasks, and saving partial results...")
-                
+                logger.warning(
+                    "Run interrupted by user (Ctrl+C). Cancelling pending tasks, and saving partial results..."
+                )
+
                 cancelled_count = 0
                 for future in future_to_task:
                     # this only cancels tasks not yet started
                     if future.cancel():
                         cancelled_count += 1
-                
-                logger.info(f"Cancelled {cancelled_count} pending task(s). Running tasks will complete naturally.")
-                logger.info("Waiting for running tasks to finish (this may take up to their timeout duration)...")
+
+                logger.info(
+                    f"Cancelled {cancelled_count} pending task(s). Running tasks will complete naturally."
+                )
+                logger.info(
+                    "Waiting for running tasks to finish (this may take up to their timeout duration)..."
+                )
 
                 # Collect results from any futures that completed
-                for future, (assistant_name, task_name, iteration) in future_to_task.items():
+                for future, (
+                    assistant_name,
+                    task_name,
+                    iteration,
+                ) in future_to_task.items():
                     if task_name not in iteration_results[assistant_name]:
                         iteration_results[assistant_name][task_name] = []
                     if future.done() and not future.cancelled():
@@ -163,10 +176,17 @@ class Runner:
                                 iteration_index=iteration,
                             )
                             # Only add if not already collected
-                            if not any(r.iteration_index == iteration for r in iteration_results[assistant_name][task_name]):
-                                iteration_results[assistant_name][task_name].append(result)
+                            if not any(
+                                r.iteration_index == iteration
+                                for r in iteration_results[assistant_name][task_name]
+                            ):
+                                iteration_results[assistant_name][task_name].append(
+                                    result
+                                )
                         except Exception as e:
-                            logger.debug(f"Failed to collect result for {assistant_name}/{task_name}: {e}")
+                            logger.debug(
+                                f"Failed to collect result for {assistant_name}/{task_name}: {e}"
+                            )
 
         # Build final results: always aggregate (single run is just 1 iteration)
         for assistant_name in iteration_results:
@@ -195,6 +215,7 @@ class Runner:
 
         try:
             import importlib.metadata
+
             agent_eval_version = importlib.metadata.version("agent-eval")
         except Exception:
             agent_eval_version = "unknown"
@@ -242,16 +263,14 @@ class Runner:
         task_logger = setup_logger(
             debug_file=task_debug_file,
             verbose=self.verbose,
-            logger_name=f"agent_eval_{assistant_name}_{task.name}_iter{iteration}"
+            logger_name=f"agent_eval_{assistant_name}_{task.name}_iter{iteration}",
         )
-        
+
         logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")
 
         # Snapshot files before
         files_before = {
-            str(f.relative_to(workspace))
-            for f in workspace.rglob("*")
-            if f.is_file()
+            str(f.relative_to(workspace)) for f in workspace.rglob("*") if f.is_file()
         }
 
         # Log CLI version information
@@ -279,7 +298,9 @@ class Runner:
         # Evaluate assertions
         assertion_results = []
         for assertion_def in task.assertions:
-            ar = evaluate_assertion(workspace, assertion_def, source_dir=source_dir, logger=task_logger)
+            ar = evaluate_assertion(
+                workspace, assertion_def, source_dir=source_dir, logger=task_logger
+            )
             assertion_results.append(ar)
 
         # Collect metrics

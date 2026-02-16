@@ -16,6 +16,7 @@ def generate_report(run_dir: Path) -> Path:
     meta_file = run_dir / "meta.yaml"
     if meta_file.exists():
         import yaml
+
         meta = yaml.safe_load(meta_file.read_text())
         repeat = meta.get("repeat", 1)
 
@@ -27,10 +28,19 @@ def generate_report(run_dir: Path) -> Path:
                 tasks.append(task_name)
 
     metric_keys = [
-        "wall_clock_seconds", "exit_code", "files_created", "files_modified",
-        "total_lines_generated", "token_usage_input", "token_usage_output",
-        "cost_usd", "tool_calls_count", "assertion_pass_count",
-        "assertion_fail_count", "assertion_pass_rate", "weighted_score",
+        "wall_clock_seconds",
+        "exit_code",
+        "files_created",
+        "files_modified",
+        "total_lines_generated",
+        "token_usage_input",
+        "token_usage_output",
+        "cost_usd",
+        "tool_calls_count",
+        "assertion_pass_count",
+        "assertion_fail_count",
+        "assertion_pass_rate",
+        "weighted_score",
     ]
 
     template_dir = Path(__file__).parent / "templates"

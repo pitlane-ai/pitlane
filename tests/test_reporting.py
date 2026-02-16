@@ -27,9 +27,27 @@ def sample_run_dir(tmp_path):
                     "weighted_score": 100.0,
                 },
                 "assertions": [
-                    {"name": "file_exists: main.tf", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
-                    {"name": "file_exists: variables.tf", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
-                    {"name": "command_succeeds: terraform validate", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
+                    {
+                        "name": "file_exists: main.tf",
+                        "passed": True,
+                        "message": "",
+                        "score": 1.0,
+                        "weight": 1.0,
+                    },
+                    {
+                        "name": "file_exists: variables.tf",
+                        "passed": True,
+                        "message": "",
+                        "score": 1.0,
+                        "weight": 1.0,
+                    },
+                    {
+                        "name": "command_succeeds: terraform validate",
+                        "passed": True,
+                        "message": "",
+                        "score": 1.0,
+                        "weight": 1.0,
+                    },
                 ],
                 "all_passed": True,
             }
@@ -52,9 +70,27 @@ def sample_run_dir(tmp_path):
                     "weighted_score": 66.67,
                 },
                 "assertions": [
-                    {"name": "file_exists: main.tf", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
-                    {"name": "file_exists: variables.tf", "passed": False, "message": "File not found", "score": 0.0, "weight": 1.0},
-                    {"name": "command_succeeds: terraform validate", "passed": True, "message": "", "score": 1.0, "weight": 1.0},
+                    {
+                        "name": "file_exists: main.tf",
+                        "passed": True,
+                        "message": "",
+                        "score": 1.0,
+                        "weight": 1.0,
+                    },
+                    {
+                        "name": "file_exists: variables.tf",
+                        "passed": False,
+                        "message": "File not found",
+                        "score": 0.0,
+                        "weight": 1.0,
+                    },
+                    {
+                        "name": "command_succeeds: terraform validate",
+                        "passed": True,
+                        "message": "",
+                        "score": 1.0,
+                        "weight": 1.0,
+                    },
                 ],
                 "all_passed": False,
             }
@@ -116,22 +152,57 @@ def repeat_run_dir(tmp_path):
                     "weighted_score": 100.0,
                 },
                 "metrics_stats": {
-                    "wall_clock_seconds": {"avg": 10.0, "min": 8.0, "max": 12.0, "stddev": 2.0},
+                    "wall_clock_seconds": {
+                        "avg": 10.0,
+                        "min": 8.0,
+                        "max": 12.0,
+                        "stddev": 2.0,
+                    },
                     "exit_code": {"avg": 0, "min": 0, "max": 0, "stddev": 0},
                     "files_created": {"avg": 2, "min": 2, "max": 2, "stddev": 0},
                     "files_modified": {"avg": 0, "min": 0, "max": 0, "stddev": 0},
-                    "total_lines_generated": {"avg": 50, "min": 45, "max": 55, "stddev": 5},
-                    "token_usage_input": {"avg": 500, "min": 400, "max": 600, "stddev": 100},
-                    "token_usage_output": {"avg": 200, "min": 150, "max": 250, "stddev": 50},
+                    "total_lines_generated": {
+                        "avg": 50,
+                        "min": 45,
+                        "max": 55,
+                        "stddev": 5,
+                    },
+                    "token_usage_input": {
+                        "avg": 500,
+                        "min": 400,
+                        "max": 600,
+                        "stddev": 100,
+                    },
+                    "token_usage_output": {
+                        "avg": 200,
+                        "min": 150,
+                        "max": 250,
+                        "stddev": 50,
+                    },
                     "cost_usd": {"avg": 0.03, "min": 0.02, "max": 0.04, "stddev": 0.01},
                     "tool_calls_count": {"avg": 5, "min": 4, "max": 6, "stddev": 1},
                     "assertion_pass_count": {"avg": 3, "min": 3, "max": 3, "stddev": 0},
                     "assertion_fail_count": {"avg": 0, "min": 0, "max": 0, "stddev": 0},
-                    "assertion_pass_rate": {"avg": 100.0, "min": 100.0, "max": 100.0, "stddev": 0},
-                    "weighted_score": {"avg": 100.0, "min": 100.0, "max": 100.0, "stddev": 0},
+                    "assertion_pass_rate": {
+                        "avg": 100.0,
+                        "min": 100.0,
+                        "max": 100.0,
+                        "stddev": 0,
+                    },
+                    "weighted_score": {
+                        "avg": 100.0,
+                        "min": 100.0,
+                        "max": 100.0,
+                        "stddev": 0,
+                    },
                 },
                 "assertions": [
-                    {"name": "file_exists: main.tf", "passed": True, "message": "Passed 3/3 iterations", "pass_rate": 100.0},
+                    {
+                        "name": "file_exists: main.tf",
+                        "passed": True,
+                        "message": "Passed 3/3 iterations",
+                        "pass_rate": 100.0,
+                    },
                 ],
                 "all_passed": True,
                 "repeat": {
@@ -139,9 +210,39 @@ def repeat_run_dir(tmp_path):
                     "all_passed_count": 3,
                     "all_passed_rate": 100.0,
                     "iterations": [
-                        {"metrics": {"wall_clock_seconds": 8.0}, "assertions": [{"name": "file_exists: main.tf", "passed": True, "message": ""}], "all_passed": True},
-                        {"metrics": {"wall_clock_seconds": 10.0}, "assertions": [{"name": "file_exists: main.tf", "passed": True, "message": ""}], "all_passed": True},
-                        {"metrics": {"wall_clock_seconds": 12.0}, "assertions": [{"name": "file_exists: main.tf", "passed": True, "message": ""}], "all_passed": True},
+                        {
+                            "metrics": {"wall_clock_seconds": 8.0},
+                            "assertions": [
+                                {
+                                    "name": "file_exists: main.tf",
+                                    "passed": True,
+                                    "message": "",
+                                }
+                            ],
+                            "all_passed": True,
+                        },
+                        {
+                            "metrics": {"wall_clock_seconds": 10.0},
+                            "assertions": [
+                                {
+                                    "name": "file_exists: main.tf",
+                                    "passed": True,
+                                    "message": "",
+                                }
+                            ],
+                            "all_passed": True,
+                        },
+                        {
+                            "metrics": {"wall_clock_seconds": 12.0},
+                            "assertions": [
+                                {
+                                    "name": "file_exists: main.tf",
+                                    "passed": True,
+                                    "message": "",
+                                }
+                            ],
+                            "all_passed": True,
+                        },
                     ],
                 },
             }

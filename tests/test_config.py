@@ -59,7 +59,7 @@ def test_load_config_with_skills(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           skilled:
-            adapter: codex
+            adapter: claude-code
             skills:
               - python
               - source: terraform-ibm-modules/terraform-ibm-modules-skills

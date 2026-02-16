@@ -1,5 +1,3 @@
-"""Base adapter interface and AdapterResult dataclass."""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -13,8 +11,6 @@ if TYPE_CHECKING:
 
 @dataclass
 class AdapterResult:
-    """Captures the result of running an agent adapter."""
-
     stdout: str
     stderr: str
     exit_code: int
@@ -26,8 +22,6 @@ class AdapterResult:
 
 
 class BaseAdapter(ABC):
-    """Abstract base class that all agent adapters must implement."""
-
     @abstractmethod
     def run(
         self,

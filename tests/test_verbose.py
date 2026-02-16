@@ -11,7 +11,7 @@ def test_verbose_logger_creates_debug_log():
     with tempfile.TemporaryDirectory() as tmpdir:
         debug_file = Path(tmpdir) / "debug.log"
         logger = setup_logger(debug_file=debug_file, verbose=False)
-        
+
         assert not logger.disabled
         assert logger.level == logging.DEBUG
         assert debug_file.exists()
@@ -22,9 +22,9 @@ def test_verbose_logger_writes_to_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         debug_file = Path(tmpdir) / "debug.log"
         logger = setup_logger(debug_file=debug_file, verbose=False)
-        
+
         logger.debug("test message")
-        
+
         content = debug_file.read_text()
         assert "test message" in content
         assert "[" in content  # timestamp
@@ -35,7 +35,7 @@ def test_verbose_mode_adds_stderr_handler():
     with tempfile.TemporaryDirectory() as tmpdir:
         debug_file = Path(tmpdir) / "debug.log"
         logger = setup_logger(debug_file=debug_file, verbose=True)
-        
+
         assert len(logger.handlers) == 2
         handler_types = [type(h).__name__ for h in logger.handlers]
         assert "StreamHandler" in handler_types
@@ -47,7 +47,7 @@ def test_non_verbose_mode_only_file_handler():
     with tempfile.TemporaryDirectory() as tmpdir:
         debug_file = Path(tmpdir) / "debug.log"
         logger = setup_logger(debug_file=debug_file, verbose=False)
-        
+
         assert len(logger.handlers) == 1
         handler_types = [type(h).__name__ for h in logger.handlers]
         assert "FileHandler" in handler_types
@@ -59,6 +59,6 @@ def test_logger_creates_parent_directories():
     with tempfile.TemporaryDirectory() as tmpdir:
         debug_file = Path(tmpdir) / "nested" / "dir" / "debug.log"
         setup_logger(debug_file=debug_file, verbose=False)
-        
+
         assert debug_file.exists()
         assert debug_file.parent.exists()

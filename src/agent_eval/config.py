@@ -1,5 +1,3 @@
-"""Eval config loading and validation using Pydantic."""
-
 from __future__ import annotations
 
 from enum import Enum
@@ -12,8 +10,6 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 class AdapterType(str, Enum):
     CLAUDE_CODE = "claude-code"
-    CLINE = "cline"
-    CODEX = "codex"
     MISTRAL_VIBE = "mistral-vibe"
     OPENCODE = "opencode"
 
@@ -48,8 +44,6 @@ class AssistantConfig(BaseModel):
             else:
                 result.append(item)
         return result
-
-
 
 
 class FileExistsAssertion(BaseModel):
@@ -151,7 +145,9 @@ class TaskConfig(BaseModel):
 
     @field_validator("assertions")
     @classmethod
-    def assertions_must_not_be_empty(cls, v: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def assertions_must_not_be_empty(
+        cls, v: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         if not v:
             raise ValueError("assertions must not be empty")
         return v
@@ -173,16 +169,16 @@ class EvalConfig(BaseModel):
 def load_config(path: Path) -> EvalConfig:
     """Load and validate an eval config from a YAML file."""
     config_dir = path.parent.resolve()
-    
+
     with open(path) as f:
         raw = yaml.safe_load(f)
-    
+
     config = EvalConfig(**raw)
-    
+
     # Resolve relative workdir paths relative to config file location
     for task in config.tasks:
         workdir_path = Path(task.workdir)
         if not workdir_path.is_absolute():
             task.workdir = str((config_dir / workdir_path).resolve())
-    
+
     return config

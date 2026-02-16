@@ -16,7 +16,9 @@ from agent_eval.assertions.base import AssertionResult
 _SIMILARITY_TYPES = frozenset({"bleu", "rouge", "bertscore", "cosine_similarity"})
 
 
-def check_file_exists(workdir: str | Path, filename: str, logger: logging.Logger) -> AssertionResult:
+def check_file_exists(
+    workdir: str | Path, filename: str, logger: logging.Logger
+) -> AssertionResult:
     """Check that a file exists in the working directory."""
     path = Path(workdir) / filename
     logger.info(f"Checking file_exists: {filename}")
@@ -67,7 +69,9 @@ def check_file_contains(
     )
 
 
-def check_command_succeeds(workdir: str | Path, command: str, logger: logging.Logger) -> AssertionResult:
+def check_command_succeeds(
+    workdir: str | Path, command: str, logger: logging.Logger
+) -> AssertionResult:
     """Check that a shell command exits with code 0."""
     logger.info(f"Running command_succeeds: {command}")
 
@@ -104,7 +108,9 @@ def check_command_succeeds(workdir: str | Path, command: str, logger: logging.Lo
         )
 
 
-def check_command_fails(workdir: str | Path, command: str, logger: logging.Logger) -> AssertionResult:
+def check_command_fails(
+    workdir: str | Path, command: str, logger: logging.Logger
+) -> AssertionResult:
     """Check that a shell command exits with a non-zero code."""
     logger.info(f"Running command_fails: {command}")
 
@@ -168,23 +174,25 @@ def check_custom_script(
     """
     # Build command parts
     command_parts = []
-    
+
     # Add interpreter and its args
     if interpreter:
         command_parts.append(shlex.quote(interpreter))
         if interpreter_args:
             command_parts.extend(shlex.quote(arg) for arg in interpreter_args)
-    
+
     # Add script
     command_parts.append(shlex.quote(script))
-    
+
     # Add script args
     if script_args:
         command_parts.extend(shlex.quote(arg) for arg in script_args)
-    
+
     command = " ".join(command_parts)
 
-    logger.info(f"Running custom_script: {command} (timeout={timeout}s, expected_exit_code={expected_exit_code})")
+    logger.info(
+        f"Running custom_script: {command} (timeout={timeout}s, expected_exit_code={expected_exit_code})"
+    )
 
     try:
         result = subprocess.run(
@@ -197,7 +205,9 @@ def check_custom_script(
         )
         passed = result.returncode == expected_exit_code
 
-        logger.info(f"Script exited with code {result.returncode}, expected {expected_exit_code}, passed={passed}")
+        logger.info(
+            f"Script exited with code {result.returncode}, expected {expected_exit_code}, passed={passed}"
+        )
         if result.stdout:
             logger.debug(f"stdout: {result.stdout.decode('utf-8', errors='replace')}")
         if result.stderr:
@@ -207,11 +217,11 @@ def check_custom_script(
         message_parts = [f"exit code {result.returncode}"]
         if not passed:
             if result.stdout:
-                stdout = result.stdout.decode('utf-8', errors='replace').strip()
+                stdout = result.stdout.decode("utf-8", errors="replace").strip()
                 if stdout:
                     message_parts.append(f"stdout: {stdout[:200]}")
             if result.stderr:
-                stderr = result.stderr.decode('utf-8', errors='replace').strip()
+                stderr = result.stderr.decode("utf-8", errors="replace").strip()
                 if stderr:
                     message_parts.append(f"stderr: {stderr[:200]}")
 
@@ -278,11 +288,15 @@ def evaluate_assertion(
     if atype in _SIMILARITY_TYPES:
         from agent_eval.assertions.similarity import evaluate_similarity_assertion
 
-        result = evaluate_similarity_assertion(workdir, atype, value, source_dir=source_dir, logger=logger)
+        result = evaluate_similarity_assertion(
+            workdir, atype, value, source_dir=source_dir, logger=logger
+        )
     elif atype == "file_exists":
         result = check_file_exists(workdir, value, logger=logger)
     elif atype == "file_contains":
-        result = check_file_contains(workdir, value["path"], value["pattern"], logger=logger)
+        result = check_file_contains(
+            workdir, value["path"], value["pattern"], logger=logger
+        )
     elif atype == "command_succeeds":
         result = check_command_succeeds(workdir, value, logger=logger)
     elif atype == "command_fails":

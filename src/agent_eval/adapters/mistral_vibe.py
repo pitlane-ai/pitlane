@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 
 class MistralVibeAdapter(BaseAdapter):
-
     def cli_name(self) -> str:
         return "vibe"
 
@@ -27,9 +26,9 @@ class MistralVibeAdapter(BaseAdapter):
     def get_cli_version(self) -> str | None:
         try:
             import subprocess
+
             result = subprocess.run(
-                ["vibe", "--version"],
-                capture_output=True, text=True, timeout=5
+                ["vibe", "--version"], capture_output=True, text=True, timeout=5
             )
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
@@ -94,7 +93,9 @@ class MistralVibeAdapter(BaseAdapter):
         return conversation
 
     def _read_session_stats(
-        self, vibe_home: str, logger: logging.Logger,
+        self,
+        vibe_home: str,
+        logger: logging.Logger,
     ) -> tuple[dict[str, int] | None, float | None, int]:
         """Read token usage, cost, and tool call count from vibe session meta.json.
 
@@ -178,20 +179,30 @@ class MistralVibeAdapter(BaseAdapter):
             if logger:
                 logger.debug(f"Command failed after {duration:.2f}s: {e}")
             return AdapterResult(
-                stdout="", stderr=str(e),
-                exit_code=-1, duration_seconds=duration,
+                stdout="",
+                stderr=str(e),
+                exit_code=-1,
+                duration_seconds=duration,
             )
 
         duration = time.monotonic() - start
 
         if logger:
-            logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
+            logger.debug(
+                f"Command completed in {duration:.2f}s with exit code {exit_code}"
+            )
 
         conversation = self._parse_output(stdout)
-        token_usage, cost, tool_calls_count = self._read_session_stats(vibe_home, logger)
+        token_usage, cost, tool_calls_count = self._read_session_stats(
+            vibe_home, logger
+        )
         return AdapterResult(
-            stdout=stdout, stderr=stderr,
-            exit_code=exit_code, duration_seconds=duration,
-            conversation=conversation, token_usage=token_usage, cost_usd=cost,
+            stdout=stdout,
+            stderr=stderr,
+            exit_code=exit_code,
+            duration_seconds=duration,
+            conversation=conversation,
+            token_usage=token_usage,
+            cost_usd=cost,
             tool_calls_count=tool_calls_count,
         )

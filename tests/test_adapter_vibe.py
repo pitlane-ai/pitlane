@@ -21,12 +21,15 @@ def test_build_command_with_max_turns():
 
 def test_generate_config_toml_with_mcp(tmp_path):
     adapter = MistralVibeAdapter()
-    adapter._generate_config(tmp_path, {
-        "model": "devstral-2",
-        "mcp_servers": [
-            {"name": "my-server", "transport": "stdio", "command": "npx my-server"},
-        ],
-    })
+    adapter._generate_config(
+        tmp_path,
+        {
+            "model": "devstral-2",
+            "mcp_servers": [
+                {"name": "my-server", "transport": "stdio", "command": "npx my-server"},
+            ],
+        },
+    )
     config_file = tmp_path / ".vibe" / "config.toml"
     assert config_file.exists()
     content = config_file.read_text()
@@ -36,12 +39,22 @@ def test_generate_config_toml_with_mcp(tmp_path):
 
 def test_parse_json_output():
     adapter = MistralVibeAdapter()
-    output = json.dumps([
-        {"role": "assistant", "content": "Here is the code"},
-        {"role": "assistant", "content": "", "tool_calls": [
-            {"id": "abc", "type": "function", "function": {"name": "write_file", "arguments": "{}"}}
-        ]},
-    ])
+    output = json.dumps(
+        [
+            {"role": "assistant", "content": "Here is the code"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "abc",
+                        "type": "function",
+                        "function": {"name": "write_file", "arguments": "{}"},
+                    }
+                ],
+            },
+        ]
+    )
     conversation = adapter._parse_output(output)
     assert len(conversation) == 2
     assert conversation[0]["content"] == "Here is the code"

@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 class OpenCodeAdapter(BaseAdapter):
-
     def cli_name(self) -> str:
         return "opencode"
 
@@ -26,9 +25,9 @@ class OpenCodeAdapter(BaseAdapter):
     def get_cli_version(self) -> str | None:
         try:
             import subprocess
+
             result = subprocess.run(
-                ["opencode", "--version"],
-                capture_output=True, text=True, timeout=5
+                ["opencode", "--version"], capture_output=True, text=True, timeout=5
             )
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
@@ -38,37 +37,39 @@ class OpenCodeAdapter(BaseAdapter):
 
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["opencode", "run", "--format", "json"]
-        
+
         if model := config.get("model"):
             cmd.extend(["--model", model])
         if agent := config.get("agent"):
             cmd.extend(["--agent", agent])
-        
+
         if files := config.get("files"):
             for f in files:
                 cmd.extend(["--file", f])
-        
+
         if session_id := config.get("session"):
             cmd.extend(["--session", session_id])
         if config.get("continue", False):
             cmd.append("--continue")
         if config.get("fork", False):
             cmd.append("--fork")
-        
+
         if title := config.get("title"):
             cmd.extend(["--title", title])
         if config.get("share", False):
             cmd.append("--share")
-        
+
         if attach_url := config.get("attach"):
             cmd.extend(["--attach", attach_url])
         if port := config.get("port"):
             cmd.extend(["--port", str(port)])
-        
+
         cmd.append(prompt)
         return cmd
 
-    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None, int]:
+    def _parse_output(
+        self, stdout: str
+    ) -> tuple[list[dict], dict | None, float | None, int]:
         """Parse JSON events from opencode run --format json."""
         conversation: list[dict] = []
         total_input_tokens = 0
@@ -89,21 +90,25 @@ class OpenCodeAdapter(BaseAdapter):
             if msg_type in ("assistant", "assistant_message", "message"):
                 content = msg.get("content", msg.get("text", ""))
                 if content:
-                    conversation.append({
-                        "role": "assistant",
-                        "content": content,
-                    })
+                    conversation.append(
+                        {
+                            "role": "assistant",
+                            "content": content,
+                        }
+                    )
 
             if msg_type == "tool_use":
                 tool_calls_count += 1
-                conversation.append({
-                    "role": "assistant",
-                    "content": "",
-                    "tool_use": {
-                        "name": msg.get("name", ""),
-                        "input": msg.get("input", {}),
-                    },
-                })
+                conversation.append(
+                    {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_use": {
+                            "name": msg.get("name", ""),
+                            "input": msg.get("input", {}),
+                        },
+                    }
+                )
 
             # OpenCode provides tokens in step_finish events
             if msg_type == "step_finish":
@@ -151,25 +156,33 @@ class OpenCodeAdapter(BaseAdapter):
             if logger:
                 logger.debug(f"Command failed after {duration:.2f}s: {e}")
             return AdapterResult(
-                stdout="", stderr=str(e),
-                exit_code=-1, duration_seconds=duration,
+                stdout="",
+                stderr=str(e),
+                exit_code=-1,
+                duration_seconds=duration,
             )
 
         duration = time.monotonic() - start
 
         if logger:
-            logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
+            logger.debug(
+                f"Command completed in {duration:.2f}s with exit code {exit_code}"
+            )
 
         conversation, token_usage, cost, tool_calls_count = self._parse_output(stdout)
-        
+
         if logger:
             logger.debug(f"Parsed token_usage: {token_usage}")
             logger.debug(f"Parsed cost: {cost}")
             logger.debug(f"Parsed tool_calls_count: {tool_calls_count}")
-        
+
         return AdapterResult(
-            stdout=stdout, stderr=stderr,
-            exit_code=exit_code, duration_seconds=duration,
-            conversation=conversation, token_usage=token_usage, cost_usd=cost,
+            stdout=stdout,
+            stderr=stderr,
+            exit_code=exit_code,
+            duration_seconds=duration,
+            conversation=conversation,
+            token_usage=token_usage,
+            cost_usd=cost,
             tool_calls_count=tool_calls_count,
         )

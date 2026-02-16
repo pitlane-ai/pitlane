@@ -16,7 +16,10 @@ def test_collect_metrics_basic(tmp_path):
         stderr="",
         exit_code=0,
         duration_seconds=12.5,
-        conversation=[{"role": "assistant"}, {"role": "assistant", "tool_use": {"name": "Bash"}}],
+        conversation=[
+            {"role": "assistant"},
+            {"role": "assistant", "tool_use": {"name": "Bash"}},
+        ],
         token_usage={"input": 500, "output": 200},
         cost_usd=0.03,
         tool_calls_count=1,
@@ -56,7 +59,10 @@ def test_weighted_score_with_equal_weights(tmp_path):
     (workspace / "f.txt").write_text("x")
 
     adapter_result = AdapterResult(
-        stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+        stdout="",
+        stderr="",
+        exit_code=0,
+        duration_seconds=1.0,
     )
 
     assertion_results = [
@@ -81,7 +87,10 @@ def test_weighted_score_with_different_weights(tmp_path):
     (workspace / "f.txt").write_text("x")
 
     adapter_result = AdapterResult(
-        stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+        stdout="",
+        stderr="",
+        exit_code=0,
+        duration_seconds=1.0,
     )
 
     # a1 passes with weight 3, a2 fails with weight 1
@@ -108,15 +117,22 @@ def test_weighted_score_with_continuous_scores(tmp_path):
     (workspace / "f.txt").write_text("x")
 
     adapter_result = AdapterResult(
-        stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+        stdout="",
+        stderr="",
+        exit_code=0,
+        duration_seconds=1.0,
     )
 
     # Binary assertion passes (score=1.0), similarity has normalized score 0.8
     # (e.g. raw 0.56 with min_score 0.7 → min(0.56/0.7, 1.0) = 0.8)
     # weighted_score = (1.0*1.0 + 0.8*1.0) / 2.0 * 100 = 90.0
     assertion_results = [
-        AssertionResult(name="file_exists:f", passed=True, message="", score=1.0, weight=1.0),
-        AssertionResult(name="rouge:a:b", passed=True, message="score=0.8000", score=0.8, weight=1.0),
+        AssertionResult(
+            name="file_exists:f", passed=True, message="", score=1.0, weight=1.0
+        ),
+        AssertionResult(
+            name="rouge:a:b", passed=True, message="score=0.8000", score=0.8, weight=1.0
+        ),
     ]
 
     metrics = collect_metrics(
@@ -127,7 +143,9 @@ def test_weighted_score_with_continuous_scores(tmp_path):
     )
 
     assert metrics["assertion_pass_rate"] == 100.0  # both passed
-    assert metrics["weighted_score"] == 90.0  # but weighted score reflects partial similarity
+    assert (
+        metrics["weighted_score"] == 90.0
+    )  # but weighted score reflects partial similarity
 
 
 def test_weighted_score_empty_assertions(tmp_path):
@@ -136,7 +154,10 @@ def test_weighted_score_empty_assertions(tmp_path):
     (workspace / "f.txt").write_text("x")
 
     adapter_result = AdapterResult(
-        stdout="", stderr="", exit_code=0, duration_seconds=1.0,
+        stdout="",
+        stderr="",
+        exit_code=0,
+        duration_seconds=1.0,
     )
 
     metrics = collect_metrics(

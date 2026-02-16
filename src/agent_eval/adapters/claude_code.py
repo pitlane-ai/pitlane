@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 class ClaudeCodeAdapter(BaseAdapter):
-
     def cli_name(self) -> str:
         return "claude"
 
@@ -26,9 +25,9 @@ class ClaudeCodeAdapter(BaseAdapter):
     def get_cli_version(self) -> str | None:
         try:
             import subprocess
+
             result = subprocess.run(
-                ["claude", "--version"],
-                capture_output=True, text=True, timeout=5
+                ["claude", "--version"], capture_output=True, text=True, timeout=5
             )
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
@@ -38,12 +37,15 @@ class ClaudeCodeAdapter(BaseAdapter):
 
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = [
-            "claude", "-p",
-            "--output-format", "stream-json",
+            "claude",
+            "-p",
+            "--output-format",
+            "stream-json",
             "--verbose",
             "--dangerously-skip-permissions",
             "--disable-slash-commands",
-            "--setting-sources", "project,local",
+            "--setting-sources",
+            "project,local",
         ]
         if model := config.get("model"):
             cmd.extend(["--model", model])
@@ -58,7 +60,9 @@ class ClaudeCodeAdapter(BaseAdapter):
         cmd.append(prompt)
         return cmd
 
-    def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None, int]:
+    def _parse_output(
+        self, stdout: str
+    ) -> tuple[list[dict], dict | None, float | None, int]:
         """Parse stream-json NDJSON output into conversation, token_usage, cost, tool_calls_count."""
         conversation: list[dict] = []
         token_usage = None
@@ -78,20 +82,24 @@ class ClaudeCodeAdapter(BaseAdapter):
                 message = msg.get("message", {})
                 for block in message.get("content", []):
                     if block.get("type") == "text":
-                        conversation.append({
-                            "role": "assistant",
-                            "content": block["text"],
-                        })
+                        conversation.append(
+                            {
+                                "role": "assistant",
+                                "content": block["text"],
+                            }
+                        )
                     elif block.get("type") == "tool_use":
                         tool_calls_count += 1
-                        conversation.append({
-                            "role": "assistant",
-                            "content": "",
-                            "tool_use": {
-                                "name": block.get("name", ""),
-                                "input": block.get("input", {}),
-                            },
-                        })
+                        conversation.append(
+                            {
+                                "role": "assistant",
+                                "content": "",
+                                "tool_use": {
+                                    "name": block.get("name", ""),
+                                    "input": block.get("input", {}),
+                                },
+                            }
+                        )
             elif msg_type == "result":
                 usage = msg.get("usage", {})
                 if usage:
@@ -142,7 +150,9 @@ class ClaudeCodeAdapter(BaseAdapter):
         duration = time.monotonic() - start
 
         if logger:
-            logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
+            logger.debug(
+                f"Command completed in {duration:.2f}s with exit code {exit_code}"
+            )
 
         conversation, token_usage, cost, tool_calls_count = self._parse_output(stdout)
         return AdapterResult(

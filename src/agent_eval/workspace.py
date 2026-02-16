@@ -43,7 +43,16 @@ class WorkspaceManager:
         Raises RuntimeError on failure.
         """
         workspace = Path(workspace)
-        cmd = ["npx", "--yes", "skills", "add", skill.source, "--agent", agent_type, "--yes"]
+        cmd = [
+            "npx",
+            "--yes",
+            "skills",
+            "add",
+            skill.source,
+            "--agent",
+            agent_type,
+            "--yes",
+        ]
         if skill.skill:
             cmd.extend(["--skill", skill.skill])
         try:

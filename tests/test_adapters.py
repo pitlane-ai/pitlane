@@ -1,13 +1,8 @@
-"""Tests for the adapter system: AdapterResult, BaseAdapter, factory, and stubs."""
-
-
 import pytest
 
 from agent_eval.adapters import get_adapter
 from agent_eval.adapters.base import AdapterResult, BaseAdapter
 from agent_eval.adapters.claude_code import ClaudeCodeAdapter
-from agent_eval.adapters.cline import ClineAdapter
-from agent_eval.adapters.codex import CodexAdapter
 from agent_eval.adapters.mistral_vibe import MistralVibeAdapter
 from agent_eval.adapters.opencode import OpenCodeAdapter
 
@@ -48,8 +43,6 @@ class TestGetAdapter:
         "name,expected_type,cli,agent",
         [
             ("claude-code", ClaudeCodeAdapter, "claude", "claude-code"),
-            ("cline", ClineAdapter, "cline", "cline"),
-            ("codex", CodexAdapter, "codex", "codex"),
             ("mistral-vibe", MistralVibeAdapter, "vibe", "mistral-vibe"),
             ("opencode", OpenCodeAdapter, "opencode", "opencode"),
         ],

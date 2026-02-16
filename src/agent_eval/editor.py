@@ -66,7 +66,9 @@ def plan_vscode_settings_update(
         "- `yaml.validate` -> true",
     ]
     if old_schema_targets is not None:
-        preview_lines.append(f"- Previous `yaml.schemas[{schema_ref!r}]`: {old_schema_targets}")
+        preview_lines.append(
+            f"- Previous `yaml.schemas[{schema_ref!r}]`: {old_schema_targets}"
+        )
     if old_validate is not None:
         preview_lines.append(f"- Previous `yaml.validate`: {old_validate}")
 

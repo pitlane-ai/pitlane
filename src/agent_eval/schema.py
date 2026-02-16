@@ -52,7 +52,9 @@ def generate_schema_doc() -> str:
     lines.append("- `tasks`: list of task definitions.")
     lines.append("")
     lines.append("## Assistant Config")
-    lines.append("- `adapter`: string (required) - one of: claude-code, cline, codex, mistral-vibe, opencode")
+    lines.append(
+        "- `adapter`: string (required) - one of: claude-code, cline, codex, mistral-vibe, opencode"
+    )
     lines.append("- `args`: object (optional) - adapter-specific arguments")
     lines.append("- `skills`: array (optional) - list of skill references")
     lines.append("")
@@ -67,15 +69,11 @@ def generate_schema_doc() -> str:
         if top_key == "file_contains":
             spec = defs.get("FileContainsSpec", {})
             spec_fields = spec.get("properties", {}).keys()
-            lines.append(
-                f"- `{top_key}`: {{ {_format_fields(spec_fields)} }}"
-            )
+            lines.append(f"- `{top_key}`: {{ {_format_fields(spec_fields)} }}")
         elif top_key in {"bleu", "rouge", "bertscore", "cosine_similarity"}:
             spec = defs.get("SimilaritySpec", {})
             spec_fields = spec.get("properties", {}).keys()
-            lines.append(
-                f"- `{top_key}`: {{ {_format_fields(spec_fields)} }}"
-            )
+            lines.append(f"- `{top_key}`: {{ {_format_fields(spec_fields)} }}")
         else:
             lines.append(f"- `{top_key}`: string")
 

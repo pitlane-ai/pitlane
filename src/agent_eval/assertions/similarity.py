@@ -11,8 +11,8 @@ from agent_eval.assertions.base import AssertionResult
 
 def _require_similarity_deps() -> None:
     try:
-        pass  
-    except Exception as exc: 
+        pass
+    except Exception as exc:
         raise ValueError(
             "Similarity assertions require installed deps. Run: uv sync"
         ) from exc
@@ -73,7 +73,9 @@ def evaluate_similarity_assertion(
 ) -> AssertionResult:
     _require_similarity_deps()
 
-    logger.info(f"Evaluating {kind} similarity: {spec.get('actual')} vs {spec.get('expected')}")
+    logger.info(
+        f"Evaluating {kind} similarity: {spec.get('actual')} vs {spec.get('expected')}"
+    )
 
     actual_text = _read_text(workdir, spec["actual"])
     # Read expected files from original source_dir (not workspace) so that
