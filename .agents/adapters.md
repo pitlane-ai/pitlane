@@ -35,6 +35,7 @@ AdapterResult(
 ### Registration
 
 Add to `src/agent_eval/adapters/__init__.py`:
+
 ```python
 from .my_adapter import MyAdapter
 __all__ = [..., "MyAdapter"]
