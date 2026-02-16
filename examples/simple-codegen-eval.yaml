@@ -11,6 +11,10 @@ assistants:
     adapter: mistral-vibe
     args:
       model: devstral-small
+  opencode-baseline:
+    adapter: opencode
+    args:
+      model: opencode/minimax-m2.5-free
 
 tasks:
   - name: hello-world-python
@@ -19,4 +23,4 @@ tasks:
     timeout: 120
     assertions:
       - file_exists: "hello.py"
-      - command_succeeds: "python hello.py"
+      - command_succeeds: "python3 hello.py"

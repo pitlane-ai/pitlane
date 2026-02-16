@@ -38,21 +38,42 @@ class OpenCodeAdapter(BaseAdapter):
 
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["opencode", "run", "--format", "json"]
+        
         if model := config.get("model"):
             cmd.extend(["--model", model])
         if agent := config.get("agent"):
             cmd.extend(["--agent", agent])
+        
         if files := config.get("files"):
             for f in files:
                 cmd.extend(["--file", f])
+        
+        if session_id := config.get("session"):
+            cmd.extend(["--session", session_id])
+        if config.get("continue", False):
+            cmd.append("--continue")
+        if config.get("fork", False):
+            cmd.append("--fork")
+        
+        if title := config.get("title"):
+            cmd.extend(["--title", title])
+        if config.get("share", False):
+            cmd.append("--share")
+        
+        if attach_url := config.get("attach"):
+            cmd.extend(["--attach", attach_url])
+        if port := config.get("port"):
+            cmd.extend(["--port", str(port)])
+        
         cmd.append(prompt)
         return cmd
 
     def _parse_output(self, stdout: str) -> tuple[list[dict], dict | None, float | None, int]:
         """Parse JSON events from opencode run --format json."""
         conversation: list[dict] = []
-        token_usage = None
-        cost = None
+        total_input_tokens = 0
+        total_output_tokens = 0
+        total_cost = 0.0
         tool_calls_count = 0
 
         for line in stdout.strip().splitlines():
@@ -84,14 +105,25 @@ class OpenCodeAdapter(BaseAdapter):
                     },
                 })
 
-            if msg_type in ("result", "summary"):
-                usage = msg.get("usage", msg.get("token_usage", {}))
-                if usage:
-                    token_usage = {
-                        "input": usage.get("input_tokens", usage.get("input", 0)),
-                        "output": usage.get("output_tokens", usage.get("output", 0)),
-                    }
-                cost = msg.get("total_cost_usd") or msg.get("cost")
+            # OpenCode provides tokens in step_finish events
+            if msg_type == "step_finish":
+                part = msg.get("part", {})
+                tokens = part.get("tokens", {})
+                if tokens:
+                    total_input_tokens += tokens.get("input", 0)
+                    total_output_tokens += tokens.get("output", 0)
+                    step_cost = part.get("cost", 0)
+                    if step_cost:
+                        total_cost += step_cost
+
+        token_usage = None
+        if total_input_tokens > 0 or total_output_tokens > 0:
+            token_usage = {
+                "input": total_input_tokens,
+                "output": total_output_tokens,
+            }
+
+        cost = total_cost if total_cost > 0 else None
 
         return conversation, token_usage, cost, tool_calls_count
 
@@ -129,6 +161,12 @@ class OpenCodeAdapter(BaseAdapter):
             logger.debug(f"Command completed in {duration:.2f}s with exit code {exit_code}")
 
         conversation, token_usage, cost, tool_calls_count = self._parse_output(stdout)
+        
+        if logger:
+            logger.debug(f"Parsed token_usage: {token_usage}")
+            logger.debug(f"Parsed cost: {cost}")
+            logger.debug(f"Parsed tool_calls_count: {tool_calls_count}")
+        
         return AdapterResult(
             stdout=stdout, stderr=stderr,
             exit_code=exit_code, duration_seconds=duration,
