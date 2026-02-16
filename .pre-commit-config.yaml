@@ -1,0 +1,46 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.47.0
+    hooks:
+      - id: markdownlint
+        args: [--fix, --ignore, .bob/, --ignore, docs/plans/]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json
+
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (fast tests only)
+        entry: uv run pytest -m "not integration" --tb=short
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: mypy
+        name: mypy type checking
+        entry: uv run mypy src/agent_eval
+        language: system
+        types: [python]
+        pass_filenames: false
