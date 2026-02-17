@@ -11,7 +11,7 @@ assistants:
     skills:
         - source: terraform-ibm-modules/terraform-ibm-modules-skills
           skill: terraform-ibm-modules-solution-builder
-  
+
   devstral-2-baseline:
     adapter: mistral-vibe
     args:
@@ -40,7 +40,7 @@ assistants:
 
 tasks:
   # Terraform IBM Modules Solution Builder Skill Evaluation Tasks
-  
+
   - name: tim-basic-vpc
     prompt: "Create a basic VPC in IBM Cloud using Terraform IBM Modules. The VPC should be named 'test-vpc' and deployed in the us-south region with a single subnet."
     workdir: ./fixtures/empty
