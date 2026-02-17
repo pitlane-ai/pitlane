@@ -1,4 +1,4 @@
-# pitlane
+# pitlane 🏁
 
 [![CI](https://github.com/vburckhardt/pitlane/workflows/CI/badge.svg)](https://github.com/vburckhardt/pitlane/actions)
 [![codecov](https://codecov.io/gh/vburckhardt/pitlane/branch/main/graph/badge.svg)](https://codecov.io/gh/vburckhardt/pitlane)
@@ -7,18 +7,31 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
 
-A lightweight evaluation harness for AI coding assistants. Define benchmarks in YAML, run them across multiple assistants, and get comparable metrics on what works.
+**A feedback loop for people building AI coding skills and MCP servers.**
 
-## What It Does
+You're building a skill, an MCP server, or a custom prompt strategy that's supposed to make an AI coding assistant better at a specific job. But how do you know it actually works? How do you know your latest commit made things better and not worse?
 
-`pitlane` lets you test whether your skills, MCP servers, or prompts actually improve AI assistant performance. Write a benchmark once, run it against multiple assistants, and see which configurations perform best.
+Pitlane gives you the answer. Define the tasks your skill should help with, set up a baseline (assistant without your skill) and a challenger (assistant with your skill), and race them. The results tell you with numbers, not vibes, whether your work is paying off.
 
-**Key features:**
+## The idea
+
+In motorsport, the pit lane is where engineers tune the car between laps. Swap a part, adjust the setup, check the telemetry, see if the next lap is faster.
+
+Building skills and MCP servers works the same way:
+
+1. Tune: change your skill, update your MCP server, tweak your prompts
+2. Race: run the assistant with and without your changes against real coding tasks
+3. Check the telemetry: did pass rates go up? Did quality improve? Did it get faster or cheaper?
+4. Repeat: go back to the pit, make another adjustment, race again
+
+Pitlane is the telemetry system. You build the skill, pitlane tells you if it's working.
+
+## Key Features
 
 - YAML-based benchmark definitions (easy to version and diff)
 - Deterministic assertions (file checks, command execution, custom scripts)
 - Similarity metrics (ROUGE, BLEU, BERTScore, cosine similarity)
-- Comprehensive metrics (time, tokens, cost, file changes)
+- Metrics tracking (time, tokens, cost, file changes)
 - HTML reports with side-by-side comparisons
 - Parallel execution and repeated runs with statistics
 - Graceful interrupt handling (Ctrl+C generates partial reports)

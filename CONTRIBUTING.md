@@ -2,7 +2,7 @@
 
 This guide covers development setup, testing, and how to submit changes.
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
@@ -10,7 +10,7 @@ This guide covers development setup, testing, and how to submit changes.
 - [uv](https://github.com/astral-sh/uv) package manager
 - Git
 
-### Development Setup
+### Development setup
 
 1. Fork and clone the repository:
 
@@ -39,7 +39,7 @@ uv sync
 
    This will automatically run code quality checks before each commit.
 
-## Running Tests
+## Running tests
 
 Run the full test suite:
 
@@ -65,9 +65,9 @@ Run tests with coverage:
 uv run pytest --cov=src/pitlane --cov-report=html
 ```
 
-## Adding New Features
+## Adding new features
 
-### Adding a New Adapter
+### Adding a new adapter
 
 We currently support Claude Code, Mistral Vibe, and OpenCode. To add support for a new AI coding assistant:
 
@@ -106,7 +106,7 @@ class YourAdapter(BaseAdapter):
 
 See existing adapters for complete examples.
 
-### Adding New Assertion Types
+### Adding new assertion types
 
 1. Add the assertion logic to `src/pitlane/assertions/deterministic.py` or `similarity.py`
 2. Update the dispatcher in `evaluate_assertion()`
@@ -114,14 +114,14 @@ See existing adapters for complete examples.
 4. Add tests in `tests/test_assertions.py`
 5. Update documentation in README.md
 
-### Adding New Similarity Metrics
+### Adding new similarity metrics
 
 1. Add the metric implementation to `src/pitlane/assertions/similarity.py`
 2. Update `evaluate_similarity_assertion()` to handle the new metric
 3. Add tests with known reference/candidate pairs
 4. Document when to use the metric in README.md
 
-## Code Style
+## Code style
 
 - Use type hints throughout (Python 3.11+ syntax)
 - Follow PEP 8 style guidelines
@@ -129,7 +129,7 @@ See existing adapters for complete examples.
 - Keep functions focused and testable
 - Add docstrings for public APIs
 
-### Pre-commit Hooks
+### Pre-commit hooks
 
 The project uses pre-commit hooks to ensure code quality. These run automatically before each commit if you installed them (see setup step 4).
 
@@ -149,7 +149,7 @@ The pre-commit hooks include:
 - Secret detection
 - File quality checks (trailing whitespace, end-of-file fixes, etc.)
 
-## Testing Guidelines
+## Testing guidelines
 
 - Write tests for all new functionality
 - Use fixtures in `tests/conftest.py` for common test data
@@ -157,7 +157,7 @@ The pre-commit hooks include:
 - Test both success and failure cases
 - Keep tests fast (mock slow operations)
 
-## Submitting Changes
+## Submitting changes
 
 1. Create a feature branch:
 
@@ -196,7 +196,7 @@ The pre-commit hooks include:
 
 6. Open a pull request on GitHub
 
-## Pull Request Guidelines
+## Pull request guidelines
 
 - Describe what your PR does and why
 - Reference related issues
