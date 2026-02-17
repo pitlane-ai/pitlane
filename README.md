@@ -26,7 +26,7 @@ Building skills and MCP servers works the same way:
 
 Pitlane is the telemetry system. You build the skill, pitlane tells you if it's working.
 
-## Key Features
+## Key features
 
 - YAML-based benchmark definitions (easy to version and diff)
 - Deterministic assertions (file checks, command execution, custom scripts)
@@ -37,7 +37,7 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 - Graceful interrupt handling (Ctrl+C generates partial reports)
 - TDD workflow support (red-green-refactor)
 
-## Quick Start
+## Quick start
 
 Install dependencies:
 
@@ -107,7 +107,7 @@ pitlane run examples/simple-codegen-eval.yaml --assistant claude-baseline
 pitlane run examples/simple-codegen-eval.yaml --task hello-world-python --assistant claude-baseline
 ```
 
-### Parallel Execution
+### Parallel execution
 
 Speed up multi-task benchmarks:
 
@@ -115,7 +115,7 @@ Speed up multi-task benchmarks:
 pitlane run examples/simple-codegen-eval.yaml --parallel 4
 ```
 
-### Repeated Runs
+### Repeated runs
 
 Run tasks multiple times to measure consistency and get aggregated statistics:
 
@@ -125,7 +125,7 @@ pitlane run examples/simple-codegen-eval.yaml --repeat 5
 
 This runs each task 5 times and reports avg/min/max/stddev for all metrics in the HTML report.
 
-### Debug Output
+### Debug output
 
 Every run creates `debug.log` with detailed execution information. Stream output to terminal in real-time:
 
@@ -135,11 +135,11 @@ pitlane run examples/simple-codegen-eval.yaml --verbose
 
 All assertions include detailed logging to help diagnose failures.
 
-### Interrupt Handling
+### Interrupt handling
 
 Press Ctrl+C to stop a run. You'll get a partial HTML report with results from completed tasks.
 
-### Other Commands
+### Other commands
 
 ```bash
 # Initialize new benchmark project
@@ -155,11 +155,11 @@ pitlane schema install
 pitlane report runs/2024-01-01_12-00-00
 ```
 
-## Writing Benchmarks
+## Writing benchmarks
 
 Benchmarks are YAML files with two sections: `assistants` and `tasks`.
 
-### Minimal Example
+### Minimal example
 
 ```yaml
 assistants:
@@ -201,7 +201,7 @@ assistants:
         skill: my-skill-name
 ```
 
-## Supported Assistants
+## Supported assistants
 
 Currently supported AI coding assistants:
 
@@ -251,7 +251,7 @@ assertions:
       expected_exit_code: 0
 ```
 
-### Custom Script Assertions
+### Custom script assertions
 
 When you need more complex validation logic than simple commands provide, use `custom_script` to run a dedicated test script. This is useful for multi-step validation, complex parsing, or reusable test logic.
 
@@ -305,9 +305,9 @@ Use it in your eval:
 - custom_script: "scripts/validate_tf.sh"
 ```
 
-### Similarity Assertions
+### Similarity assertions
 
-#### Similarity Metrics
+#### Similarity metrics
 
 When exact matching isn't practical, use similarity metrics:
 
@@ -350,7 +350,7 @@ assertions:
 
 Use deterministic assertions first. Add similarity metrics when you need fuzzy matching.
 
-#### Weighted Grading
+#### Weighted grading
 
 Make some assertions count more:
 
@@ -380,7 +380,7 @@ The `examples/` directory contains working benchmarks:
 - **`terraform-module-eval.yaml`** — Real-world Terraform evaluation
 - **`weighted-grading-eval.yaml`** — Weighted assertions and continuous scoring
 
-## TDD Workflow
+## TDD workflow
 
 Treat benchmarks like tests:
 
@@ -390,7 +390,7 @@ Treat benchmarks like tests:
 
 This lets you iterate on what "good" means without guessing.
 
-## Editor Integration
+## Editor integration
 
 ### VS Code / Cursor / Bob
 
@@ -417,7 +417,7 @@ Manual setup:
 }
 ```
 
-### Other Editors
+### Other editors
 
 Generate schema and docs:
 
