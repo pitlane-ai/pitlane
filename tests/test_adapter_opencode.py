@@ -1,6 +1,6 @@
 import json
 
-from agent_eval.adapters.opencode import OpenCodeAdapter
+from pitlane.adapters.opencode import OpenCodeAdapter
 
 
 def test_build_command_minimal():

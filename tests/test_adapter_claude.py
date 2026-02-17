@@ -1,5 +1,5 @@
 import json
-from agent_eval.adapters.claude_code import ClaudeCodeAdapter
+from pitlane.adapters.claude_code import ClaudeCodeAdapter
 
 
 def test_build_command_minimal():

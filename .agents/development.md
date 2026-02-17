@@ -1,6 +1,6 @@
 # Development Conventions
 
-## Using agent-eval for AI Assistant Development
+## Using pitlane for AI Assistant Development
 
 The tool enables TDD-style development of AI assistant capabilities:
 

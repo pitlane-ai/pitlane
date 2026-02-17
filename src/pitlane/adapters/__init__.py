@@ -1,7 +1,7 @@
-from agent_eval.adapters.base import AdapterResult, BaseAdapter
-from agent_eval.adapters.claude_code import ClaudeCodeAdapter
-from agent_eval.adapters.mistral_vibe import MistralVibeAdapter
-from agent_eval.adapters.opencode import OpenCodeAdapter
+from pitlane.adapters.base import AdapterResult, BaseAdapter
+from pitlane.adapters.claude_code import ClaudeCodeAdapter
+from pitlane.adapters.mistral_vibe import MistralVibeAdapter
+from pitlane.adapters.opencode import OpenCodeAdapter
 
 _ADAPTERS: dict[str, type[BaseAdapter]] = {
     "claude-code": ClaudeCodeAdapter,

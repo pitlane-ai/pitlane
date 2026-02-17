@@ -1,7 +1,7 @@
 """Tests for verbose logging."""
 
 from pathlib import Path
-from agent_eval.verbose import setup_logger
+from pitlane.verbose import setup_logger
 import tempfile
 import logging
 

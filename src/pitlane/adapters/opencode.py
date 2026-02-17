@@ -8,8 +8,8 @@ import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
-from agent_eval.adapters.base import AdapterResult, BaseAdapter
-from agent_eval.adapters.streaming import run_command_with_streaming
+from pitlane.adapters.base import AdapterResult, BaseAdapter
+from pitlane.adapters.streaming import run_command_with_streaming
 
 if TYPE_CHECKING:
     import logging

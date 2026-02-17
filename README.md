@@ -1,8 +1,8 @@
-# agent-eval
+# pitlane
 
-[![CI](https://github.com/vburckhardt/agent-eval/workflows/CI/badge.svg)](https://github.com/vburckhardt/agent-eval/actions)
-[![codecov](https://codecov.io/gh/vburckhardt/agent-eval/branch/main/graph/badge.svg)](https://codecov.io/gh/vburckhardt/agent-eval)
-[![PyPI version](https://badge.fury.io/py/agent-eval.svg)](https://badge.fury.io/py/agent-eval)
+[![CI](https://github.com/vburckhardt/pitlane/workflows/CI/badge.svg)](https://github.com/vburckhardt/pitlane/actions)
+[![codecov](https://codecov.io/gh/vburckhardt/pitlane/branch/main/graph/badge.svg)](https://codecov.io/gh/vburckhardt/pitlane)
+[![PyPI version](https://badge.fury.io/py/pitlane.svg)](https://badge.fury.io/py/pitlane)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
@@ -11,7 +11,7 @@ A lightweight evaluation harness for AI coding assistants. Define benchmarks in 
 
 ## What It Does
 
-`agent-eval` lets you test whether your skills, MCP servers, or prompts actually improve AI assistant performance. Write a benchmark once, run it against multiple assistants, and see which configurations perform best.
+`pitlane` lets you test whether your skills, MCP servers, or prompts actually improve AI assistant performance. Write a benchmark once, run it against multiple assistants, and see which configurations perform best.
 
 **Key features:**
 
@@ -36,7 +36,7 @@ uv tool install .
 Run your first benchmark:
 
 ```bash
-agent-eval run examples/simple-codegen-eval.yaml
+pitlane run examples/simple-codegen-eval.yaml
 ```
 
 Results appear in `runs/` with an HTML report showing pass rates and metrics across all assistants.
@@ -53,8 +53,8 @@ Results appear in `runs/` with an HTML report showing pass rates and metrics acr
 
 ```bash
 # Clone the repository
-git clone https://github.com/vburckhardt/agent-eval.git
-cd agent-eval
+git clone https://github.com/vburckhardt/pitlane.git
+cd pitlane
 
 # Install dependencies
 uv sync
@@ -76,7 +76,7 @@ pip install -e .
 Run all tasks against all configured assistants:
 
 ```bash
-agent-eval run examples/simple-codegen-eval.yaml
+pitlane run examples/simple-codegen-eval.yaml
 ```
 
 ### Filtering
@@ -85,13 +85,13 @@ Run specific tasks or assistants:
 
 ```bash
 # Single task
-agent-eval run examples/simple-codegen-eval.yaml --task hello-world-python
+pitlane run examples/simple-codegen-eval.yaml --task hello-world-python
 
 # Single assistant
-agent-eval run examples/simple-codegen-eval.yaml --assistant claude-baseline
+pitlane run examples/simple-codegen-eval.yaml --assistant claude-baseline
 
 # Combine filters
-agent-eval run examples/simple-codegen-eval.yaml --task hello-world-python --assistant claude-baseline
+pitlane run examples/simple-codegen-eval.yaml --task hello-world-python --assistant claude-baseline
 ```
 
 ### Parallel Execution
@@ -99,7 +99,7 @@ agent-eval run examples/simple-codegen-eval.yaml --task hello-world-python --ass
 Speed up multi-task benchmarks:
 
 ```bash
-agent-eval run examples/simple-codegen-eval.yaml --parallel 4
+pitlane run examples/simple-codegen-eval.yaml --parallel 4
 ```
 
 ### Repeated Runs
@@ -107,7 +107,7 @@ agent-eval run examples/simple-codegen-eval.yaml --parallel 4
 Run tasks multiple times to measure consistency and get aggregated statistics:
 
 ```bash
-agent-eval run examples/simple-codegen-eval.yaml --repeat 5
+pitlane run examples/simple-codegen-eval.yaml --repeat 5
 ```
 
 This runs each task 5 times and reports avg/min/max/stddev for all metrics in the HTML report.
@@ -117,7 +117,7 @@ This runs each task 5 times and reports avg/min/max/stddev for all metrics in th
 Every run creates `debug.log` with detailed execution information. Stream output to terminal in real-time:
 
 ```bash
-agent-eval run examples/simple-codegen-eval.yaml --verbose
+pitlane run examples/simple-codegen-eval.yaml --verbose
 ```
 
 All assertions include detailed logging to help diagnose failures.
@@ -130,16 +130,16 @@ Press Ctrl+C to stop a run. You'll get a partial HTML report with results from c
 
 ```bash
 # Initialize new benchmark project
-agent-eval init
+pitlane init
 
 # Generate JSON Schema for YAML validation
-agent-eval schema generate
+pitlane schema generate
 
 # Install VS Code YAML validation (safe, with preview)
-agent-eval schema install
+pitlane schema install
 
 # Regenerate HTML report from previous run
-agent-eval report runs/2024-01-01_12-00-00
+pitlane report runs/2024-01-01_12-00-00
 ```
 
 ## Writing Benchmarks
@@ -384,7 +384,7 @@ This lets you iterate on what "good" means without guessing.
 Enable YAML validation:
 
 ```bash
-agent-eval schema install
+pitlane schema install
 ```
 
 This adds JSON Schema validation to `.vscode/settings.json` with preview and backup.
@@ -394,7 +394,7 @@ Manual setup:
 ```json
 {
   "yaml.schemas": {
-    "./agent-eval/schemas/agent-eval.schema.json": [
+    "./pitlane/schemas/pitlane.schema.json": [
       "eval.yaml",
       "examples/*.yaml",
       "**/*eval*.y*ml"
@@ -409,13 +409,13 @@ Manual setup:
 Generate schema and docs:
 
 ```bash
-agent-eval schema generate
+pitlane schema generate
 ```
 
 Outputs:
 
-- `agent-eval/schemas/agent-eval.schema.json`
-- `agent-eval/docs/schema.md`
+- `pitlane/schemas/pitlane.schema.json`
+- `pitlane/docs/schema.md`
 
 ## Contributing
 

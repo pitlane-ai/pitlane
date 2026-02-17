@@ -1,6 +1,11 @@
 {
   "yaml.schemas": {
-    "./agent-eval/schemas/agent-eval.schema.json": [
+    "./schemas/pitlane.schema.json": [
+      "eval.yaml",
+      "examples/*.yaml",
+      "**/*eval*.y*ml"
+    ],
+    "./pitlane/schemas/pitlane.schema.json": [
       "eval.yaml",
       "examples/*.yaml",
       "**/*eval*.y*ml"

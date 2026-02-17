@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from agent_eval.config import EvalConfig
+from pitlane.config import EvalConfig
 
 
 def _ensure_parent(path: Path) -> None:
@@ -43,7 +43,7 @@ def generate_schema_doc() -> str:
     ]
 
     lines: list[str] = []
-    lines.append("# agent-eval YAML Schema")
+    lines.append("# pitlane YAML Schema")
     lines.append("")
     lines.append("This doc is generated from the Pydantic models.")
     lines.append("")

@@ -2,10 +2,10 @@ import json
 import pytest
 from pathlib import Path
 from unittest.mock import patch
-from agent_eval.adapters.base import AdapterResult
-from agent_eval.config import load_config
-from agent_eval.runner import Runner
-from agent_eval.reporting.html import generate_report
+from pitlane.adapters.base import AdapterResult
+from pitlane.config import load_config
+from pitlane.runner import Runner
+from pitlane.reporting.html import generate_report
 
 
 @pytest.fixture
@@ -61,8 +61,8 @@ def test_full_pipeline(full_eval_setup):
         return _make_mock_result(workdir)
 
     with (
-        patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", mock_run),
-        patch("agent_eval.adapters.opencode.OpenCodeAdapter.run", mock_run),
+        patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run),
+        patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run),
     ):
         runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
         run_dir = runner.execute()
@@ -95,8 +95,8 @@ def test_full_pipeline(full_eval_setup):
 @pytest.mark.integration
 def test_skill_installation_non_interactive(tmp_path):
     """Integration test: Verify skill installation completes without hanging on prompts."""
-    from agent_eval.config import SkillRef
-    from agent_eval.workspace import WorkspaceManager
+    from pitlane.config import SkillRef
+    from pitlane.workspace import WorkspaceManager
 
     ws = tmp_path / "workspace"
     ws.mkdir()
@@ -143,9 +143,9 @@ def test_simple_codegen_eval_example(tmp_path):
 
     # Mock all adapters in the example
     with (
-        patch("agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", mock_run),
-        patch("agent_eval.adapters.mistral_vibe.MistralVibeAdapter.run", mock_run),
-        patch("agent_eval.adapters.opencode.OpenCodeAdapter.run", mock_run),
+        patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run),
+        patch("pitlane.adapters.mistral_vibe.MistralVibeAdapter.run", mock_run),
+        patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run),
     ):
         runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
         run_dir = runner.execute()

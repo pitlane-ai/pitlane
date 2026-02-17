@@ -1,4 +1,4 @@
-# Contributing to agent-eval
+# Contributing to pitlane
 
 This guide covers development setup, testing, and how to submit changes.
 
@@ -15,8 +15,8 @@ This guide covers development setup, testing, and how to submit changes.
 1. Fork and clone the repository:
 
 ```bash
-git clone https://github.com/vburckhardt/agent-eval.git
-cd agent-eval
+git clone https://github.com/vburckhardt/pitlane.git
+cd pitlane
 ```
 
 2. Install dependencies:
@@ -62,7 +62,7 @@ uv run pytest -m "not integration"
 Run tests with coverage:
 
 ```bash
-uv run pytest --cov=src/agent_eval --cov-report=html
+uv run pytest --cov=src/pitlane --cov-report=html
 ```
 
 ## Adding New Features
@@ -71,7 +71,7 @@ uv run pytest --cov=src/agent_eval --cov-report=html
 
 We currently support Claude Code, Mistral Vibe, and OpenCode. To add support for a new AI coding assistant:
 
-1. Create `src/agent_eval/adapters/your_adapter.py`
+1. Create `src/pitlane/adapters/your_adapter.py`
 2. Inherit from `BaseAdapter` in `adapters/base.py`
 3. Implement required methods:
    - `cli_name()` - Returns the CLI identifier
@@ -88,7 +88,7 @@ We currently support Claude Code, Mistral Vibe, and OpenCode. To add support for
 Example adapter structure:
 
 ```python
-from agent_eval.adapters.base import BaseAdapter, AdapterResult
+from pitlane.adapters.base import BaseAdapter, AdapterResult
 
 class YourAdapter(BaseAdapter):
     @staticmethod
@@ -108,15 +108,15 @@ See existing adapters for complete examples.
 
 ### Adding New Assertion Types
 
-1. Add the assertion logic to `src/agent_eval/assertions/deterministic.py` or `similarity.py`
+1. Add the assertion logic to `src/pitlane/assertions/deterministic.py` or `similarity.py`
 2. Update the dispatcher in `evaluate_assertion()`
-3. Add the assertion type to the config schema in `src/agent_eval/config.py`
+3. Add the assertion type to the config schema in `src/pitlane/config.py`
 4. Add tests in `tests/test_assertions.py`
 5. Update documentation in README.md
 
 ### Adding New Similarity Metrics
 
-1. Add the metric implementation to `src/agent_eval/assertions/similarity.py`
+1. Add the metric implementation to `src/pitlane/assertions/similarity.py`
 2. Update `evaluate_similarity_assertion()` to handle the new metric
 3. Add tests with known reference/candidate pairs
 4. Document when to use the metric in README.md

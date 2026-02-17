@@ -40,7 +40,7 @@ repos:
 
       - id: mypy
         name: mypy type checking
-        entry: uv run mypy src/agent_eval
+        entry: uv run mypy src/pitlane
         language: system
         types: [python]
         pass_filenames: false

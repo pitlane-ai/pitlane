@@ -5,8 +5,8 @@ import logging
 
 import pytest
 
-from agent_eval.assertions.base import AssertionResult
-from agent_eval.assertions.deterministic import (
+from pitlane.assertions.base import AssertionResult
+from pitlane.assertions.deterministic import (
     check_command_fails,
     check_command_succeeds,
     check_file_contains,
@@ -190,7 +190,7 @@ def test_evaluate_assertion_default_weight(tmp_path):
 
 def test_similarity_score_normalized_against_min_score(tmp_path):
     """Similarity scores should be normalized so meeting min_score = 1.0."""
-    from agent_eval.assertions.similarity import evaluate_similarity_assertion
+    from pitlane.assertions.similarity import evaluate_similarity_assertion
     from unittest.mock import patch
 
     (tmp_path / "a.txt").write_text("actual text")
@@ -198,7 +198,7 @@ def test_similarity_score_normalized_against_min_score(tmp_path):
 
     # Mock ROUGE to return a raw score of 0.42 with min_score 0.3
     # Normalized: min(0.42 / 0.3, 1.0) = 1.0 (capped)
-    with patch("agent_eval.assertions.similarity._score_rouge", return_value=0.42):
+    with patch("pitlane.assertions.similarity._score_rouge", return_value=0.42):
         r = evaluate_similarity_assertion(
             tmp_path,
             "rouge",
@@ -215,7 +215,7 @@ def test_similarity_score_normalized_against_min_score(tmp_path):
 
     # Mock ROUGE to return a raw score of 0.15 with min_score 0.3
     # Normalized: min(0.15 / 0.3, 1.0) = 0.5
-    with patch("agent_eval.assertions.similarity._score_rouge", return_value=0.15):
+    with patch("pitlane.assertions.similarity._score_rouge", return_value=0.15):
         r = evaluate_similarity_assertion(
             tmp_path,
             "rouge",
@@ -233,13 +233,13 @@ def test_similarity_score_normalized_against_min_score(tmp_path):
 
 def test_similarity_score_raw_when_no_min_score(tmp_path):
     """Without min_score, similarity score should be the raw metric value."""
-    from agent_eval.assertions.similarity import evaluate_similarity_assertion
+    from pitlane.assertions.similarity import evaluate_similarity_assertion
     from unittest.mock import patch
 
     (tmp_path / "a.txt").write_text("actual text")
     (tmp_path / "b.txt").write_text("expected text")
 
-    with patch("agent_eval.assertions.similarity._score_rouge", return_value=0.42):
+    with patch("pitlane.assertions.similarity._score_rouge", return_value=0.42):
         r = evaluate_similarity_assertion(
             tmp_path,
             "rouge",

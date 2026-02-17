@@ -6,14 +6,14 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def cleanup_loggers():
-    """Clean up agent_eval loggers after each test to prevent name collisions."""
+    """Clean up pitlane loggers after each test to prevent name collisions."""
     yield
 
-    # Remove all agent_eval loggers from registry
+    # Remove all pitlane loggers from registry
     loggers_to_remove = [
         name
         for name in logging.Logger.manager.loggerDict.keys()
-        if name.startswith("agent_eval")
+        if name.startswith("pitlane")
     ]
 
     for name in loggers_to_remove:

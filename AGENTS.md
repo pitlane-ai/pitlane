@@ -1,4 +1,4 @@
-# agent-eval
+# pitlane
 
 Lightweight Python-based evaluation harness for AI coding assistants.
 
@@ -6,7 +6,7 @@ Lightweight Python-based evaluation harness for AI coding assistants.
 
 - **Package Manager:** uv
 - **Install:** `uv sync && uv tool install .`
-- **Run Eval:** `agent-eval run examples/simple-codegen-eval.yaml`
+- **Run Eval:** `pitlane run examples/simple-codegen-eval.yaml`
 - **Test:** `uv run pytest`
 - **Pre-commit:** `uv run pre-commit run --all-files`
 

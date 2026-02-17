@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def setup_logger(
-    debug_file: Path, verbose: bool = False, logger_name: str = "agent_eval"
+    debug_file: Path, verbose: bool = False, logger_name: str = "pitlane"
 ) -> logging.Logger:
     """
     Configure and return a logger for debug output.

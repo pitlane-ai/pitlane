@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_eval.verbose import setup_logger
+from pitlane.verbose import setup_logger
 
 
 def test_unique_logger_names_create_separate_instances(tmp_path: Path):
@@ -15,12 +15,8 @@ def test_unique_logger_names_create_separate_instances(tmp_path: Path):
     log1 = tmp_path / "assistant1.log"
     log2 = tmp_path / "assistant2.log"
 
-    logger1 = setup_logger(
-        log1, verbose=False, logger_name="agent_eval_assistant1_task1"
-    )
-    logger2 = setup_logger(
-        log2, verbose=False, logger_name="agent_eval_assistant2_task1"
-    )
+    logger1 = setup_logger(log1, verbose=False, logger_name="pitlane_assistant1_task1")
+    logger2 = setup_logger(log2, verbose=False, logger_name="pitlane_assistant2_task1")
 
     # Verify they are different logger instances
     assert logger1 is not logger2
@@ -47,16 +43,16 @@ def test_same_logger_name_raises_error(tmp_path: Path):
     log2 = tmp_path / "log2.log"
 
     # First call - should succeed
-    logger1 = setup_logger(log1, verbose=False, logger_name="agent_eval_shared_test")
+    logger1 = setup_logger(log1, verbose=False, logger_name="pitlane_shared_test")
     logger1.debug("First message")
 
     # Second call with same name - should raise RuntimeError
     with pytest.raises(RuntimeError) as exc_info:
-        setup_logger(log2, verbose=False, logger_name="agent_eval_shared_test")
+        setup_logger(log2, verbose=False, logger_name="pitlane_shared_test")
 
     # Verify error message
     error_msg = str(exc_info.value)
-    assert "agent_eval_shared_test" in error_msg
+    assert "pitlane_shared_test" in error_msg
     assert "already exists" in error_msg
 
 
@@ -72,7 +68,7 @@ def test_parallel_loggers_with_unique_names(tmp_path: Path):
         logger = setup_logger(
             log_file,
             verbose=False,
-            logger_name=f"agent_eval_parallel_assistant{i}_task1",
+            logger_name=f"pitlane_parallel_assistant{i}_task1",
         )
         loggers.append(logger)
 
@@ -93,18 +89,18 @@ def test_parallel_loggers_with_unique_names(tmp_path: Path):
 
 def test_logger_name_format_matches_runner_pattern():
     """Test that the logger name format matches what runner.py uses."""
-    # This test documents the expected format: agent_eval_{assistant_name}_{task_name}
+    # This test documents the expected format: pitlane_{assistant_name}_{task_name}
     assistant_name = "claude-baseline"
     task_name = "fibonacci-module"
 
-    expected_format = f"agent_eval_{assistant_name}_{task_name}"
+    expected_format = f"pitlane_{assistant_name}_{task_name}"
 
     # Verify the format is valid and unique
-    assert expected_format == "agent_eval_claude-baseline_fibonacci-module"
+    assert expected_format == "pitlane_claude-baseline_fibonacci-module"
 
     # Different assistant, same task should have different name
     other_assistant = "vibe-baseline"
-    other_format = f"agent_eval_{other_assistant}_{task_name}"
+    other_format = f"pitlane_{other_assistant}_{task_name}"
     assert other_format != expected_format
 
 
@@ -114,14 +110,14 @@ def test_verbose_mode_adds_stderr_handler(tmp_path: Path):
 
     # Non-verbose: only file handler
     logger1 = setup_logger(
-        log_file, verbose=False, logger_name="agent_eval_test_verbose_off"
+        log_file, verbose=False, logger_name="pitlane_test_verbose_off"
     )
     assert len(logger1.handlers) == 1
     assert isinstance(logger1.handlers[0], logging.FileHandler)
 
     # Verbose: file handler + stderr handler
     logger2 = setup_logger(
-        log_file, verbose=True, logger_name="agent_eval_test_verbose_on"
+        log_file, verbose=True, logger_name="pitlane_test_verbose_on"
     )
     assert len(logger2.handlers) == 2
     handler_types = [type(h).__name__ for h in logger2.handlers]
@@ -136,13 +132,13 @@ def test_collision_detection_prevents_log_mixing(tmp_path: Path):
 
     # Setup first logger
     logger1 = setup_logger(
-        log1, verbose=False, logger_name="agent_eval_collision_assistant1_task1"
+        log1, verbose=False, logger_name="pitlane_collision_assistant1_task1"
     )
     logger1.debug("Message from assistant1")
 
     # Setup second logger with DIFFERENT name (correct usage)
     logger2 = setup_logger(
-        log2, verbose=False, logger_name="agent_eval_collision_assistant2_task1"
+        log2, verbose=False, logger_name="pitlane_collision_assistant2_task1"
     )
     logger2.debug("Message from assistant2")
 
@@ -156,5 +152,5 @@ def test_collision_detection_prevents_log_mixing(tmp_path: Path):
     log3 = tmp_path / "assistant3" / "task1" / "debug.log"
     with pytest.raises(RuntimeError):
         setup_logger(
-            log3, verbose=False, logger_name="agent_eval_collision_assistant1_task1"
+            log3, verbose=False, logger_name="pitlane_collision_assistant1_task1"
         )

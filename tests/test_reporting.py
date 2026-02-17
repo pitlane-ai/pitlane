@@ -1,6 +1,6 @@
 import json
 import pytest
-from agent_eval.reporting.html import generate_report
+from pitlane.reporting.html import generate_report
 
 
 @pytest.fixture

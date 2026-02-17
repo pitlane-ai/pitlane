@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_eval.config import SkillRef
-from agent_eval.workspace import WorkspaceManager
+from pitlane.config import SkillRef
+from pitlane.workspace import WorkspaceManager
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def test_install_skill_includes_skill_flag(
 
         return Result()
 
-    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run)
+    monkeypatch.setattr("pitlane.workspace.subprocess.run", fake_run)
 
     manager.install_skill(
         workspace=ws,
@@ -147,7 +147,7 @@ def test_install_skill_without_skill_flag(
 
         return Result()
 
-    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run)
+    monkeypatch.setattr("pitlane.workspace.subprocess.run", fake_run)
 
     manager.install_skill(
         workspace=ws,
@@ -187,7 +187,7 @@ def test_install_skill_timeout_handling(
     def fake_run_timeout(cmd, cwd, capture_output, text, timeout):
         raise subprocess.TimeoutExpired(cmd, timeout)
 
-    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run_timeout)
+    monkeypatch.setattr("pitlane.workspace.subprocess.run", fake_run_timeout)
 
     with pytest.raises(RuntimeError) as exc_info:
         manager.install_skill(
@@ -222,7 +222,7 @@ def test_install_skill_non_interactive(
 
         return Result()
 
-    monkeypatch.setattr("agent_eval.workspace.subprocess.run", fake_run)
+    monkeypatch.setattr("pitlane.workspace.subprocess.run", fake_run)
 
     # Should complete without hanging or prompting
     manager.install_skill(

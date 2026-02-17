@@ -1,4 +1,4 @@
-# agent-eval YAML Schema
+# pitlane YAML Schema
 
 This doc is generated from the Pydantic models.
 

@@ -1,5 +1,5 @@
 import json
-from agent_eval.adapters.mistral_vibe import MistralVibeAdapter
+from pitlane.adapters.mistral_vibe import MistralVibeAdapter
 
 
 def test_build_command_minimal():

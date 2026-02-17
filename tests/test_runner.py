@@ -3,10 +3,10 @@ import pytest
 import yaml
 from concurrent.futures import as_completed
 from unittest.mock import patch
-from agent_eval.runner import Runner, IterationResult
-from agent_eval.metrics import compute_stats, aggregate_results
-from agent_eval.adapters.base import AdapterResult
-from agent_eval.config import load_config
+from pitlane.runner import Runner, IterationResult
+from pitlane.metrics import compute_stats, aggregate_results
+from pitlane.adapters.base import AdapterResult
+from pitlane.config import load_config
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def test_runner_creates_run_directory(tmp_path, eval_config):
         duration_seconds=1.0,
     )
     with patch(
-        "agent_eval.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
     ):
         run_dir = runner.execute()
@@ -67,7 +67,7 @@ def test_runner_captures_results(tmp_path, eval_config):
         cost_usd=0.01,
     )
     with patch(
-        "agent_eval.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
     ):
         run_dir = runner.execute()
@@ -131,7 +131,7 @@ tasks:
         duration_seconds=0.1,
     )
     with patch(
-        "agent_eval.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
     ):
         run_dir = runner.execute()
@@ -167,7 +167,7 @@ def test_runner_sequential_execution(tmp_path, eval_config):
         duration_seconds=1.0,
     )
     with patch(
-        "agent_eval.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
     ):
         run_dir = runner.execute()
@@ -210,7 +210,7 @@ def test_runner_repeat_execution(tmp_path, eval_config):
         )
 
     with patch(
-        "agent_eval.adapters.claude_code.ClaudeCodeAdapter.run", side_effect=mock_run
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", side_effect=mock_run
     ):
         run_dir = runner.execute()
 
@@ -251,7 +251,7 @@ def test_runner_repeat_meta_includes_repeat_count(tmp_path, eval_config):
         duration_seconds=1.0,
     )
     with patch(
-        "agent_eval.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
     ):
         run_dir = runner.execute()
@@ -436,7 +436,7 @@ tasks:
 
     with (
         patch.object(runner, "_run_task", return_value=completed_result),
-        patch("agent_eval.runner.as_completed", side_effect=mock_as_completed),
+        patch("pitlane.runner.as_completed", side_effect=mock_as_completed),
     ):
         run_dir = runner.execute()
 
@@ -465,7 +465,7 @@ tasks:
 
 def test_runner_interrupt_report_generation(tmp_path):
     """Test that a report can be generated from partial results."""
-    from agent_eval.reporting.html import generate_report
+    from pitlane.reporting.html import generate_report
 
     fixture_dir = tmp_path / "fixtures" / "empty"
     fixture_dir.mkdir(parents=True)
@@ -536,7 +536,7 @@ tasks:
 
     with (
         patch.object(runner, "_run_task", return_value=completed_result),
-        patch("agent_eval.runner.as_completed", side_effect=mock_as_completed),
+        patch("pitlane.runner.as_completed", side_effect=mock_as_completed),
     ):
         run_dir = runner.execute()
 

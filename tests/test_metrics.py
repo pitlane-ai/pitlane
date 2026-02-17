@@ -1,7 +1,7 @@
 import pytest
-from agent_eval.metrics import collect_metrics
-from agent_eval.adapters.base import AdapterResult
-from agent_eval.assertions.base import AssertionResult
+from pitlane.metrics import collect_metrics
+from pitlane.adapters.base import AdapterResult
+from pitlane.assertions.base import AssertionResult
 
 
 def test_collect_metrics_basic(tmp_path):

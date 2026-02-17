@@ -6,7 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from agent_eval.config import SkillRef
+from pitlane.config import SkillRef
 
 
 class WorkspaceManager:

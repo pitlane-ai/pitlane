@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_eval.config import SkillRef, load_config
+from pitlane.config import SkillRef, load_config
 
 
 def _example_configs() -> list[Path]:

@@ -10,16 +10,16 @@ from typing import Any
 
 import yaml
 
-from agent_eval.adapters import get_adapter
-from agent_eval.adapters.base import BaseAdapter
-from agent_eval.assertions.deterministic import evaluate_assertion
-from agent_eval.config import EvalConfig, AssistantConfig, TaskConfig
-from agent_eval.metrics import (
+from pitlane.adapters import get_adapter
+from pitlane.adapters.base import BaseAdapter
+from pitlane.assertions.deterministic import evaluate_assertion
+from pitlane.config import EvalConfig, AssistantConfig, TaskConfig
+from pitlane.metrics import (
     collect_metrics,
     aggregate_results,
 )
-from agent_eval.verbose import setup_logger
-from agent_eval.workspace import WorkspaceManager
+from pitlane.verbose import setup_logger
+from pitlane.workspace import WorkspaceManager
 
 AssistantName = str
 TaskName = str
@@ -67,7 +67,7 @@ class Runner:
         # Setup main logger for high-level messages only
         debug_file = run_dir / "debug.log"
         logger = setup_logger(
-            debug_file, verbose=self.verbose, logger_name="agent_eval_main"
+            debug_file, verbose=self.verbose, logger_name="pitlane_main"
         )
         logger.debug("Starting evaluation run")
 
@@ -216,9 +216,9 @@ class Runner:
         try:
             import importlib.metadata
 
-            agent_eval_version = importlib.metadata.version("agent-eval")
+            pitlane_version = importlib.metadata.version("pitlane")
         except Exception:
-            agent_eval_version = "unknown"
+            pitlane_version = "unknown"
 
         meta: dict[str, Any] = {
             "run_id": run_dir.name,
@@ -226,7 +226,7 @@ class Runner:
             "assistants": list(assistants.keys()),
             "tasks": [t.name for t in tasks],
             "cli_versions": cli_versions,
-            "agent_eval_version": agent_eval_version,
+            "pitlane_version": pitlane_version,
             "repeat": self.repeat,
         }
         if self.interrupted:
@@ -263,7 +263,7 @@ class Runner:
         task_logger = setup_logger(
             debug_file=task_debug_file,
             verbose=self.verbose,
-            logger_name=f"agent_eval_{assistant_name}_{task.name}_iter{iteration}",
+            logger_name=f"pitlane_{assistant_name}_{task.name}_iter{iteration}",
         )
 
         logger.debug(f"Running task '{task.name}' with assistant '{assistant_name}'")

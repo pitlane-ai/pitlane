@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from agent_eval.assertions.base import AssertionResult
+from pitlane.assertions.base import AssertionResult
 
 _SIMILARITY_TYPES = frozenset({"bleu", "rouge", "bertscore", "cosine_similarity"})
 
@@ -286,7 +286,7 @@ def evaluate_assertion(
     value = assertion_dict[atype]
 
     if atype in _SIMILARITY_TYPES:
-        from agent_eval.assertions.similarity import evaluate_similarity_assertion
+        from pitlane.assertions.similarity import evaluate_similarity_assertion
 
         result = evaluate_similarity_assertion(
             workdir, atype, value, source_dir=source_dir, logger=logger

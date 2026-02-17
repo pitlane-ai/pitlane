@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from agent_eval.assertions.base import AssertionResult
+from pitlane.assertions.base import AssertionResult
 
 
 def _require_similarity_deps() -> None:

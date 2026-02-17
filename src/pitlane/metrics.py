@@ -6,11 +6,11 @@ from typing import Any, TYPE_CHECKING
 
 import numpy as np
 
-from agent_eval.adapters.base import AdapterResult
-from agent_eval.assertions.base import AssertionResult
+from pitlane.adapters.base import AdapterResult
+from pitlane.assertions.base import AssertionResult
 
 if TYPE_CHECKING:
-    from agent_eval.runner import IterationResult
+    from pitlane.runner import IterationResult
 
 
 @dataclass

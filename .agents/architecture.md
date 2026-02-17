@@ -20,4 +20,4 @@ CLI exits non-zero if any assertion fails (enables CI/CD integration).
 
 ### Schema Generation
 
-Generate schema and docs from Pydantic models (single source of truth). Run `agent-eval schema generate`.
+Generate schema and docs from Pydantic models (single source of truth). Run `pitlane schema generate`.

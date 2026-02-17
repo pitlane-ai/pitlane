@@ -5,7 +5,7 @@ import sys
 
 import typer
 
-app = typer.Typer(name="agent-eval", help="Evaluate AI coding assistants")
+app = typer.Typer(name="pitlane", help="Evaluate AI coding assistants")
 schema_app = typer.Typer(name="schema", help="Generate and install schema tooling")
 app.add_typer(schema_app, name="schema")
 
@@ -27,9 +27,9 @@ def run(
     ),
 ):
     """Run evaluation tasks against configured assistants."""
-    from agent_eval.config import load_config
-    from agent_eval.runner import Runner
-    from agent_eval.reporting.html import generate_report
+    from pitlane.config import load_config
+    from pitlane.runner import Runner
+    from pitlane.reporting.html import generate_report
     import json
 
     config_path = Path(config)
@@ -85,7 +85,7 @@ def report(
     run_dir: str = typer.Argument(help="Path to run output directory"),
 ):
     """Regenerate HTML report from a previous run."""
-    from agent_eval.reporting.html import generate_report
+    from pitlane.reporting.html import generate_report
 
     run_path = Path(run_dir)
     if not run_path.exists() or not (run_path / "results.json").exists():
@@ -99,7 +99,7 @@ def report(
 @app.command()
 def init(
     dir: str = typer.Option(
-        "agent-eval", "--dir", help="Directory to initialize eval project in"
+        "pitlane", "--dir", help="Directory to initialize eval project in"
     ),
 ):
     """Initialize a new eval project with example config."""
@@ -143,24 +143,24 @@ tasks:
 @schema_app.command("generate")
 def schema_generate(
     dir: str = typer.Option(
-        "agent-eval", "--dir", help="Project directory for default schema/doc outputs"
+        "pitlane", "--dir", help="Project directory for default schema/doc outputs"
     ),
     out: str | None = typer.Option(
         None,
-        help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)",
+        help="Output path for JSON Schema (defaults to <dir>/schemas/pitlane.schema.json)",
     ),
     doc: str | None = typer.Option(
         None, help="Output path for schema docs (defaults to <dir>/docs/schema.md)"
     ),
 ):
     """Generate JSON Schema and docs for the eval YAML format."""
-    from agent_eval.schema import write_json_schema, write_schema_doc
+    from pitlane.schema import write_json_schema, write_schema_doc
 
     project_dir = Path(dir)
     out_path = (
         Path(out)
         if out is not None
-        else project_dir / "schemas" / "agent-eval.schema.json"
+        else project_dir / "schemas" / "pitlane.schema.json"
     )
     doc_path = Path(doc) if doc is not None else project_dir / "docs" / "schema.md"
     write_json_schema(out_path)
@@ -172,13 +172,13 @@ def schema_generate(
 @schema_app.command("install")
 def schema_install(
     dir: str = typer.Option(
-        "agent-eval",
+        "pitlane",
         "--dir",
         help="Project directory for default outputs and editor settings",
     ),
     out: str | None = typer.Option(
         None,
-        help="Output path for JSON Schema (defaults to <dir>/schemas/agent-eval.schema.json)",
+        help="Output path for JSON Schema (defaults to <dir>/schemas/pitlane.schema.json)",
     ),
     doc: str | None = typer.Option(
         None, help="Output path for schema docs (defaults to <dir>/docs/schema.md)"
@@ -214,20 +214,20 @@ def schema_install(
     ),
 ):
     """Generate schema/docs and install VS Code YAML schema settings safely."""
-    from agent_eval.editor import (
+    from pitlane.editor import (
         create_backup,
         default_backup_path,
         load_vscode_settings,
         plan_vscode_settings_update,
         write_json_atomic,
     )
-    from agent_eval.schema import write_json_schema, write_schema_doc
+    from pitlane.schema import write_json_schema, write_schema_doc
 
     project_dir = Path(dir)
     out_path = (
         Path(out)
         if out is not None
-        else project_dir / "schemas" / "agent-eval.schema.json"
+        else project_dir / "schemas" / "pitlane.schema.json"
     )
     doc_path = Path(doc) if doc is not None else project_dir / "docs" / "schema.md"
     settings_path = (
