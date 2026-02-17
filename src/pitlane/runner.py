@@ -192,6 +192,9 @@ class Runner:
         for assistant_name in iteration_results:
             for task_name in iteration_results[assistant_name]:
                 results_list = iteration_results[assistant_name][task_name]
+                # Skip tasks with no completed results (can happen during interrupts)
+                if not results_list:
+                    continue
                 results_list.sort(key=lambda r: r.iteration_index)
                 aggregated = aggregate_results(results_list)
                 all_results[assistant_name][task_name] = aggregated.to_dict()
