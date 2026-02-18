@@ -25,12 +25,15 @@ def run(
     repeat: int = typer.Option(
         1, "--repeat", "-r", min=1, max=100, help="Number of times to repeat each task"
     ),
+    open_report: bool = typer.Option(
+        False, "--open", help="Open report.html in browser after run"
+    ),
 ):
     """Run evaluation tasks against configured assistants."""
     from pitlane.config import load_config
     from pitlane.runner import Runner
-    from pitlane.reporting.html import generate_report
-    import json
+    from pitlane.reporting.junit import generate_report
+    from junitparser import JUnitXml
 
     config_path = Path(config)
     if not config_path.exists():
@@ -66,34 +69,43 @@ def run(
     if not verbose:
         typer.echo(f"Debug log: {run_dir / 'debug.log'}")
 
+    if open_report:
+        import webbrowser
+
+        webbrowser.open(report_path.resolve().as_uri())
+
     # Exit with non-zero if any assertion failed or run was interrupted
     if runner.interrupted:
         raise typer.Exit(1)
 
-    results = json.loads((run_dir / "results.json").read_text())
-    all_passed = all(
-        task_result.get("all_passed", False)
-        for assistant_results in results.values()
-        for task_result in assistant_results.values()
-    )
-    if not all_passed:
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    has_failures = any(suite.failures > 0 for suite in xml)
+    if has_failures:
         raise typer.Exit(1)
 
 
 @app.command()
 def report(
     run_dir: str = typer.Argument(help="Path to run output directory"),
+    open_report: bool = typer.Option(
+        False, "--open", help="Open report.html in browser after generating"
+    ),
 ):
     """Regenerate HTML report from a previous run."""
-    from pitlane.reporting.html import generate_report
+    from pitlane.reporting.junit import generate_report
 
     run_path = Path(run_dir)
-    if not run_path.exists() or not (run_path / "results.json").exists():
+    if not run_path.exists() or not (run_path / "junit.xml").exists():
         typer.echo(f"Error: not a valid run directory: {run_dir}", err=True)
         raise typer.Exit(1)
 
     report_path = generate_report(run_path)
     typer.echo(f"Report generated: {report_path}")
+
+    if open_report:
+        import webbrowser
+
+        webbrowser.open(report_path.resolve().as_uri())
 
 
 @app.command()

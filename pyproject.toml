@@ -15,6 +15,7 @@ dependencies = [
     "rouge-score>=0.1.2",
     "nltk>=3.9.2",
     "sacrebleu>=2.6.0",
+    "junitparser>=4.0",
 ]
 
 [project.scripts]

@@ -1,226 +1,318 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pitlane Report</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 24px; }
-  h1 { font-size: 24px; margin-bottom: 8px; }
-  h2 { font-size: 20px; margin: 24px 0 12px; }
-  h3 { font-size: 16px; margin: 12px 0 8px; }
-  .meta { color: #666; font-size: 14px; margin-bottom: 24px; }
-  .debug-link { display: inline-block; margin-bottom: 16px; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333; font-size: 13px; }
-  .debug-link:hover { background: #e0e0e0; }
-  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
-  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-  th { background: #fafafa; font-weight: 600; }
-  .pass { background: #e6f9e6; color: #1a7a1a; }
-  .partial { background: #fff8e6; color: #8a6d00; }
-  .fail { background: #fde6e6; color: #a00; }
-  .metric { font-size: 12px; color: #666; }
-  .details { display: none; background: #fafafa; padding: 16px; }
-  .details.open { display: block; }
-  .toggle { cursor: pointer; user-select: none; }
-  .toggle:hover { background: #f0f0f0; }
-  .assertion-list { list-style: none; padding: 0; }
-  .assertion-list li { padding: 4px 0; font-size: 13px; }
-  .assertion-list li::before { content: "✓ "; color: #1a7a1a; }
-  .assertion-list li.failed::before { content: "✗ "; color: #a00; }
-  .chart-section { margin-bottom: 24px; }
-  .chart-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
-  .chart-label { width: 140px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .chart-bar { height: 20px; border-radius: 3px; transition: width 0.3s; }
-  .colors { --c0: #4285f4; --c1: #ea4335; --c2: #fbbc04; --c3: #34a853; --c4: #ff6d01; --c5: #46bdc6; }
-  .repeat-badge { display: inline-block; padding: 2px 8px; background: #e3f2fd; color: #1565c0; border-radius: 10px; font-size: 12px; font-weight: 600; margin-left: 8px; }
-  .stats-table { font-size: 12px; }
-  .stats-table td, .stats-table th { padding: 4px 10px; }
-  .iter-details { display: none; background: #f9f9f9; padding: 12px; margin-top: 8px; border-radius: 4px; }
-  .iter-details.open { display: block; }
-  .iter-toggle { cursor: pointer; color: #1565c0; font-size: 12px; text-decoration: underline; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitlane Report</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+
+    /* Header */
+    .header {
+      background: #1a1a2e;
+      color: #e5e7eb;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+    }
+    .header .run-dir {
+      font-size: 12px;
+      color: #9ca3af;
+      font-family: monospace;
+      word-break: break-all;
+    }
+    .header-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Summary cards */
+    .summary {
+      display: flex;
+      gap: 16px;
+      padding: 24px 24px 8px;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      padding: 16px 20px;
+      min-width: 110px;
+      text-align: center;
+    }
+    .card .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #6b7280;
+    }
+    .card .card-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .card.total  .card-value { color: #374151; }
+    .card.passed .card-value { color: #22c55e; }
+    .card.failed .card-value { color: #ef4444; }
+    .card.errored .card-value { color: #f59e0b; }
+
+    /* Suites */
+    .suites {
+      padding: 8px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .suite-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      overflow: hidden;
+    }
+
+    .suite-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    .suite-summary::-webkit-details-marker { display: none; }
+    .suite-summary::marker { display: none; }
+
+    .suite-name {
+      font-weight: 600;
+      font-size: 14px;
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .suite-time {
+      font-size: 12px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    .suite-body {
+      padding: 0 18px 18px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    /* Properties table */
+    .props-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .prop-item {
+      background: #f9fafb;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .prop-key {
+      font-size: 11px;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .prop-val {
+      font-family: monospace;
+      font-size: 13px;
+      color: #111827;
+      margin-top: 2px;
+    }
+
+    /* Cases */
+    .cases-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin: 12px 0 8px;
+    }
+
+    .case-item {
+      border-radius: 6px;
+      margin-bottom: 4px;
+      overflow: hidden;
+    }
+
+    .case-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      background: #f9fafb;
+    }
+    details.case-item .case-row {
+      cursor: pointer;
+    }
+
+    .case-name {
+      flex: 1;
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .case-message {
+      background: #fef2f2;
+      border-left: 3px solid #ef4444;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #7f1d1d;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-pass   { background: #dcfce7; color: #166534; }
+    .badge-fail   { background: #fee2e2; color: #991b1b; }
+    .badge-error  { background: #fef3c7; color: #92400e; }
+    .badge-skip   { background: #f3f4f6; color: #6b7280; }
+    .badge-neutral { background: #e5e7eb; color: #374151; }
+  </style>
 </head>
-<body class="colors">
-<h1>pitlane Report{% if repeat > 1 %}<span class="repeat-badge">{{ repeat }}x repeat</span>{% endif %}</h1>
-<p class="meta">Generated from run data{% if repeat > 1 %} — each task repeated {{ repeat }} times, showing averages ± stddev{% endif %}</p>
-<a href="debug.log" class="debug-link">📋 View main debug.log</a>
-{% for assistant in assistants %}
-  {% for task in tasks %}
-    {% if results[assistant][task] %}
-      <a href="{{ assistant }}/{{ task }}/debug.log" class="debug-link">📋 {{ assistant }}/{{ task }} debug.log</a>
+<body>
+
+<header class="header">
+  <div style="flex:1">
+    <h1>Pitlane Report</h1>
+    <div class="run-dir">{{ run_dir }}</div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-neutral">{{ total_tests }} tests</span>
+    {% if total_failures > 0 %}
+    <span class="badge badge-fail">{{ total_failures }} failed</span>
     {% endif %}
-  {% endfor %}
-{% endfor %}
+    {% if total_errors > 0 %}
+    <span class="badge badge-error">{{ total_errors }} errors</span>
+    {% endif %}
+    {% if total_failures == 0 and total_errors == 0 %}
+    <span class="badge badge-pass">all passed</span>
+    {% endif %}
+  </div>
+</header>
 
-<h2>Summary</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Task</th>
-      {% for assistant in assistants %}
-      <th>{{ assistant }}</th>
-      {% endfor %}
-    </tr>
-  </thead>
-  <tbody>
-    {% for task in tasks %}
-    <tr class="toggle" onclick="toggleDetails('{{ task }}')">
-      <td><strong>{{ task }}</strong></td>
-      {% for assistant in assistants %}
-      {% set r = results[assistant][task] %}
-      {% if r %}
-      {% if r.all_passed %}
-      <td class="pass">
-      {% elif r.metrics.assertion_pass_rate > 0 %}
-      <td class="partial">
-      {% else %}
-      <td class="fail">
-      {% endif %}
-        {% if repeat > 1 and r.repeat %}
-        {{ r.repeat.all_passed_rate }}% runs pass<br>
-        <span class="metric">avg {{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {% if r.metrics.tool_calls_count is not none %}{{ "%.0f"|format(r.metrics.tool_calls_count) }}{% else %}?{% endif %} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
+<section class="summary">
+  {% set total_passed = total_tests - total_failures - total_errors %}
+  <div class="card total">
+    <div class="card-label">Total</div>
+    <div class="card-value">{{ total_tests }}</div>
+  </div>
+  <div class="card passed">
+    <div class="card-label">Passed</div>
+    <div class="card-value">{{ total_passed }}</div>
+  </div>
+  <div class="card failed">
+    <div class="card-label">Failed</div>
+    <div class="card-value">{{ total_failures }}</div>
+  </div>
+  <div class="card errored">
+    <div class="card-label">Errors</div>
+    <div class="card-value">{{ total_errors }}</div>
+  </div>
+</section>
+
+<section class="suites">
+  {% for suite in suites %}
+  {% set suite_passed = suite.tests - suite.failures - suite.errors %}
+  {% set is_failing = suite.failures > 0 or suite.errors > 0 %}
+  <div class="suite-card">
+    <details {% if is_failing %}open{% endif %}>
+      <summary class="suite-summary">
+        <span class="suite-name">{{ suite.name }}</span>
+        {% if is_failing %}
+        <span class="badge badge-fail">{{ suite.failures }} failed</span>
         {% else %}
-        {{ r.metrics.assertion_pass_rate }}% pass | {{ r.metrics.weighted_score }}% weighted<br>
-        <span class="metric">{{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {% if r.metrics.tool_calls_count is not none %}{{ r.metrics.tool_calls_count }}{% else %}unknown{% endif %} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
+        <span class="badge badge-pass">{{ suite_passed }}/{{ suite.tests }} passed</span>
         {% endif %}
-      </td>
-      {% else %}
-      <td>—</td>
-      {% endif %}
-      {% endfor %}
-    </tr>
-    <tr>
-      <td colspan="{{ assistants|length + 1 }}">
-        <div class="details" id="details-{{ task }}">
-          {% if repeat > 1 %}
-          {# --- Repeat mode: show stats table --- #}
-          <h4 style="margin: 0 0 8px;">Metrics (avg ± stddev across {{ repeat }} runs)</h4>
-          <table class="stats-table">
-            <thead>
-              <tr>
-                <th>Metric</th>
-                {% for assistant in assistants %}
-                <th>{{ assistant }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for metric_key in metric_keys %}
-              <tr>
-                <td>{{ metric_key }}</td>
-                {% for assistant in assistants %}
-                {% set r = results[assistant][task] %}
-                <td>
-                  {% if r and r.metrics_stats and r.metrics_stats[metric_key] %}
-                  {% set s = r.metrics_stats[metric_key] %}
-                  {% if s.avg is not none %}
-                    {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(s.avg) }} ± {{ "%.1f"|format(s.stddev) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(s.avg) }} ± {{ "%.4f"|format(s.stddev) }}{% else %}{{ s.avg }} ± {{ s.stddev }}{% endif %}
-                    <br><span class="metric">min={{ s.min }} max={{ s.max }}</span>
-                  {% else %}—{% endif %}
-                  {% elif r and r.metrics[metric_key] is not none %}
-                    {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics[metric_key]) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics[metric_key]) }}{% else %}{{ r.metrics[metric_key] }}{% endif %}
-                  {% else %}—{% endif %}
-                </td>
-                {% endfor %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          {# --- Single run mode --- #}
-          <table>
-            <thead>
-              <tr>
-                <th>Metric</th>
-                {% for assistant in assistants %}
-                <th>{{ assistant }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for metric_key in metric_keys %}
-              <tr>
-                <td>{{ metric_key }}</td>
-                {% for assistant in assistants %}
-                {% set r = results[assistant][task] %}
-                <td>{% if r %}{% if r.metrics[metric_key] is not none %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics[metric_key]) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics[metric_key]) }}{% else %}{{ r.metrics[metric_key] }}{% endif %}{% else %}—{% endif %}{% else %}—{% endif %}</td>
-                {% endfor %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% endif %}
+        {% if suite.time %}
+        <span class="suite-time">{{ "%.2f"|format(suite.time) }}s</span>
+        {% endif %}
+      </summary>
 
-          <h4 style="margin: 12px 0 8px;">Assertions{% if repeat > 1 %} (pass rate across iterations){% endif %}</h4>
-          {% for assistant in assistants %}
-          <p><strong>{{ assistant }}</strong></p>
-          {% set r = results[assistant][task] %}
-          {% if r %}
-          <ul class="assertion-list">
-            {% for a in r.assertions %}
-            <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}{% if repeat > 1 and a.pass_rate is defined %} ({{ a.pass_rate }}%){% endif %}{% if a.weight is defined and a.weight != 1.0 %} [weight={{ a.weight }}]{% endif %}{% if a.score is defined %} [score={{ "%.4f"|format(a.score) }}]{% endif %}</li>
-            {% endfor %}
-          </ul>
-          {% if repeat > 1 and r.repeat %}
-          <span class="iter-toggle" onclick="toggleIterDetails('{{ assistant }}-{{ task }}')">Show individual iterations</span>
-          <div class="iter-details" id="iter-{{ assistant }}-{{ task }}">
-            {% for iter_result in r.repeat.iterations %}
-            <p style="font-size:12px; margin: 8px 0 4px;"><strong>Iteration {{ loop.index }}</strong> — {% if iter_result.all_passed %}PASS{% else %}FAIL{% endif %}</p>
-            <ul class="assertion-list" style="font-size:12px;">
-              {% for a in iter_result.assertions %}
-              <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}</li>
-              {% endfor %}
-            </ul>
-            {% endfor %}
+      <div class="suite-body">
+
+        {% if suite.properties %}
+        <div class="props-grid">
+          {% for key, val in suite.properties.items() %}
+          <div class="prop-item">
+            <div class="prop-key">{{ key }}</div>
+            <div class="prop-val">{{ val }}</div>
           </div>
-          {% endif %}
-          {% endif %}
           {% endfor %}
         </div>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+        {% endif %}
 
-<h2>Metrics Comparison</h2>
-{% for metric_key in ["wall_clock_seconds", "cost_usd", "token_usage_input", "tool_calls_count", "assertion_pass_rate", "weighted_score"] %}
-<div class="chart-section">
-  <h3>{{ metric_key }}{% if repeat > 1 %} (avg){% endif %}</h3>
-  {% for task in tasks %}
-  <p style="font-size:12px; color:#666; margin: 4px 0;">{{ task }}</p>
-  {% set max_val = [] %}
-  {% for assistant in assistants %}
-    {% set r = results[assistant][task] %}
-    {% if r and r.metrics[metric_key] is not none %}
-      {% if max_val.append(r.metrics[metric_key]) %}{% endif %}
-    {% endif %}
-  {% endfor %}
-  {% set max_value = max_val|max if max_val else 1 %}
-  {% for assistant in assistants %}
-  {% set r = results[assistant][task] %}
-  {% set val = r.metrics[metric_key] if r and r.metrics[metric_key] is not none else 0 %}
-  {% set pct = (val / max_value * 100) if max_value > 0 else 0 %}
-  <div class="chart-row">
-    <span class="chart-label">{{ assistant }}</span>
-    <div class="chart-bar" style="width: {{ pct }}%; max-width: 400px; background: var(--c{{ loop.index0 % 6 }});">&nbsp;</div>
-    <span>{% if val %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(val) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(val) }}{% else %}{{ val }}{% endif %}{% else %}—{% endif %}{% if repeat > 1 and r and r.metrics_stats and r.metrics_stats[metric_key] and r.metrics_stats[metric_key].stddev is not none %} <span class="metric">± {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics_stats[metric_key].stddev) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics_stats[metric_key].stddev) }}{% else %}{{ r.metrics_stats[metric_key].stddev }}{% endif %}</span>{% endif %}</span>
+        {% if suite.cases %}
+        <div class="cases-header">Test Cases</div>
+        {% for case in suite.cases %}
+        {% if case.result %}
+        <details class="case-item">
+          <summary class="case-row">
+            {% if case.result.status == "Failure" %}
+            <span class="badge badge-fail">FAIL</span>
+            {% elif case.result.status == "Error" %}
+            <span class="badge badge-error">ERROR</span>
+            {% else %}
+            <span class="badge badge-skip">SKIP</span>
+            {% endif %}
+            <span class="case-name">{{ case.name }}</span>
+          </summary>
+          {% if case.result.message %}
+          <div class="case-message">{{ case.result.message }}</div>
+          {% endif %}
+        </details>
+        {% else %}
+        <div class="case-item">
+          <div class="case-row">
+            <span class="badge badge-pass">PASS</span>
+            <span class="case-name">{{ case.name }}</span>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+
+      </div>
+    </details>
   </div>
   {% endfor %}
-  {% endfor %}
-</div>
-{% endfor %}
+</section>
 
-<script>
-function toggleDetails(task) {
-  var el = document.getElementById('details-' + task);
-  if (el) el.classList.toggle('open');
-}
-function toggleIterDetails(id) {
-  var el = document.getElementById('iter-' + id);
-  if (el) el.classList.toggle('open');
-}
-</script>
 </body>
 </html>
