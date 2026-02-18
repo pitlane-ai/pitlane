@@ -69,7 +69,7 @@ uv run pytest --cov=src/pitlane --cov-report=html
 
 ### Adding a new adapter
 
-We currently support Claude Code, Mistral Vibe, and OpenCode. To add support for a new AI coding assistant:
+We currently support Bob, Claude Code, Mistral Vibe, and OpenCode. To add support for a new AI coding assistant:
 
 1. Create `src/pitlane/adapters/your_adapter.py`
 2. Inherit from `BaseAdapter` in `adapters/base.py`

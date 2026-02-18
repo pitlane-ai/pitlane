@@ -9,7 +9,7 @@ This doc is generated from the Pydantic models.
 
 ## Assistant Config
 
-- `adapter`: string (required) - one of: claude-code, cline, codex, mistral-vibe, opencode
+- `adapter`: string (required) - one of: bob, claude-code, cline, codex, mistral-vibe, opencode
 - `args`: object (optional) - adapter-specific arguments
 - `skills`: array (optional) - list of skill references
 

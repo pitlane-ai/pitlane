@@ -242,6 +242,7 @@ Currently supported AI coding assistants:
 
 | Assistant | Adapter Name | Status |
 |-----------|--------------|--------|
+| [Bob](https://www.ibm.com/products/bob) | `bob` | ✅ Tested |
 | [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
 | [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
 | [OpenCode](https://github.com/anomalyco/opencode) | `opencode` | ✅ Tested |
