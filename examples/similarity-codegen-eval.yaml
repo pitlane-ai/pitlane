@@ -13,6 +13,11 @@
 #   - Docs: use rouge (topic coverage) or bertscore (meaning)
 
 assistants:
+  bob-baseline:
+    adapter: bob
+    args:
+      chat_mode: code
+
   claude-baseline:
     adapter: claude-code
     args:

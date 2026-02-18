@@ -21,6 +21,12 @@
 # Requires: pip install pitlane[similarity] for rouge/bleu/bertscore checks
 
 assistants:
+  # Bob baseline for comparison
+  bob-baseline:
+    adapter: bob
+    args:
+      chat_mode: code
+
   # Baseline: no skill — relies on the model's training data alone
   claude-baseline:
     adapter: claude-code
