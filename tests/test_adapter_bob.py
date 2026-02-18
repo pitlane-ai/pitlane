@@ -7,7 +7,7 @@ def test_build_command_minimal():
     cmd = adapter._build_command("Write hello world", {})
     assert cmd[0] == "bob"
     assert "--output-format" in cmd
-    assert "json" in cmd
+    assert "stream-json" in cmd
     assert "--yolo" in cmd
     assert cmd[-1] == "Write hello world"
 
@@ -28,139 +28,139 @@ def test_build_command_with_max_coins():
     assert cmd[-1] == "test"
 
 
-def _make_stats(
-    *,
-    prompt_tokens=200,
-    candidate_tokens=80,
-    session_cost=0.0067,
-    tool_calls=0,
-):
-    return json.dumps(
-        {
-            "stats": {
-                "models": {
-                    "main": {
-                        "api": {
-                            "totalRequests": 1,
-                            "totalErrors": 0,
-                            "totalLatencyMs": 500,
-                        },
-                        "tokens": {
-                            "total": prompt_tokens + candidate_tokens,
-                            "prompt": prompt_tokens,
-                            "candidates": candidate_tokens,
-                            "cached": 0,
-                            "thoughts": 0,
-                            "tool": 0,
-                        },
-                    }
-                },
-                "sessionCost": session_cost,
-                "tools": {
-                    "totalCalls": tool_calls,
-                    "totalSuccess": tool_calls,
-                    "totalFail": 0,
-                    "totalDurationMs": 0,
-                },
-                "files": {"totalLinesAdded": 0, "totalLinesRemoved": 0},
-            }
+def _make_result_event(*, input_tokens=200, output_tokens=80, tool_calls=0):
+    return json.dumps({
+        "type": "result",
+        "status": "success",
+        "stats": {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": input_tokens + output_tokens,
+            "duration_ms": 500,
+            "tool_calls": tool_calls,
         }
-    )
+    })
+
+
+def _make_completion_event(text="Hello from Bob"):
+    return json.dumps({
+        "type": "tool_use",
+        "tool_name": "attempt_completion",
+        "tool_id": "tool-1",
+        "parameters": {"result": text},
+    })
+
+
+def _make_cost_message(cost=0.09):
+    return json.dumps({
+        "type": "message",
+        "role": "assistant",
+        "delta": True,
+        "content": f"[using tool attempt_completion: Successfully completed | Cost: {cost}]\n",
+    })
 
 
 def test_parse_json_result():
     adapter = BobAdapter()
-    stdout = "Hello from Bob\n" + _make_stats(
-        prompt_tokens=200, candidate_tokens=80, session_cost=0.0067
-    )
+    stdout = "\n".join([
+        _make_completion_event("Hello from Bob"),
+        _make_cost_message(0.09),
+        _make_result_event(input_tokens=200, output_tokens=80),
+    ])
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert len(conversation) == 1
     assert conversation[0]["content"] == "Hello from Bob"
     assert token_usage["input"] == 200
     assert token_usage["output"] == 80
-    assert cost == 0.0067
+    assert cost == 0.09
     assert tool_calls_count == 0
 
 
 def test_parse_json_with_tool_calls():
     adapter = BobAdapter()
-    stdout = "Done\n" + _make_stats(
-        prompt_tokens=50, candidate_tokens=20, session_cost=0.001, tool_calls=3
-    )
+    tool_event = json.dumps({
+        "type": "tool_use",
+        "tool_name": "bash",
+        "tool_id": "tool-2",
+        "parameters": {"command": "ls"},
+    })
+    stdout = "\n".join([
+        tool_event,
+        tool_event,
+        tool_event,
+        _make_completion_event("Done"),
+        _make_cost_message(0.15),
+        _make_result_event(input_tokens=50, output_tokens=20, tool_calls=3),
+    ])
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert tool_calls_count == 3
     assert token_usage["input"] == 50
     assert token_usage["output"] == 20
-    assert cost == 0.001
+    assert cost == 0.15
 
 
 def test_parse_json_no_response_text():
     adapter = BobAdapter()
-    # Stats block only, no preceding text
-    stdout = _make_stats(prompt_tokens=100, candidate_tokens=40, session_cost=0.002)
+    # Result event only, no attempt_completion
+    stdout = _make_result_event(input_tokens=100, output_tokens=40)
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert conversation == []
     assert token_usage["input"] == 100
     assert token_usage["output"] == 40
-    assert cost == 0.002
+    assert cost is None
 
 
-def test_parse_json_strips_ansi():
+def test_parse_non_json_lines_skipped():
     adapter = BobAdapter()
-    ansi_text = "\x1b[32mHello\x1b[0m from Bob"
-    stdout = ansi_text + "\n" + _make_stats()
-    conversation, _, _, _ = adapter._parse_output(stdout)
-    assert conversation[0]["content"] == "Hello from Bob"
-
-
-def test_parse_json_no_stats_block():
-    adapter = BobAdapter()
-    stdout = "plain text with no JSON"
+    stdout = "\n".join([
+        "YOLO mode is enabled. All tool calls will be automatically approved.",
+        "---output---",
+        _make_completion_event("Hello from Bob"),
+        "---output---",
+        _make_result_event(input_tokens=10, output_tokens=5),
+    ])
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
-    assert conversation == []
+    assert len(conversation) == 1
+    assert conversation[0]["content"] == "Hello from Bob"
+    assert token_usage["input"] == 10
+    assert token_usage["output"] == 5
+
+
+def test_parse_no_result_event():
+    adapter = BobAdapter()
+    # attempt_completion only, no result event
+    stdout = _make_completion_event("Hello from Bob")
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
+    assert len(conversation) == 1
+    assert conversation[0]["content"] == "Hello from Bob"
     assert token_usage is None
     assert cost is None
     assert tool_calls_count == 0
 
 
-def test_parse_json_multi_tier():
+def test_parse_cost_extracted_from_message():
     adapter = BobAdapter()
-    # Two model tiers whose tokens should be aggregated
-    stats = json.dumps(
-        {
-            "stats": {
-                "models": {
-                    "fast": {
-                        "api": {"totalRequests": 2, "totalErrors": 0, "totalLatencyMs": 100},
-                        "tokens": {
-                            "total": 150,
-                            "prompt": 100,
-                            "candidates": 50,
-                            "cached": 0,
-                            "thoughts": 0,
-                            "tool": 0,
-                        },
-                    },
-                    "main": {
-                        "api": {"totalRequests": 1, "totalErrors": 0, "totalLatencyMs": 400},
-                        "tokens": {
-                            "total": 130,
-                            "prompt": 80,
-                            "candidates": 50,
-                            "cached": 0,
-                            "thoughts": 0,
-                            "tool": 0,
-                        },
-                    },
-                },
-                "sessionCost": 0.005,
-                "tools": {"totalCalls": 0, "totalSuccess": 0, "totalFail": 0, "totalDurationMs": 0},
-                "files": {"totalLinesAdded": 0, "totalLinesRemoved": 0},
-            }
-        }
-    )
-    stdout = "response\n" + stats
-    _, token_usage, cost, _ = adapter._parse_output(stdout)
-    assert token_usage["input"] == 180   # 100 + 80
-    assert token_usage["output"] == 100  # 50 + 50
-    assert cost == 0.005
+    stdout = "\n".join([
+        _make_completion_event("Done"),
+        _make_cost_message(0.42),
+        _make_result_event(input_tokens=100, output_tokens=50),
+    ])
+    _, _, cost, _ = adapter._parse_output(stdout)
+    assert cost == 0.42
+
+
+def test_parse_non_cost_message_does_not_set_cost():
+    adapter = BobAdapter()
+    non_cost_message = json.dumps({
+        "type": "message",
+        "role": "assistant",
+        "delta": True,
+        "content": "[using tool write_to_file: Writing to fib.py]\n",
+    })
+    stdout = "\n".join([
+        non_cost_message,
+        _make_completion_event("Done"),
+        _make_result_event(input_tokens=10, output_tokens=5),
+    ])
+    _, _, cost, _ = adapter._parse_output(stdout)
+    assert cost is None

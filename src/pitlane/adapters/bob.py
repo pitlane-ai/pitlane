@@ -1,14 +1,10 @@
 """Bob (Bob-Shell) adapter."""
 
-from subprocess import CompletedProcess
-
-
 from __future__ import annotations
 
 import asyncio
 import json
 import re
-import subprocess
 import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
@@ -19,8 +15,6 @@ from pitlane.adapters.streaming import run_command_with_streaming
 if TYPE_CHECKING:
     import logging
 
-_ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-
 
 class BobAdapter(BaseAdapter):
     def cli_name(self) -> str:
@@ -30,8 +24,10 @@ class BobAdapter(BaseAdapter):
         return "bob"
 
     def get_cli_version(self) -> str | None:
+        import subprocess
+
         try:
-            result: CompletedProcess[str] = subprocess.run(
+            result = subprocess.run(
                 ["bob", "--version"], capture_output=True, text=True, timeout=5
             )
             if result.returncode == 0 and result.stdout.strip():
@@ -44,7 +40,7 @@ class BobAdapter(BaseAdapter):
         cmd = [
             "bob",
             "--output-format",
-            "json",
+            "stream-json",
             "--yolo",
         ]
         if chat_mode := config.get("chat_mode"):
@@ -57,61 +53,53 @@ class BobAdapter(BaseAdapter):
     def _parse_output(
         self, stdout: str
     ) -> tuple[list[dict], dict | None, float | None, int]:
-        """Parse json-format output from bob CLI.
+        """Parse stream-json (NDJSON) output from bob CLI.
 
-        Bob prints human-readable text (with ANSI codes) followed by a final
-        JSON stats block. The stats block starts at the last line beginning with '{'.
+        Each line is either a JSON event object or non-JSON console output.
+        Non-JSON lines are silently skipped.
         """
-        lines = stdout.splitlines()
-
-        # Find the last line that starts with '{' — that is the JSON stats block.
-        json_start_idx = None
-        for i in range(len(lines) - 1, -1, -1):
-            if lines[i].lstrip().startswith("{"):
-                json_start_idx = i
-                break
-
         conversation: list[dict] = []
         token_usage = None
         cost = None
         tool_calls_count = 0
 
-        if json_start_idx is None:
-            return conversation, token_usage, cost, tool_calls_count
+        for line in stdout.splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
 
-        # Extract response text (everything before the JSON block).
-        response_text = _ANSI_ESCAPE.sub("", "\n".join(lines[:json_start_idx])).strip()
-        if response_text:
-            conversation.append({"role": "assistant", "content": response_text})
+            event_type = event.get("type")
 
-        # Parse the JSON stats block.
-        json_text = "\n".join(lines[json_start_idx:])
-        try:
-            stats = json.loads(json_text)
-        except json.JSONDecodeError:
-            return conversation, token_usage, cost, tool_calls_count
+            if event_type == "tool_use":
+                tool_name = event.get("tool_name")
+                if tool_name == "attempt_completion":
+                    result_text = event.get("parameters", {}).get("result", "").strip()
+                    if result_text:
+                        conversation.append({"role": "assistant", "content": result_text})
+                else:
+                    tool_calls_count += 1
+                    conversation.append(
+                        {
+                            "role": "tool_use",
+                            "tool_name": tool_name,
+                            "parameters": event.get("parameters", {}),
+                        }
+                    )
 
-        stats_obj = stats.get("stats", {})
+            elif event_type == "message":
+                content = event.get("content", "")
+                if "Cost:" in content:
+                    m = re.search(r'Cost:\s*([\d.]+)', content)
+                    if m:
+                        cost = float(m.group(1))
 
-        # Aggregate token counts across all model tiers.
-        total_input = 0
-        total_output = 0
-        for tier_data in stats_obj.get("models", {}).values():
-            tokens = tier_data.get("tokens", {})
-            total_input += tokens.get("prompt", 0)
-            total_output += tokens.get(
-                "candidates", 0
-            )  # bob calls completions "candidates"
-        if total_input > 0 or total_output > 0:
-            token_usage = {"input": total_input, "output": total_output}
-
-        # Session cost in USD.
-        session_cost = stats_obj.get("sessionCost")
-        if session_cost is not None:
-            cost = session_cost
-
-        # Total tool calls.
-        tool_calls_count = stats_obj.get("tools", {}).get("totalCalls", 0)
+            elif event_type == "result":
+                stats = event.get("stats", {})
+                input_tokens = stats.get("input_tokens", 0)
+                output_tokens = stats.get("output_tokens", 0)
+                if input_tokens > 0 or output_tokens > 0:
+                    token_usage = {"input": input_tokens, "output": output_tokens}
 
         return conversation, token_usage, cost, tool_calls_count
 
