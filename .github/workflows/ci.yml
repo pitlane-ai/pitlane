@@ -92,6 +92,7 @@ jobs:
           files: dist/*
           generate_release_notes: true
 
-      - name: Publish to PyPI
-        if: steps.version_check.outputs.changed == 'true'
-        uses: pypa/gh-action-pypi-publish@release/v1
+      # Skip for now
+      # - name: Publish to PyPI
+      #   if: steps.version_check.outputs.changed == 'true'
+      #   uses: pypa/gh-action-pypi-publish@release/v1
