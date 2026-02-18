@@ -76,7 +76,9 @@ class BobAdapter(BaseAdapter):
                 if tool_name == "attempt_completion":
                     result_text = event.get("parameters", {}).get("result", "").strip()
                     if result_text:
-                        conversation.append({"role": "assistant", "content": result_text})
+                        conversation.append(
+                            {"role": "assistant", "content": result_text}
+                        )
                 else:
                     tool_calls_count += 1
                     conversation.append(
@@ -90,7 +92,7 @@ class BobAdapter(BaseAdapter):
             elif event_type == "message":
                 content = event.get("content", "")
                 if "Cost:" in content:
-                    m = re.search(r'Cost:\s*([\d.]+)', content)
+                    m = re.search(r"Cost:\s*([\d.]+)", content)
                     if m:
                         cost = float(m.group(1))
 

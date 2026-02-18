@@ -29,44 +29,52 @@ def test_build_command_with_max_coins():
 
 
 def _make_result_event(*, input_tokens=200, output_tokens=80, tool_calls=0):
-    return json.dumps({
-        "type": "result",
-        "status": "success",
-        "stats": {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": input_tokens + output_tokens,
-            "duration_ms": 500,
-            "tool_calls": tool_calls,
+    return json.dumps(
+        {
+            "type": "result",
+            "status": "success",
+            "stats": {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+                "duration_ms": 500,
+                "tool_calls": tool_calls,
+            },
         }
-    })
+    )
 
 
 def _make_completion_event(text="Hello from Bob"):
-    return json.dumps({
-        "type": "tool_use",
-        "tool_name": "attempt_completion",
-        "tool_id": "tool-1",
-        "parameters": {"result": text},
-    })
+    return json.dumps(
+        {
+            "type": "tool_use",
+            "tool_name": "attempt_completion",
+            "tool_id": "tool-1",
+            "parameters": {"result": text},
+        }
+    )
 
 
 def _make_cost_message(cost=0.09):
-    return json.dumps({
-        "type": "message",
-        "role": "assistant",
-        "delta": True,
-        "content": f"[using tool attempt_completion: Successfully completed | Cost: {cost}]\n",
-    })
+    return json.dumps(
+        {
+            "type": "message",
+            "role": "assistant",
+            "delta": True,
+            "content": f"[using tool attempt_completion: Successfully completed | Cost: {cost}]\n",
+        }
+    )
 
 
 def test_parse_json_result():
     adapter = BobAdapter()
-    stdout = "\n".join([
-        _make_completion_event("Hello from Bob"),
-        _make_cost_message(0.09),
-        _make_result_event(input_tokens=200, output_tokens=80),
-    ])
+    stdout = "\n".join(
+        [
+            _make_completion_event("Hello from Bob"),
+            _make_cost_message(0.09),
+            _make_result_event(input_tokens=200, output_tokens=80),
+        ]
+    )
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert len(conversation) == 1
     assert conversation[0]["content"] == "Hello from Bob"
@@ -78,20 +86,24 @@ def test_parse_json_result():
 
 def test_parse_json_with_tool_calls():
     adapter = BobAdapter()
-    tool_event = json.dumps({
-        "type": "tool_use",
-        "tool_name": "bash",
-        "tool_id": "tool-2",
-        "parameters": {"command": "ls"},
-    })
-    stdout = "\n".join([
-        tool_event,
-        tool_event,
-        tool_event,
-        _make_completion_event("Done"),
-        _make_cost_message(0.15),
-        _make_result_event(input_tokens=50, output_tokens=20, tool_calls=3),
-    ])
+    tool_event = json.dumps(
+        {
+            "type": "tool_use",
+            "tool_name": "bash",
+            "tool_id": "tool-2",
+            "parameters": {"command": "ls"},
+        }
+    )
+    stdout = "\n".join(
+        [
+            tool_event,
+            tool_event,
+            tool_event,
+            _make_completion_event("Done"),
+            _make_cost_message(0.15),
+            _make_result_event(input_tokens=50, output_tokens=20, tool_calls=3),
+        ]
+    )
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert tool_calls_count == 3
     assert token_usage["input"] == 50
@@ -112,13 +124,15 @@ def test_parse_json_no_response_text():
 
 def test_parse_non_json_lines_skipped():
     adapter = BobAdapter()
-    stdout = "\n".join([
-        "YOLO mode is enabled. All tool calls will be automatically approved.",
-        "---output---",
-        _make_completion_event("Hello from Bob"),
-        "---output---",
-        _make_result_event(input_tokens=10, output_tokens=5),
-    ])
+    stdout = "\n".join(
+        [
+            "YOLO mode is enabled. All tool calls will be automatically approved.",
+            "---output---",
+            _make_completion_event("Hello from Bob"),
+            "---output---",
+            _make_result_event(input_tokens=10, output_tokens=5),
+        ]
+    )
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
     assert len(conversation) == 1
     assert conversation[0]["content"] == "Hello from Bob"
@@ -140,27 +154,33 @@ def test_parse_no_result_event():
 
 def test_parse_cost_extracted_from_message():
     adapter = BobAdapter()
-    stdout = "\n".join([
-        _make_completion_event("Done"),
-        _make_cost_message(0.42),
-        _make_result_event(input_tokens=100, output_tokens=50),
-    ])
+    stdout = "\n".join(
+        [
+            _make_completion_event("Done"),
+            _make_cost_message(0.42),
+            _make_result_event(input_tokens=100, output_tokens=50),
+        ]
+    )
     _, _, cost, _ = adapter._parse_output(stdout)
     assert cost == 0.42
 
 
 def test_parse_non_cost_message_does_not_set_cost():
     adapter = BobAdapter()
-    non_cost_message = json.dumps({
-        "type": "message",
-        "role": "assistant",
-        "delta": True,
-        "content": "[using tool write_to_file: Writing to fib.py]\n",
-    })
-    stdout = "\n".join([
-        non_cost_message,
-        _make_completion_event("Done"),
-        _make_result_event(input_tokens=10, output_tokens=5),
-    ])
+    non_cost_message = json.dumps(
+        {
+            "type": "message",
+            "role": "assistant",
+            "delta": True,
+            "content": "[using tool write_to_file: Writing to fib.py]\n",
+        }
+    )
+    stdout = "\n".join(
+        [
+            non_cost_message,
+            _make_completion_event("Done"),
+            _make_result_event(input_tokens=10, output_tokens=5),
+        ]
+    )
     _, _, cost, _ = adapter._parse_output(stdout)
     assert cost is None
