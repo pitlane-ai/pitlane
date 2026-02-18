@@ -1,0 +1,5 @@
+{"id":"b6eb417f-d9a5-44de-99b3-1d10cdfe1d97","ts":"2026-02-18T15:39:47.170Z","path":"/Users/daniel/IdeaProjects/public/pitlane/examples/simple-codegen-eval.yaml","version":"1.0.0","taskID":"b27ccb73-e958-49bc-abfc-b2522bf90177"}
+{"id":"b02e1a45-d87d-4273-bbd7-02394ff10262","ts":"2026-02-18T15:39:47.498Z","path":"/Users/daniel/IdeaProjects/public/pitlane/examples/simple-codegen-eval.yaml","version":"1.0.0","taskID":"b27ccb73-e958-49bc-abfc-b2522bf90177"}
+{"id":"b10d3d39-c59e-43a9-8d2c-bbff097b1b8c","ts":"2026-02-18T15:39:52.697Z","path":"/Users/daniel/IdeaProjects/public/pitlane/examples/similarity-codegen-eval.yaml","version":"1.0.0","taskID":"b27ccb73-e958-49bc-abfc-b2522bf90177"}
+{"id":"e79502d6-2837-4091-ac4a-5cef306451e4","ts":"2026-02-18T15:40:00.197Z","path":"/Users/daniel/IdeaProjects/public/pitlane/examples/terraform-module-eval.yaml","version":"1.0.0","taskID":"b27ccb73-e958-49bc-abfc-b2522bf90177"}
+{"id":"c9f6de14-0af1-4cad-aaf7-2de5f400f3d6","ts":"2026-02-18T15:40:05.861Z","path":"/Users/daniel/IdeaProjects/public/pitlane/examples/weighted-grading-eval.yaml","version":"1.0.0","taskID":"b27ccb73-e958-49bc-abfc-b2522bf90177"}
