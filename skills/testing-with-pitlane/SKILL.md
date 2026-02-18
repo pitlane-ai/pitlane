@@ -30,9 +30,11 @@ Think of it as A/B testing for skills and MCP servers.
 Install pitlane if the user doesn't have it yet:
 
 ```bash
-pip install pitlane
-# or
-uv tool install pitlane
+# installs pitlane cli
+uv tool install pitlane --from git+https://github.com/vburckhardt/pitlane.git
+pitlane pitlane_command
+# or (no intall with uvx)
+uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane pitlane_command
 ```
 
 The user also needs at least one AI coding assistant CLI installed. Pitlane supports three adapters:
@@ -42,12 +44,15 @@ The user also needs at least one AI coding assistant CLI installed. Pitlane supp
 | `claude-code` | `claude` | `haiku` |
 | `mistral-vibe` | `vibe` | `devstral-small` |
 | `opencode` | `opencode` | `minimax-m2.5-free` (free) |
+| `bob` | `bob` | N/A |
 
 Scaffold a new eval project with `pitlane init`. This creates an `eval.yaml` and a `fixtures/empty/` directory to get started.
 
 ## How an eval YAML works
 
 An eval file has two sections: `assistants` (who runs the tasks) and `tasks` (what they do and how to check the results).
+
+`pitlane schema generate` generates the schema for the eval file. Use it to discover advanced capabilities.
 
 ```yaml
 assistants:
@@ -121,6 +126,8 @@ pitlane run eval.yaml --parallel 4             # run tasks in parallel
 pitlane run eval.yaml --repeat 5              # repeat for statistical confidence
 pitlane run eval.yaml --verbose               # stream debug output
 ```
+
+These options can be combined, eg: `pitlane run eval.yaml --task my-task --assistant baseline --repeat 5 --parallel 4`
 
 Results go to `runs/<timestamp>/` with `report.html` (side-by-side comparison), `results.json`, and `debug.log`.
 
