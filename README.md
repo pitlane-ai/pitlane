@@ -39,20 +39,55 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 
 ## Quick start
 
-Install dependencies:
+Requires [uv](https://github.com/astral-sh/uv), a fast Python package installer. Install it with:
 
 ```bash
-uv sync
-uv tool install .
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Run your first benchmark:
+Choose your preferred installation method:
+
+### Persistent installation (recommended)
+
+Install once and use everywhere:
+
+```bash
+uv tool install pitlane --from git+https://github.com/vburckhardt/pitlane.git
+```
+
+Then use the tool directly:
 
 ```bash
 pitlane run examples/simple-codegen-eval.yaml
 ```
 
+To upgrade pitlane:
+
+```bash
+uv tool install pitlane --force --from git+https://github.com/vburckhardt/pitlane.git
+```
+
+### One-time usage
+
+Run directly without installing:
+
+```bash
+uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane run examples/simple-codegen-eval.yaml
+```
+
+Benefits of persistent installation:
+
+- Tool stays installed and available in PATH
+- Faster execution (no download on each run)
+- Better tool management with `uv tool list`, `uv tool upgrade`, `uv tool uninstall`
+
 Results appear in `runs/` with an HTML report showing pass rates and metrics across all assistants.
+
+You'll need example files locally to run evaluations. Clone the repository to access examples, or create your own benchmark YAML files.
 
 ## Requirements
 
@@ -209,7 +244,7 @@ Currently supported AI coding assistants:
 |-----------|--------------|--------|
 | [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
 | [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
-| [OpenCode](https://github.com/opencode-ai/opencode) | `opencode` | ✅ Tested |
+| [OpenCode](https://github.com/anomalyco/opencode) | `opencode` | ✅ Tested |
 
 **Want to add support for another assistant?** See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-adapter) for instructions on implementing new adapters.
 
