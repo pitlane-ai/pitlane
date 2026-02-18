@@ -14,6 +14,11 @@
 # has weight 1, a passing validate is worth 3x more in the grade.
 
 assistants:
+  bob-baseline:
+    adapter: bob
+    args:
+      chat_mode: code
+
   claude-baseline:
     adapter: claude-code
     args:
