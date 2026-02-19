@@ -24,7 +24,11 @@ def _build_workspace_tree(workspace_dir: Path) -> dict:
                 content += f"\n... ({len(lines) - 200} more lines)"
         except Exception:
             content = "(could not read file)"
-        node[parts[-1]] = {"_file": True, "content": content, "path": str(f.relative_to(workspace_dir))}
+        node[parts[-1]] = {
+            "_file": True,
+            "content": content,
+            "path": str(f.relative_to(workspace_dir)),
+        }
     return tree
 
 
@@ -37,8 +41,6 @@ def write_junit(run_dir: Path, all_results: dict[str, dict[str, Any]]) -> Path:
             metrics = task_result.get("metrics", {})
             assertions = task_result.get("assertions", [])
             metrics_stats = task_result.get("metrics_stats", {})
-
-            failures = sum(1 for a in assertions if not a.get("passed", True))
 
             suite = TestSuite(f"{assistant_name} / {task_name}")
 

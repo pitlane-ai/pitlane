@@ -188,18 +188,14 @@ def test_junit_failure_recorded(sample_run_dir):
     xml = JUnitXml.fromfile(str(sample_run_dir / "junit.xml"))
     codex_suite = next(s for s in xml if s.name == "codex-baseline / task-1")
     assert codex_suite.failures == 1
-    failing_case = next(
-        c for c in codex_suite if c.name == "file_exists: variables.tf"
-    )
+    failing_case = next(c for c in codex_suite if c.name == "file_exists: variables.tf")
     assert any(isinstance(r, Failure) for r in failing_case.result)
 
 
 def test_junit_failure_message(sample_run_dir):
     xml = JUnitXml.fromfile(str(sample_run_dir / "junit.xml"))
     codex_suite = next(s for s in xml if s.name == "codex-baseline / task-1")
-    failing_case = next(
-        c for c in codex_suite if c.name == "file_exists: variables.tf"
-    )
+    failing_case = next(c for c in codex_suite if c.name == "file_exists: variables.tf")
     failure = next(r for r in failing_case.result if isinstance(r, Failure))
     assert failure.message == "File not found"
 

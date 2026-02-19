@@ -102,6 +102,7 @@ with-mcp:
 ### Assertions
 
 Deterministic (prefer these):
+
 - `file_exists: "path"` -- does the file exist?
 - `file_contains: { path: "file", pattern: "regex" }` -- does it match a regex?
 - `command_succeeds: "cmd"` -- does the command exit 0?
@@ -109,6 +110,7 @@ Deterministic (prefer these):
 - `custom_script: "python validate.py"` -- run a validation script (also supports advanced form with `script`, `args`, `timeout`, `expected_exit_code`)
 
 Similarity (requires `pip install pitlane[similarity]`):
+
 - `rouge: { actual: "file", expected: "./refs/golden.md", metric: "rougeL", min_score: 0.35 }` -- topic coverage, fast, good for docs
 - `bleu: { actual: "file", expected: "./refs/golden.md", min_score: 0.15 }` -- phrase matching, fast, good for docs but bad for code
 - `bertscore: { actual: "file", expected: "./refs/golden.md", min_score: 0.75 }` -- semantic similarity, slow, works for docs and code
@@ -170,6 +172,7 @@ Weight them accordingly. A passing test suite (`command_succeeds` at weight 3.0)
 ### Prefer deterministic assertions
 
 Similarity metrics are tempting but noisy. Reach for deterministic assertions first:
+
 - Instead of cosine_similarity on `main.tf`, use `file_contains` to check for specific module sources.
 - Instead of rouge on a README, use `file_contains` to check that key sections exist.
 - Save similarity for genuinely open-ended outputs like free-form documentation.
@@ -226,6 +229,7 @@ Write reference files by hand or curate them from known-good outputs. Don't gene
 ### The iteration loop
 
 This is TDD applied to skills:
+
 1. Write tasks and assertions the skill should help with. Run the baseline. It should struggle.
 2. Run with the skill. If it doesn't improve, the skill needs work, not the eval.
 3. Tighten assertions, add edge cases, increase difficulty. Repeat.
