@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
 
-> A feedback loop for people building AI coding skills and MCP servers.
+**A feedback loop for people building AI coding skills and MCP servers.**
 
 You're building a skill, an MCP server, or a custom prompt strategy that's supposed to make an AI coding assistant better at a specific job. But how do you know it actually works? How do you know your latest commit made things better and not worse?
 
@@ -51,29 +51,61 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 
 ## Quick start
 
-Requires [uv](https://github.com/astral-sh/uv), a fast Python package installer. Install it with:
+### Installation
+
+You'll need [uv](https://github.com/astral-sh/uv), a fast Python package installer.
+
+Install on macOS/Linux:
 
 ```bash
-# macOS/Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-# Windows
+Install on Windows:
+
+```bash
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-The example uses [OpenCode](https://opencode.ai) because it's free and requires no API key. Install it first, then:
+Install pitlane:
 
 ```bash
 uv tool install pitlane --from git+https://github.com/vburckhardt/pitlane.git
+```
+
+Or run without installing:
+
+```bash
+uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane run pitlane/examples/simple-codegen-eval.yaml
+```
+
+### Running your first example
+
+The example below uses [OpenCode](https://opencode.ai) because it's free and requires no API key, but you can use any [supported assistant](#supported-assistants) by editing the YAML file.
+
+Initialize a project with example benchmarks:
+
+```bash
 pitlane init --with-examples
+```
+
+Run the evaluation:
+
+```bash
 pitlane run pitlane/examples/simple-codegen-eval.yaml
 ```
 
-Results appear in `runs/` with an HTML report showing pass rates and metrics across all assistants.
+Results appear in `runs/` with an HTML report showing pass rates and metrics.
 
-Any [supported assistant](#supported-assistants) works — edit `pitlane/examples/simple-codegen-eval.yaml` to uncomment others, or pass `--assistant <name>` to target one you already have installed.
+**Want to use a different assistant?** Edit `pitlane/examples/simple-codegen-eval.yaml` and uncomment your preferred assistant configuration. See [Supported Assistants](#supported-assistants) for options.
 
-To run without installing: `uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane run pitlane/examples/simple-codegen-eval.yaml`
+**Need help designing benchmarks?** Install the pitlane skill for AI-guided assistance:
+
+```bash
+npx skills add vburckhardt/pitlane
+```
+
+Your AI assistant can then help you create effective eval benchmarks. See [Writing Benchmarks](#writing-benchmarks) for details.
 
 ## Supported assistants
 
@@ -100,14 +132,21 @@ pitlane run examples/simple-codegen-eval.yaml
 
 Run specific tasks or assistants:
 
+Run a single task:
+
 ```bash
-# Single task
 pitlane run examples/simple-codegen-eval.yaml --task hello-world-python
+```
 
-# Single assistant
+Run a single assistant:
+
+```bash
 pitlane run examples/simple-codegen-eval.yaml --assistant claude-baseline
+```
 
-# Combine filters
+Combine filters:
+
+```bash
 pitlane run examples/simple-codegen-eval.yaml --task hello-world-python --assistant claude-baseline
 ```
 
@@ -159,26 +198,47 @@ pitlane report runs/2024-01-01_12-00-00 --open
 
 ### Other commands
 
+Initialize new benchmark project:
+
 ```bash
-# Initialize new benchmark project
 pitlane init
+```
 
-# Initialize with example benchmarks
+Initialize with example benchmarks:
+
+```bash
 pitlane init --with-examples
+```
 
-# Generate JSON Schema for YAML validation
+Generate JSON Schema for YAML validation:
+
+```bash
 pitlane schema generate
+```
 
-# Install VS Code YAML validation (safe, with preview)
+Install VS Code YAML validation (safe, with preview):
+
+```bash
 pitlane schema install
+```
 
-# Regenerate HTML report from existing junit.xml
+Regenerate HTML report from existing junit.xml:
+
+```bash
 pitlane report runs/2024-01-01_12-00-00
 ```
 
 ## Writing benchmarks
 
 Benchmarks are YAML files with two sections: `assistants` and `tasks`.
+
+**Need help designing effective benchmarks?** Install the pitlane skill for AI-guided assistance:
+
+```bash
+npx skills add vburckhardt/pitlane
+```
+
+Your AI assistant can help you design eval benchmarks that actually measure whether your skills or MCP servers improve performance.
 
 ### Minimal example
 
@@ -430,7 +490,7 @@ Generate schema and docs:
 pitlane schema generate
 ```
 
-Outputs:
+This outputs:
 
 - `pitlane/schemas/pitlane.schema.json`
 - `pitlane/docs/schema.md`
