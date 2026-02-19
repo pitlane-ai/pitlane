@@ -108,10 +108,27 @@ def report(
         webbrowser.open(report_path.resolve().as_uri())
 
 
+def _examples_source() -> Path | None:
+    # Installed package: examples are bundled next to cli.py
+    pkg = Path(__file__).parent / "examples"
+    if pkg.exists():
+        return pkg
+    # Development: examples live at repo root (three levels up from src/pitlane/cli.py)
+    repo = Path(__file__).parent.parent.parent / "examples"
+    if repo.exists():
+        return repo
+    return None
+
+
 @app.command()
 def init(
     dir: str = typer.Option(
         "pitlane", "--dir", help="Directory to initialize eval project in"
+    ),
+    with_examples: bool = typer.Option(
+        False,
+        "--with-examples",
+        help="Copy example benchmarks into the project directory",
     ),
 ):
     """Initialize a new eval project with example config."""
@@ -150,6 +167,17 @@ tasks:
     typer.echo(f"Initialized eval project in {dir}:")
     typer.echo("  eval.yaml        - example eval config")
     typer.echo("  fixtures/empty/  - empty fixture directory")
+
+    if with_examples:
+        src = _examples_source()
+        if src is None:
+            typer.echo("Error: bundled examples not found.", err=True)
+            raise typer.Exit(1)
+        import shutil
+
+        dest = project_dir / "examples"
+        shutil.copytree(src, dest)
+        typer.echo("  examples/        - example benchmarks and fixtures")
 
 
 @schema_app.command("generate")

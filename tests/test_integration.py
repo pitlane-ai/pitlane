@@ -120,9 +120,8 @@ def test_skill_installation_non_interactive(tmp_path):
     )
 
 
-@pytest.mark.integration
 def test_simple_codegen_eval_example(tmp_path):
-    """Integration test: Run the simple-codegen-eval.yaml example with mocked adapters."""
+    """Unit test: Verify runner works with example config using mocked adapters."""
     from pathlib import Path
 
     # Load the actual example config
@@ -161,10 +160,6 @@ def test_simple_codegen_eval_example(tmp_path):
         xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
         suite_names = {s.name for s in xml}
         expected_assistants = [
-            "bob-baseline",
-            "claude-baseline",
-            "vibe-devstral-2",
-            "vibe-devstral-small",
             "opencode-baseline",
         ]
         for assistant in expected_assistants:

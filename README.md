@@ -38,85 +38,85 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 - Graceful interrupt handling (Ctrl+C generates partial reports)
 - TDD workflow support (red-green-refactor)
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Supported Assistants](#supported-assistants)
+- [Usage](#usage)
+- [Writing Benchmarks](#writing-benchmarks)
+- [TDD Workflow](#tdd-workflow)
+- [Editor Integration](#editor-integration)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Quick start
 
-Requires [uv](https://github.com/astral-sh/uv), a fast Python package installer. Install it with:
+### Installation
+
+You'll need [uv](https://github.com/astral-sh/uv), a fast Python package installer.
+
+Install on macOS/Linux:
 
 ```bash
-# macOS/Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-# Windows
+Install on Windows:
+
+```bash
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Choose your preferred installation method:
-
-### Persistent installation (recommended)
-
-Install once and use everywhere:
+Install pitlane:
 
 ```bash
 uv tool install pitlane --from git+https://github.com/vburckhardt/pitlane.git
 ```
 
-Then use the tool directly:
+Or run without installing:
 
 ```bash
-pitlane run examples/simple-codegen-eval.yaml
+uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane run pitlane/examples/simple-codegen-eval.yaml
 ```
 
-To upgrade pitlane:
+### Running your first example
+
+The example below uses [OpenCode](https://opencode.ai) because it's free and requires no API key, but you can use any [supported assistant](#supported-assistants) by editing the YAML file.
+
+Initialize a project with example benchmarks:
 
 ```bash
-uv tool install pitlane --force --from git+https://github.com/vburckhardt/pitlane.git
+pitlane init --with-examples
 ```
 
-### One-time usage
-
-Run directly without installing:
+Run the evaluation:
 
 ```bash
-uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane run examples/simple-codegen-eval.yaml
+pitlane run pitlane/examples/simple-codegen-eval.yaml
 ```
 
-Benefits of persistent installation:
+Results appear in `runs/` with an HTML report showing pass rates and metrics.
 
-- Tool stays installed and available in PATH
-- Faster execution (no download on each run)
-- Better tool management with `uv tool list`, `uv tool upgrade`, `uv tool uninstall`
+**Want to use a different assistant?** Edit `pitlane/examples/simple-codegen-eval.yaml` and uncomment your preferred assistant configuration. See [Supported Assistants](#supported-assistants) for options.
 
-Results appear in `runs/<timestamp>/` containing `junit.xml` (canonical output) and `report.html`.
-
-You'll need example files locally to run evaluations. Clone the repository to access examples, or create your own benchmark YAML files.
-
-## Requirements
-
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv) (recommended) or pip
-- One or more AI coding assistants installed
-
-## Installation
-
-### Using uv (recommended)
+**Need help designing benchmarks?** Install the pitlane skill for AI-guided assistance:
 
 ```bash
-# Clone the repository
-git clone https://github.com/vburckhardt/pitlane.git
-cd pitlane
-
-# Install dependencies
-uv sync
-
-# Install CLI globally
-uv tool install .
+npx skills add vburckhardt/pitlane
 ```
 
-### Using pip
+Your AI assistant can then help you create effective eval benchmarks. See [Writing Benchmarks](#writing-benchmarks) for details.
 
-```bash
-pip install -e .
-```
+## Supported assistants
+
+| Assistant | Adapter Name | Status |
+|-----------|--------------|--------|
+| [Bob](https://www.ibm.com/products/bob) | `bob` | ✅ Tested |
+| [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
+| [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
+| [OpenCode](https://opencode.ai) | `opencode` | ✅ Tested |
+
+**Want to add support for another assistant?** See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-adapter) for instructions on implementing new adapters.
 
 ## Usage
 
@@ -132,14 +132,21 @@ pitlane run examples/simple-codegen-eval.yaml
 
 Run specific tasks or assistants:
 
+Run a single task:
+
 ```bash
-# Single task
 pitlane run examples/simple-codegen-eval.yaml --task hello-world-python
+```
 
-# Single assistant
+Run a single assistant:
+
+```bash
 pitlane run examples/simple-codegen-eval.yaml --assistant claude-baseline
+```
 
-# Combine filters
+Combine filters:
+
+```bash
 pitlane run examples/simple-codegen-eval.yaml --task hello-world-python --assistant claude-baseline
 ```
 
@@ -191,23 +198,47 @@ pitlane report runs/2024-01-01_12-00-00 --open
 
 ### Other commands
 
+Initialize new benchmark project:
+
 ```bash
-# Initialize new benchmark project
 pitlane init
+```
 
-# Generate JSON Schema for YAML validation
+Initialize with example benchmarks:
+
+```bash
+pitlane init --with-examples
+```
+
+Generate JSON Schema for YAML validation:
+
+```bash
 pitlane schema generate
+```
 
-# Install VS Code YAML validation (safe, with preview)
+Install VS Code YAML validation (safe, with preview):
+
+```bash
 pitlane schema install
+```
 
-# Regenerate HTML report from existing junit.xml
+Regenerate HTML report from existing junit.xml:
+
+```bash
 pitlane report runs/2024-01-01_12-00-00
 ```
 
 ## Writing benchmarks
 
 Benchmarks are YAML files with two sections: `assistants` and `tasks`.
+
+**Need help designing effective benchmarks?** Install the pitlane skill for AI-guided assistance:
+
+```bash
+npx skills add vburckhardt/pitlane
+```
+
+Your AI assistant can help you design eval benchmarks that actually measure whether your skills or MCP servers improve performance.
 
 ### Minimal example
 
@@ -249,20 +280,7 @@ assistants:
     skills:
       - source: org/repo
         skill: my-skill-name
-```
-
-## Supported assistants
-
-Currently supported AI coding assistants:
-
-| Assistant | Adapter Name | Status |
-|-----------|--------------|--------|
-| [Bob](https://www.ibm.com/products/bob) | `bob` | ✅ Tested |
-| [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
-| [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
-| [OpenCode](https://github.com/anomalyco/opencode) | `opencode` | ✅ Tested |
-
-**Want to add support for another assistant?** See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-adapter) for instructions on implementing new adapters.
+  ```
 
 ### Tasks
 
@@ -420,11 +438,7 @@ assertions:
 
 Results include both `assertion_pass_rate` (binary) and `weighted_score` (continuous).
 
-See `examples/weighted-grading-eval.yaml` for details.
-
-## Examples
-
-The `examples/` directory contains working benchmarks:
+The `examples/` directory contains working benchmarks you can use as starting points:
 
 - **`simple-codegen-eval.yaml`** — Minimal example with deterministic assertions
 - **`similarity-codegen-eval.yaml`** — Demonstrates all similarity metrics
@@ -476,7 +490,7 @@ Generate schema and docs:
 pitlane schema generate
 ```
 
-Outputs:
+This outputs:
 
 - `pitlane/schemas/pitlane.schema.json`
 - `pitlane/docs/schema.md`
