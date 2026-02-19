@@ -144,6 +144,7 @@ def test_simple_codegen_eval_example(tmp_path):
 
     # Mock all adapters in the example
     with (
+        patch("pitlane.adapters.bob.BobAdapter.run", mock_run),
         patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run),
         patch("pitlane.adapters.mistral_vibe.MistralVibeAdapter.run", mock_run),
         patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run),
@@ -160,6 +161,7 @@ def test_simple_codegen_eval_example(tmp_path):
         xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
         suite_names = {s.name for s in xml}
         expected_assistants = [
+            "bob-baseline",
             "claude-baseline",
             "vibe-devstral-2",
             "vibe-devstral-small",
