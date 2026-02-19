@@ -25,8 +25,8 @@ def run(
     repeat: int = typer.Option(
         1, "--repeat", "-r", min=1, max=100, help="Number of times to repeat each task"
     ),
-    open_report: bool = typer.Option(
-        False, "--open", help="Open report.html in browser after run"
+    no_open: bool = typer.Option(
+        False, "--no-open", help="Do not open report.html in browser after run"
     ),
 ):
     """Run evaluation tasks against configured assistants."""
@@ -69,7 +69,7 @@ def run(
     if not verbose:
         typer.echo(f"Debug log: {run_dir / 'debug.log'}")
 
-    if open_report:
+    if not no_open:
         import webbrowser
 
         webbrowser.open(report_path.resolve().as_uri())

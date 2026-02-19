@@ -654,9 +654,7 @@
             {% if props.get('weighted_score') is not none %}
             <span class="agent-metric">Score: {{ props.weighted_score }}</span>
             {% endif %}
-            {% if props.get('cost_usd') is not none %}
-            <span class="agent-metric">${{ props.cost_usd }}</span>
-            {% endif %}
+            <span class="agent-metric">${{ props.cost_usd if props.get('cost_usd') is not none else '-' }}</span>
           </summary>
 
           <div class="agent-detail">
