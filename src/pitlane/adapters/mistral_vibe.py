@@ -82,13 +82,28 @@ class MistralVibeAdapter(BaseAdapter):
 
             role = item.get("role")
             if role == "assistant":
-                entry: dict[str, Any] = {
-                    "role": "assistant",
-                    "content": item.get("content", ""),
-                }
                 if item.get("tool_calls"):
-                    entry["tool_calls"] = item["tool_calls"]
-                conversation.append(entry)
+                    # Emit text content separately if present
+                    if item.get("content"):
+                        conversation.append({"role": "assistant", "content": item["content"]})
+                    # Emit one entry per tool call, normalized to tool_use format
+                    for tc in item["tool_calls"]:
+                        fn = tc.get("function", {})
+                        raw_args = fn.get("arguments", "{}")
+                        try:
+                            input_data = json.loads(raw_args) if isinstance(raw_args, str) else raw_args
+                        except json.JSONDecodeError:
+                            input_data = {"raw": raw_args}
+                        conversation.append({
+                            "role": "assistant",
+                            "content": "",
+                            "tool_use": {"name": fn.get("name", ""), "input": input_data},
+                        })
+                else:
+                    conversation.append({
+                        "role": "assistant",
+                        "content": item.get("content", ""),
+                    })
 
         return conversation
 
