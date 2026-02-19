@@ -32,7 +32,8 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 - Deterministic assertions (file checks, command execution, custom scripts)
 - Similarity metrics (ROUGE, BLEU, BERTScore, cosine similarity)
 - Metrics tracking (time, tokens, cost, file changes)
-- HTML reports with side-by-side comparisons
+- JUnit XML output (`junit.xml`) for native CI test reporting
+- Interactive HTML reports with side-by-side agent comparison
 - Parallel execution and repeated runs with statistics
 - Graceful interrupt handling (Ctrl+C generates partial reports)
 - TDD workflow support (red-green-refactor)
@@ -142,6 +143,20 @@ All assertions include detailed logging to help diagnose failures.
 
 Press Ctrl+C to stop a run. You'll get a partial HTML report with results from completed tasks.
 
+### Open report in browser
+
+Add `--open` to launch `report.html` in your default browser immediately after the run:
+
+```bash
+pitlane run examples/simple-codegen-eval.yaml --open
+```
+
+The same flag works when regenerating a report:
+
+```bash
+pitlane report runs/2024-01-01_12-00-00 --open
+```
+
 ### Other commands
 
 ```bash
@@ -157,7 +172,7 @@ pitlane schema generate
 # Install VS Code YAML validation (safe, with preview)
 pitlane schema install
 
-# Regenerate HTML report from previous run
+# Regenerate HTML report from existing junit.xml
 pitlane report runs/2024-01-01_12-00-00
 ```
 

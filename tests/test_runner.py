@@ -1,8 +1,8 @@
-import json
 import pytest
 import yaml
 from concurrent.futures import as_completed
 from unittest.mock import patch
+from junitparser import JUnitXml
 from pitlane.runner import Runner, IterationResult
 from pitlane.metrics import compute_stats, aggregate_results
 from pitlane.adapters.base import AdapterResult
@@ -50,9 +50,10 @@ def test_runner_creates_run_directory(tmp_path, eval_config):
         run_dir = runner.execute()
 
     assert run_dir.exists()
-    assert (run_dir / "results.json").exists()
+    assert (run_dir / "junit.xml").exists()
     assert (run_dir / "meta.yaml").exists()
     assert (run_dir / "debug.log").exists()
+    assert not (run_dir / "results.json").exists()
 
 
 def test_runner_captures_results(tmp_path, eval_config):
@@ -72,12 +73,14 @@ def test_runner_captures_results(tmp_path, eval_config):
     ):
         run_dir = runner.execute()
 
-    results = json.loads((run_dir / "results.json").read_text())
-    assert "mock-claude" in results
-    assert "simple-test" in results["mock-claude"]
-    task_result = results["mock-claude"]["simple-test"]
-    assert "metrics" in task_result
-    assert "assertions" in task_result
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "mock-claude / simple-test" in suite_names
+    suite = next(s for s in xml if s.name == "mock-claude / simple-test")
+    assert suite.tests >= 1
+    props = {p.name for p in suite.properties()}
+    assert "weighted_score" in props
+    assert "assertion_pass_rate" in props
 
 
 def test_runner_parallel_execution(tmp_path, eval_config):
@@ -137,18 +140,18 @@ tasks:
         run_dir = runner.execute()
 
     # Verify all tasks completed successfully
-    results = json.loads((run_dir / "results.json").read_text())
-    assert "mock-claude" in results
-    assert len(results["mock-claude"]) == 3
-    assert "task-1" in results["mock-claude"]
-    assert "task-2" in results["mock-claude"]
-    assert "task-3" in results["mock-claude"]
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "mock-claude / task-1" in suite_names
+    assert "mock-claude / task-2" in suite_names
+    assert "mock-claude / task-3" in suite_names
+    assert len(suite_names) == 3
 
-    # Verify all tasks have results
-    for task_name in ["task-1", "task-2", "task-3"]:
-        task_result = results["mock-claude"][task_name]
-        assert "metrics" in task_result
-        assert "assertions" in task_result
+    # Verify all suites have test cases and properties
+    for suite in xml:
+        assert suite.tests >= 1
+        props = {p.name for p in suite.properties()}
+        assert "assertion_pass_rate" in props
 
 
 def test_runner_sequential_execution(tmp_path, eval_config):
@@ -172,9 +175,9 @@ def test_runner_sequential_execution(tmp_path, eval_config):
     ):
         run_dir = runner.execute()
 
-    results = json.loads((run_dir / "results.json").read_text())
-    assert "mock-claude" in results
-    assert "simple-test" in results["mock-claude"]
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "mock-claude / simple-test" in suite_names
 
 
 def test_runner_default_parallel_tasks(tmp_path, eval_config):
@@ -216,24 +219,18 @@ def test_runner_repeat_execution(tmp_path, eval_config):
 
     assert call_count == 3
 
-    results = json.loads((run_dir / "results.json").read_text())
-    task_result = results["mock-claude"]["simple-test"]
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite = next(s for s in xml if s.name == "mock-claude / simple-test")
 
-    # Should have aggregated structure
-    assert "repeat" in task_result
-    assert task_result["repeat"]["count"] == 3
-    assert len(task_result["repeat"]["iterations"]) == 3
-    assert "metrics_stats" in task_result
+    # Repeat stats are stored as properties
+    props = {p.name: p.value for p in suite.properties()}
+    assert "wall_clock_seconds_avg" in props
+    assert "wall_clock_seconds_min" in props
+    assert "wall_clock_seconds_max" in props
+    assert "wall_clock_seconds_stddev" in props
 
-    # Metrics should be averages
-    assert task_result["metrics"]["wall_clock_seconds"] is not None
-
-    # Stats should have avg, min, max, stddev
-    wc_stats = task_result["metrics_stats"]["wall_clock_seconds"]
-    assert "avg" in wc_stats
-    assert "min" in wc_stats
-    assert "max" in wc_stats
-    assert "stddev" in wc_stats
+    # avg wall_clock_seconds == (1+2+3)/3 == 2.0
+    assert float(props["wall_clock_seconds_avg"]) == pytest.approx(2.0)
 
 
 def test_runner_repeat_meta_includes_repeat_count(tmp_path, eval_config):
@@ -444,19 +441,19 @@ tasks:
     assert runner.interrupted is True
 
     # Partial results should be saved
-    assert (run_dir / "results.json").exists()
+    assert (run_dir / "junit.xml").exists()
     assert (run_dir / "meta.yaml").exists()
 
-    results = json.loads((run_dir / "results.json").read_text())
-    assert "mock-claude" in results
-    # At least one task should have completed (results are now aggregated)
-    assert len(results["mock-claude"]) >= 1
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suites = list(xml)
+    # At least one task should have completed
+    assert len(suites) >= 1
 
-    # Verify aggregated structure exists for completed tasks
-    for task_name, task_result in results["mock-claude"].items():
-        assert "repeat" in task_result
-        assert "metrics" in task_result
-        assert "assertions" in task_result
+    # Verify suites have test cases and properties
+    for suite in suites:
+        assert suite.tests >= 1
+        props = {p.name for p in suite.properties()}
+        assert "assertion_pass_rate" in props
 
     # Meta should indicate interrupted
     meta = yaml.safe_load((run_dir / "meta.yaml").read_text())
@@ -465,7 +462,7 @@ tasks:
 
 def test_runner_interrupt_report_generation(tmp_path):
     """Test that a report can be generated from partial results."""
-    from pitlane.reporting.html import generate_report
+    from pitlane.reporting.junit import generate_report
 
     fixture_dir = tmp_path / "fixtures" / "empty"
     fixture_dir.mkdir(parents=True)

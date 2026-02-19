@@ -1,1 +1,1 @@
-"""HTML report generation."""
+"""JUnit XML and HTML report generation."""
