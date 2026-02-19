@@ -1,6 +1,6 @@
 # pitlane 🏁
 
-[![CI](https://github.com/vburckhardt/pitlane/workflows/CI/badge.svg)](https://github.com/vburckhardt/pitlane/actions)
+[![CI](https://github.com/vburckhardt/pitlane/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/vburckhardt/pitlane/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/vburckhardt/pitlane/branch/main/graph/badge.svg)](https://codecov.io/gh/vburckhardt/pitlane)
 [![PyPI version](https://badge.fury.io/py/pitlane.svg)](https://badge.fury.io/py/pitlane)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
