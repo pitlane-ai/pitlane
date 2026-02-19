@@ -1,24 +1,22 @@
 assistants:
-  bob-baseline:
-    adapter: bob
-    args:
-      chat_mode: code
-  claude-baseline:
-    adapter: claude-code
-    args:
-      model: haiku
-  vibe-devstral-2:
-    adapter: mistral-vibe
-    args:
-      model: devstral-2
-  vibe-devstral-small:
-    adapter: mistral-vibe
-    args:
-      model: devstral-small
   opencode-baseline:
     adapter: opencode
     args:
       model: opencode/minimax-m2.5-free
+
+  # Uncomment to compare against other assistants (requires each tool installed):
+  # claude-baseline:
+  #   adapter: claude-code
+  #   args:
+  #     model: haiku
+  # vibe-devstral-small:
+  #   adapter: mistral-vibe
+  #   args:
+  #     model: devstral-small
+  # bob-baseline:
+  #   adapter: bob
+  #   args:
+  #     chat_mode: code
 
 tasks:
   - name: hello-world-python

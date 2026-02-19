@@ -211,10 +211,10 @@ class Runner:
         tasks: list[TaskConfig],
         cli_versions: dict[str, str],
     ) -> None:
-        """Write results.json and meta.yaml to the run directory."""
-        (run_dir / "results.json").write_text(
-            json.dumps(all_results, indent=2, default=str)
-        )
+        """Write junit.xml and meta.yaml to the run directory."""
+        from pitlane.reporting.junit import write_junit
+
+        write_junit(run_dir, all_results)
 
         try:
             import importlib.metadata

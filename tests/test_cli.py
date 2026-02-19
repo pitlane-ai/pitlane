@@ -21,6 +21,20 @@ def test_init_with_custom_directory(tmp_path, monkeypatch):
     assert (tmp_path / "my-custom-dir" / "fixtures" / "empty" / ".gitkeep").exists()
 
 
+def test_init_with_examples_copies_examples(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["init", "--with-examples"])
+    assert result.exit_code == 0
+    assert (tmp_path / "pitlane" / "examples" / "simple-codegen-eval.yaml").exists()
+
+
+def test_init_without_examples_by_default(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["init"])
+    assert result.exit_code == 0
+    assert not (tmp_path / "pitlane" / "examples").exists()
+
+
 def test_run_missing_config():
     result = runner.invoke(app, ["run", "nonexistent.yaml"])
     assert result.exit_code != 0

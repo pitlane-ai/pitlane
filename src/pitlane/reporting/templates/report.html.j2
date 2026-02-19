@@ -1,225 +1,934 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pitlane Report</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 24px; }
-  h1 { font-size: 24px; margin-bottom: 8px; }
-  h2 { font-size: 20px; margin: 24px 0 12px; }
-  h3 { font-size: 16px; margin: 12px 0 8px; }
-  .meta { color: #666; font-size: 14px; margin-bottom: 24px; }
-  .debug-link { display: inline-block; margin-bottom: 16px; padding: 8px 12px; background: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333; font-size: 13px; }
-  .debug-link:hover { background: #e0e0e0; }
-  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
-  th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-  th { background: #fafafa; font-weight: 600; }
-  .pass { background: #e6f9e6; color: #1a7a1a; }
-  .partial { background: #fff8e6; color: #8a6d00; }
-  .fail { background: #fde6e6; color: #a00; }
-  .metric { font-size: 12px; color: #666; }
-  .details { display: none; background: #fafafa; padding: 16px; }
-  .details.open { display: block; }
-  .toggle { cursor: pointer; user-select: none; }
-  .toggle:hover { background: #f0f0f0; }
-  .assertion-list { list-style: none; padding: 0; }
-  .assertion-list li { padding: 4px 0; font-size: 13px; }
-  .assertion-list li::before { content: "✓ "; color: #1a7a1a; }
-  .assertion-list li.failed::before { content: "✗ "; color: #a00; }
-  .chart-section { margin-bottom: 24px; }
-  .chart-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
-  .chart-label { width: 140px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .chart-bar { height: 20px; border-radius: 3px; transition: width 0.3s; }
-  .colors { --c0: #4285f4; --c1: #ea4335; --c2: #fbbc04; --c3: #34a853; --c4: #ff6d01; --c5: #46bdc6; }
-  .repeat-badge { display: inline-block; padding: 2px 8px; background: #e3f2fd; color: #1565c0; border-radius: 10px; font-size: 12px; font-weight: 600; margin-left: 8px; }
-  .stats-table { font-size: 12px; }
-  .stats-table td, .stats-table th { padding: 4px 10px; }
-  .iter-details { display: none; background: #f9f9f9; padding: 12px; margin-top: 8px; border-radius: 4px; }
-  .iter-details.open { display: block; }
-  .iter-toggle { cursor: pointer; color: #1565c0; font-size: 12px; text-decoration: underline; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitlane Report</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+
+    /* Header */
+    .header {
+      background: #1a1a2e;
+      color: #e5e7eb;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+    }
+    .header .run-dir {
+      font-size: 12px;
+      color: #9ca3af;
+      font-family: monospace;
+      word-break: break-all;
+    }
+    .header-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Metadata bar */
+    .meta-bar {
+      background: #f8f9fa;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 8px 24px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .meta-item { display: flex; gap: 6px; align-items: center; }
+    .meta-label { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .meta-value { font-family: monospace; color: #374151; }
+
+    /* Summary cards */
+    .summary {
+      display: flex;
+      gap: 16px;
+      padding: 24px 24px 8px;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      padding: 16px 20px;
+      min-width: 110px;
+      text-align: center;
+    }
+    .card .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #6b7280;
+    }
+    .card .card-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .card.total  .card-value { color: #374151; }
+    .card.passed .card-value { color: #22c55e; }
+    .card.failed .card-value { color: #ef4444; }
+    .card.errored .card-value { color: #f59e0b; }
+
+    /* Suites container */
+    .suites {
+      padding: 8px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Task sections */
+    .task-section {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      overflow: hidden;
+    }
+    .task-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      background: #1e293b;
+      color: #e5e7eb;
+    }
+    .task-name {
+      font-weight: 700;
+      font-size: 15px;
+      flex: 1;
+      color: #f1f5f9;
+      word-break: break-word;
+    }
+
+    /* Agent list view */
+    .agent-list-view {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 16px;
+      background: #f1f5f9;
+    }
+    .agent-card {
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    .agent-card details > summary { list-style: none; cursor: pointer; }
+    .agent-card details > summary::-webkit-details-marker { display: none; }
+    .agent-card details > summary::marker { display: none; }
+    .agent-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      flex-wrap: wrap;
+    }
+    .agent-summary:hover { background: #f1f5f9; }
+    .agent-name {
+      font-weight: 600;
+      font-size: 13px;
+      flex: 1;
+      word-break: break-word;
+      color: #111827;
+      min-width: 120px;
+    }
+    .suite-time {
+      font-size: 12px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+    .agent-metric {
+      font-family: monospace;
+      font-size: 12px;
+      color: #374151;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .agent-select {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .agent-detail {
+      padding: 12px 14px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    /* Task actions bar */
+    .task-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 14px;
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+    }
+    .select-all-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #6b7280;
+      cursor: pointer;
+      user-select: none;
+    }
+    .compare-btn {
+      margin-left: auto;
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #3b82f6;
+      color: #fff;
+      transition: background .15s;
+    }
+    .compare-btn:hover:not(:disabled) { background: #2563eb; }
+    .compare-btn:disabled {
+      background: #e5e7eb;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* Compare view */
+    .compare-view { background: #f1f5f9; padding: 12px 16px; }
+    .compare-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .back-btn {
+      padding: 6px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+    }
+    .back-btn:hover { background: #f9fafb; }
+    .compare-grid {
+      display: grid;
+      gap: 12px;
+      overflow-x: auto;
+    }
+    .compare-col {
+      min-width: 320px;
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+    }
+    .compare-col-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+    .compare-col-header .agent-name {
+      font-weight: 600;
+      font-size: 13px;
+      flex: 1;
+      word-break: break-word;
+      color: #111827;
+    }
+    .compare-col-body { padding: 12px 14px; }
+    .hidden { display: none; }
+
+    /* Grouped metrics */
+    .metrics-groups {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+    .metrics-group {
+      background: #f9fafb;
+      border-radius: 6px;
+      padding: 8px 12px;
+      min-width: 140px;
+      flex: 1;
+    }
+    .metrics-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #9ca3af;
+      margin-bottom: 6px;
+    }
+    .prop-item {
+      margin-bottom: 4px;
+    }
+    .prop-key {
+      font-size: 11px;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .prop-val {
+      font-family: monospace;
+      font-size: 13px;
+      color: #111827;
+      margin-top: 1px;
+    }
+
+    /* Repeat-stat props grid */
+    .props-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-top: 8px;
+    }
+    .props-grid .prop-item {
+      background: #f9fafb;
+      border-radius: 4px;
+      padding: 5px 8px;
+      min-width: 120px;
+    }
+
+    /* Cases */
+    .cases-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin: 12px 0 8px;
+    }
+
+    .case-item {
+      border-radius: 6px;
+      margin-bottom: 4px;
+      overflow: hidden;
+    }
+
+    .case-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      background: #f9fafb;
+    }
+    details.case-item .case-row {
+      cursor: pointer;
+    }
+
+    .case-name {
+      flex: 1;
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .case-message {
+      background: #fef2f2;
+      border-left: 3px solid #ef4444;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #7f1d1d;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-pass    { background: #dcfce7; color: #166534; }
+    .badge-fail    { background: #fee2e2; color: #991b1b; }
+    .badge-error   { background: #fef3c7; color: #92400e; }
+    .badge-skip    { background: #f3f4f6; color: #6b7280; }
+    .badge-neutral { background: #e5e7eb; color: #374151; }
+    .badge-role-assistant { background: #ede9fe; color: #5b21b6; }
+    .badge-role-tool      { background: #dbeafe; color: #1e40af; }
+
+    /* Drill-down sections */
+    .drill-section {
+      margin-top: 12px;
+    }
+    .drill-section > summary {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
+      padding: 6px 10px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      user-select: none;
+      list-style: none;
+    }
+    .drill-section > summary::-webkit-details-marker { display: none; }
+    .drill-section > summary::marker { display: none; }
+    .drill-section > summary::before { content: "▶ "; font-size: 10px; color: #9ca3af; }
+    .drill-section[open] > summary::before { content: "▼ "; }
+
+    /* Debug log */
+    .debug-log-pre {
+      margin-top: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    /* Conversation transcript */
+    .transcript {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .transcript-empty {
+      font-style: italic;
+      color: #9ca3af;
+      font-size: 12px;
+      padding: 8px 0;
+    }
+    .msg-block {
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: #f9fafb;
+      font-size: 12px;
+    }
+    .msg-text {
+      padding: 8px 12px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #1f2937;
+      background: #fff;
+    }
+    .tool-call-details {
+      border: 1px solid #dbeafe;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .tool-call-details > summary {
+      cursor: pointer;
+      padding: 6px 10px;
+      background: #eff6ff;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e40af;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tool-call-details > summary::-webkit-details-marker { display: none; }
+    .tool-call-details > summary::marker { display: none; }
+    .tool-call-details > summary::before { content: "▶ "; font-size: 10px; color: #93c5fd; }
+    .tool-call-details[open] > summary::before { content: "▼ "; }
+    .tool-input-pre {
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 11px;
+      background: #fff;
+      color: #1e3a8a;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* Workspace explorer */
+    .workspace-tree {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    details.dir-item > summary {
+      cursor: pointer;
+      padding: 4px 8px;
+      color: #374151;
+      font-weight: 600;
+      user-select: none;
+      list-style: none;
+    }
+    details.dir-item > summary::-webkit-details-marker { display: none; }
+    details.dir-item > summary::marker { display: none; }
+    details.dir-item > summary::before { content: "📁 "; }
+    details.dir-item[open] > summary::before { content: "📂 "; }
+    .dir-children { padding-left: 16px; border-left: 1px solid #e5e7eb; margin-left: 8px; }
+    details.file-item > summary {
+      cursor: pointer;
+      padding: 3px 8px;
+      color: #4b5563;
+      user-select: none;
+      list-style: none;
+    }
+    details.file-item > summary::-webkit-details-marker { display: none; }
+    details.file-item > summary::marker { display: none; }
+    details.file-item > summary::before { content: "📄 "; }
+    .file-content {
+      font-family: monospace;
+      font-size: 11px;
+      background: #f8fafc;
+      color: #1e293b;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin: 4px 8px;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+  </style>
 </head>
-<body class="colors">
-<h1>pitlane Report{% if repeat > 1 %}<span class="repeat-badge">{{ repeat }}x repeat</span>{% endif %}</h1>
-<p class="meta">Generated from run data{% if repeat > 1 %} — each task repeated {{ repeat }} times, showing averages ± stddev{% endif %}</p>
-<a href="debug.log" class="debug-link">📋 View main debug.log</a>
-{% for assistant in assistants %}
-  {% for task in tasks %}
-    {% if results[assistant][task] %}
-      <a href="{{ assistant }}/{{ task }}/debug.log" class="debug-link">📋 {{ assistant }}/{{ task }} debug.log</a>
-    {% endif %}
-  {% endfor %}
+<body>
+
+{# ── Workspace tree macro ─────────────────────────────────────────────────── #}
+{% macro render_tree(node) %}
+{% for name, value in node.items() | sort %}
+  {% if value is mapping and value.get('_file') %}
+  <details class="file-item"><summary class="file-name">{{ name }}</summary>
+    <pre class="file-content">{{ value.content }}</pre>
+  </details>
+  {% elif value is mapping %}
+  <details class="dir-item"><summary class="dir-name">{{ name }}/</summary>
+    <div class="dir-children">{{ render_tree(value) }}</div>
+  </details>
+  {% endif %}
 {% endfor %}
+{% endmacro %}
 
-<h2>Summary</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Task</th>
-      {% for assistant in assistants %}
-      <th>{{ assistant }}</th>
-      {% endfor %}
-    </tr>
-  </thead>
-  <tbody>
-    {% for task in tasks %}
-    <tr class="toggle" onclick="toggleDetails('{{ task }}')">
-      <td><strong>{{ task }}</strong></td>
-      {% for assistant in assistants %}
-      {% set r = results[assistant][task] %}
-      {% if r %}
-      {% if r.all_passed %}
-      <td class="pass">
-      {% elif r.metrics.assertion_pass_rate > 0 %}
-      <td class="partial">
-      {% else %}
-      <td class="fail">
-      {% endif %}
-        {% if repeat > 1 and r.repeat %}
-        {{ r.repeat.all_passed_rate }}% runs pass<br>
-        <span class="metric">avg {{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {% if r.metrics.tool_calls_count is not none %}{{ "%.0f"|format(r.metrics.tool_calls_count) }}{% else %}?{% endif %} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
-        {% else %}
-        {{ r.metrics.assertion_pass_rate }}% pass | {{ r.metrics.weighted_score }}% weighted<br>
-        <span class="metric">{{ "%.1f"|format(r.metrics.wall_clock_seconds) }}s | {% if r.metrics.tool_calls_count is not none %}{{ r.metrics.tool_calls_count }}{% else %}unknown{% endif %} tools{% if r.metrics.cost_usd %} | ${{ "%.4f"|format(r.metrics.cost_usd) }}{% endif %}</span>
-        {% endif %}
-      </td>
-      {% else %}
-      <td>—</td>
-      {% endif %}
-      {% endfor %}
-    </tr>
-    <tr>
-      <td colspan="{{ assistants|length + 1 }}">
-        <div class="details" id="details-{{ task }}">
-          {% if repeat > 1 %}
-          {# --- Repeat mode: show stats table --- #}
-          <h4 style="margin: 0 0 8px;">Metrics (avg ± stddev across {{ repeat }} runs)</h4>
-          <table class="stats-table">
-            <thead>
-              <tr>
-                <th>Metric</th>
-                {% for assistant in assistants %}
-                <th>{{ assistant }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for metric_key in metric_keys %}
-              <tr>
-                <td>{{ metric_key }}</td>
-                {% for assistant in assistants %}
-                {% set r = results[assistant][task] %}
-                <td>
-                  {% if r and r.metrics_stats and r.metrics_stats[metric_key] %}
-                  {% set s = r.metrics_stats[metric_key] %}
-                  {% if s.avg is not none %}
-                    {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(s.avg) }} ± {{ "%.1f"|format(s.stddev) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(s.avg) }} ± {{ "%.4f"|format(s.stddev) }}{% else %}{{ s.avg }} ± {{ s.stddev }}{% endif %}
-                    <br><span class="metric">min={{ s.min }} max={{ s.max }}</span>
-                  {% else %}—{% endif %}
-                  {% elif r and r.metrics[metric_key] is not none %}
-                    {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics[metric_key]) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics[metric_key]) }}{% else %}{{ r.metrics[metric_key] }}{% endif %}
-                  {% else %}—{% endif %}
-                </td>
-                {% endfor %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          {# --- Single run mode --- #}
-          <table>
-            <thead>
-              <tr>
-                <th>Metric</th>
-                {% for assistant in assistants %}
-                <th>{{ assistant }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for metric_key in metric_keys %}
-              <tr>
-                <td>{{ metric_key }}</td>
-                {% for assistant in assistants %}
-                {% set r = results[assistant][task] %}
-                <td>{% if r %}{% if r.metrics[metric_key] is not none %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics[metric_key]) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics[metric_key]) }}{% else %}{{ r.metrics[metric_key] }}{% endif %}{% else %}—{% endif %}{% else %}—{% endif %}</td>
-                {% endfor %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% endif %}
-
-          <h4 style="margin: 12px 0 8px;">Assertions{% if repeat > 1 %} (pass rate across iterations){% endif %}</h4>
-          {% for assistant in assistants %}
-          <p><strong>{{ assistant }}</strong></p>
-          {% set r = results[assistant][task] %}
-          {% if r %}
-          <ul class="assertion-list">
-            {% for a in r.assertions %}
-            <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}{% if repeat > 1 and a.pass_rate is defined %} ({{ a.pass_rate }}%){% endif %}{% if a.weight is defined and a.weight != 1.0 %} [weight={{ a.weight }}]{% endif %}{% if a.score is defined %} [score={{ "%.4f"|format(a.score) }}]{% endif %}</li>
-            {% endfor %}
-          </ul>
-          {% if repeat > 1 and r.repeat %}
-          <span class="iter-toggle" onclick="toggleIterDetails('{{ assistant }}-{{ task }}')">Show individual iterations</span>
-          <div class="iter-details" id="iter-{{ assistant }}-{{ task }}">
-            {% for iter_result in r.repeat.iterations %}
-            <p style="font-size:12px; margin: 8px 0 4px;"><strong>Iteration {{ loop.index }}</strong> — {% if iter_result.all_passed %}PASS{% else %}FAIL{% endif %}</p>
-            <ul class="assertion-list" style="font-size:12px;">
-              {% for a in iter_result.assertions %}
-              <li{% if not a.passed %} class="failed"{% endif %}>{{ a.name }}{% if a.message %} — {{ a.message }}{% endif %}</li>
-              {% endfor %}
-            </ul>
-            {% endfor %}
-          </div>
-          {% endif %}
-          {% endif %}
-          {% endfor %}
-        </div>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<h2>Metrics Comparison</h2>
-{% for metric_key in ["wall_clock_seconds", "cost_usd", "token_usage_input", "tool_calls_count", "assertion_pass_rate", "weighted_score"] %}
-<div class="chart-section">
-  <h3>{{ metric_key }}{% if repeat > 1 %} (avg){% endif %}</h3>
-  {% for task in tasks %}
-  <p style="font-size:12px; color:#666; margin: 4px 0;">{{ task }}</p>
-  {% set max_val = [] %}
-  {% for assistant in assistants %}
-    {% set r = results[assistant][task] %}
-    {% if r and r.metrics[metric_key] is not none %}
-      {% if max_val.append(r.metrics[metric_key]) %}{% endif %}
-    {% endif %}
-  {% endfor %}
-  {% set max_value = max_val|max if max_val else 1 %}
-  {% for assistant in assistants %}
-  {% set r = results[assistant][task] %}
-  {% set val = r.metrics[metric_key] if r and r.metrics[metric_key] is not none else 0 %}
-  {% set pct = (val / max_value * 100) if max_value > 0 else 0 %}
-  <div class="chart-row">
-    <span class="chart-label">{{ assistant }}</span>
-    <div class="chart-bar" style="width: {{ pct }}%; max-width: 400px; background: var(--c{{ loop.index0 % 6 }});">&nbsp;</div>
-    <span>{% if val %}{% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(val) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(val) }}{% else %}{{ val }}{% endif %}{% else %}—{% endif %}{% if repeat > 1 and r and r.metrics_stats and r.metrics_stats[metric_key] and r.metrics_stats[metric_key].stddev is not none %} <span class="metric">± {% if metric_key == "wall_clock_seconds" %}{{ "%.1f"|format(r.metrics_stats[metric_key].stddev) }}{% elif metric_key == "cost_usd" %}{{ "%.4f"|format(r.metrics_stats[metric_key].stddev) }}{% else %}{{ r.metrics_stats[metric_key].stddev }}{% endif %}</span>{% endif %}</span>
+<header class="header">
+  <div style="flex:1">
+    <h1>Pitlane Report</h1>
+    <div class="run-dir">{{ run_dir }}</div>
   </div>
-  {% endfor %}
-  {% endfor %}
+  <div class="header-badges">
+    <span class="badge badge-neutral">{{ total_tests }} tests</span>
+    {% if total_failures > 0 %}
+    <span class="badge badge-fail">{{ total_failures }} failed</span>
+    {% endif %}
+    {% if total_errors > 0 %}
+    <span class="badge badge-error">{{ total_errors }} errors</span>
+    {% endif %}
+    {% if total_failures == 0 and total_errors == 0 %}
+    <span class="badge badge-pass">all passed</span>
+    {% endif %}
+  </div>
+</header>
+
+{% if meta %}
+<div class="meta-bar">
+  {% if meta.timestamp %}
+  <div class="meta-item">
+    <span class="meta-label">Run</span>
+    <span class="meta-value">{{ meta.timestamp }}</span>
+  </div>
+  {% endif %}
+  {% if meta.pitlane_version %}
+  <div class="meta-item">
+    <span class="meta-label">Pitlane</span>
+    <span class="meta-value">{{ meta.pitlane_version }}</span>
+  </div>
+  {% endif %}
+  {% if meta.cli_versions %}
+  <div class="meta-item">
+    <span class="meta-label">CLIs</span>
+    <span class="meta-value">
+      {% for cli, ver in meta.cli_versions.items() %}{{ cli }}={{ ver }}{% if not loop.last %}, {% endif %}{% endfor %}
+    </span>
+  </div>
+  {% endif %}
+  {% if meta.repeat and meta.repeat > 1 %}
+  <div class="meta-item">
+    <span class="meta-label">Repeat</span>
+    <span class="meta-value">{{ meta.repeat }}×</span>
+  </div>
+  {% endif %}
 </div>
-{% endfor %}
+{% endif %}
+
+<section class="summary">
+  {% set total_passed = total_tests - total_failures - total_errors %}
+  <div class="card total">
+    <div class="card-label">Total</div>
+    <div class="card-value">{{ total_tests }}</div>
+  </div>
+  <div class="card passed">
+    <div class="card-label">Passed</div>
+    <div class="card-value">{{ total_passed }}</div>
+  </div>
+  <div class="card failed">
+    <div class="card-label">Failed</div>
+    <div class="card-value">{{ total_failures }}</div>
+  </div>
+  <div class="card errored">
+    <div class="card-label">Errors</div>
+    <div class="card-value">{{ total_errors }}</div>
+  </div>
+</section>
+
+<section class="suites">
+  {% for task_name, agents in tasks %}
+  {% set task_failures = agents | sum(attribute='failures') %}
+  {% set task_tests    = agents | sum(attribute='tests') %}
+  <div class="task-section">
+    <div class="task-header">
+      <span class="task-name">{{ task_name }}</span>
+      {% if task_failures > 0 %}
+      <span class="badge badge-fail">{{ task_failures }} failed</span>
+      {% else %}
+      <span class="badge badge-pass">{{ task_tests - task_failures }}/{{ task_tests }} passed</span>
+      {% endif %}
+    </div>
+
+    {# ── List view (default) ──────────────────────────────────────────── #}
+    <div class="agent-list-view">
+      {% for suite in agents %}
+      {% set props = suite.properties %}
+      {% set is_failing = suite.failures > 0 or suite.errors > 0 %}
+      <div class="agent-card" data-agent-idx="{{ loop.index0 }}">
+        <details {% if agents | length == 1 %}open{% endif %}>
+          <summary class="agent-summary">
+            <input type="checkbox" class="agent-select"
+                   onclick="event.stopPropagation(); updateCompareBtn(this)">
+            <span class="agent-name">{{ suite.assistant_name }}</span>
+            {% if is_failing %}
+            <span class="badge badge-fail">{{ suite.failures }} failed</span>
+            {% else %}
+            {% set passed = suite.tests - suite.failures - suite.errors %}
+            <span class="badge badge-pass">{{ passed }}/{{ suite.tests }}</span>
+            {% endif %}
+            {% if suite.time %}
+            <span class="suite-time">{{ "%.2f"|format(suite.time) }}s</span>
+            {% endif %}
+            {% if props.get('weighted_score') is not none %}
+            <span class="agent-metric">Score: {{ props.weighted_score }}</span>
+            {% endif %}
+            <span class="agent-metric">${{ props.cost_usd if props.get('cost_usd') is not none else '-' }}</span>
+          </summary>
+
+          <div class="agent-detail">
+
+            {# ── Grouped metrics ──────────────────────────────────────── #}
+            {% if props %}
+            {% set score_keys = ['weighted_score', 'assertion_pass_rate'] %}
+            {% set cost_keys  = ['cost_usd', 'token_usage_input', 'token_usage_output'] %}
+            {% set perf_keys  = ['wall_clock_seconds', 'tool_calls_count'] %}
+            {% set file_keys  = ['files_created', 'files_modified', 'total_lines_generated'] %}
+
+            {# Collect repeat-stat keys (end in _avg/_stddev/_min/_max) #}
+            {% set ns = namespace(repeat_items=[]) %}
+            {% for k, v in props.items() %}
+              {% if k.endswith('_avg') or k.endswith('_stddev') or k.endswith('_min') or k.endswith('_max') %}
+                {% set ns.repeat_items = ns.repeat_items + [(k, v)] %}
+              {% endif %}
+            {% endfor %}
+
+            <div class="metrics-groups">
+              {# Scores #}
+              {% set score_items = [] %}
+              {% for k in score_keys %}{% if props.get(k) is not none %}{% set _ = score_items.append((k, props[k])) %}{% endif %}{% endfor %}
+              {% if score_items %}
+              <div class="metrics-group">
+                <div class="metrics-group-label">Scores</div>
+                {% for k, v in score_items %}
+                <div class="prop-item">
+                  <div class="prop-key">{{ k }}</div>
+                  <div class="prop-val">{{ v }}</div>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              {# Cost & Tokens #}
+              {% set cost_items = [] %}
+              {% for k in cost_keys %}{% if props.get(k) is not none %}{% set _ = cost_items.append((k, props[k])) %}{% endif %}{% endfor %}
+              {% if cost_items %}
+              <div class="metrics-group">
+                <div class="metrics-group-label">Cost &amp; Tokens</div>
+                {% for k, v in cost_items %}
+                <div class="prop-item">
+                  <div class="prop-key">{{ k }}</div>
+                  <div class="prop-val">{{ v }}</div>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              {# Performance #}
+              {% set perf_items = [] %}
+              {% for k in perf_keys %}{% if props.get(k) is not none %}{% set _ = perf_items.append((k, props[k])) %}{% endif %}{% endfor %}
+              {% if perf_items %}
+              <div class="metrics-group">
+                <div class="metrics-group-label">Performance</div>
+                {% for k, v in perf_items %}
+                <div class="prop-item">
+                  <div class="prop-key">{{ k }}</div>
+                  <div class="prop-val">{{ v }}</div>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              {# Files #}
+              {% set file_items = [] %}
+              {% for k in file_keys %}{% if props.get(k) is not none %}{% set _ = file_items.append((k, props[k])) %}{% endif %}{% endfor %}
+              {% if file_items %}
+              <div class="metrics-group">
+                <div class="metrics-group-label">Files</div>
+                {% for k, v in file_items %}
+                <div class="prop-item">
+                  <div class="prop-key">{{ k }}</div>
+                  <div class="prop-val">{{ v }}</div>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+
+            {# Repeat stats — collapsed details #}
+            {% if ns.repeat_items %}
+            <details class="drill-section">
+              <summary>Repeat stats ({{ ns.repeat_items | length }})</summary>
+              <div class="props-grid">
+                {% for k, v in ns.repeat_items | sort %}
+                <div class="prop-item">
+                  <div class="prop-key">{{ k }}</div>
+                  <div class="prop-val">{{ v }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </details>
+            {% endif %}
+
+            {% endif %}
+
+            {# ── Test cases ───────────────────────────────────────────── #}
+            {% if suite.cases %}
+            <div class="cases-header">Test Cases</div>
+            {% for case in suite.cases %}
+            {% if case.result %}
+            <details class="case-item">
+              <summary class="case-row">
+                {% if case.result.status == "Failure" %}
+                <span class="badge badge-fail">FAIL</span>
+                {% elif case.result.status == "Error" %}
+                <span class="badge badge-error">ERROR</span>
+                {% else %}
+                <span class="badge badge-skip">SKIP</span>
+                {% endif %}
+                <span class="case-name">{{ case.name }}</span>
+              </summary>
+              {% if case.result.message %}
+              <div class="case-message">{{ case.result.message }}</div>
+              {% endif %}
+            </details>
+            {% else %}
+            <div class="case-item">
+              <div class="case-row">
+                <span class="badge badge-pass">PASS</span>
+                <span class="case-name">{{ case.name }}</span>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+
+            {# ── Debug log ──────────────────────────────────────────── #}
+            {% if suite.debug_log %}
+            <details class="drill-section" {% if is_failing %}open{% endif %}>
+              <summary>Debug log</summary>
+              <pre class="debug-log-pre">{{ suite.debug_log }}</pre>
+            </details>
+            {% endif %}
+
+            {# ── Conversation transcript ─────────────────────────────── #}
+            <details class="drill-section">
+              <summary>Agent transcript ({{ suite.conversation | length }} messages)</summary>
+              <div class="transcript">
+                {% if not suite.conversation %}
+                <div class="transcript-empty">No conversation recorded — adapter may have failed to start</div>
+                {% else %}
+                {% for msg in suite.conversation %}
+                {% if msg.get('tool_use') %}
+                <details class="tool-call-details">
+                  <summary>
+                    <span class="badge badge-role-tool">TOOL</span>
+                    {{ msg.tool_use.name }}
+                  </summary>
+                  <pre class="tool-input-pre">{{ msg.tool_use.input | tojson(indent=2) }}</pre>
+                </details>
+                {% elif msg.get('content') %}
+                <div class="msg-block">
+                  <div class="msg-header">
+                    <span class="badge badge-role-assistant">{{ msg.role | upper }}</span>
+                  </div>
+                  <div class="msg-text">{{ msg.content }}</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+              </div>
+            </details>
+
+            {# ── Workspace file explorer ────────────────────────────── #}
+            {% if suite.workspace_files %}
+            <details class="drill-section">
+              <summary>Workspace ({{ suite.workspace_files | length }} files)</summary>
+              <div class="workspace-tree">
+                {{ render_tree(suite.workspace_tree) }}
+              </div>
+            </details>
+            {% endif %}
+
+          </div>{# agent-detail #}
+        </details>
+      </div>{# agent-card #}
+      {% endfor %}
+
+      <div class="task-actions">
+        <label class="select-all-label">
+          <input type="checkbox" class="select-all"
+                 onchange="toggleSelectAll(this)"> Select all
+        </label>
+        <button class="compare-btn" disabled
+                onclick="openCompare(this)">Compare (0 selected)</button>
+      </div>
+    </div>{# agent-list-view #}
+
+    {# ── Compare view (hidden) ─────────────────────────────────────── #}
+    <div class="compare-view hidden">
+      <div class="compare-bar">
+        <button class="back-btn" onclick="closeCompare(this)">&#8592; Back to list</button>
+      </div>
+      <div class="compare-grid"></div>
+    </div>
+  </div>{# task-section #}
+  {% endfor %}
+</section>
 
 <script>
-function toggleDetails(task) {
-  var el = document.getElementById('details-' + task);
-  if (el) el.classList.toggle('open');
+function updateCompareBtn(checkbox) {
+  var section = checkbox.closest('.task-section');
+  var checks = section.querySelectorAll('.agent-select:checked');
+  var btn = section.querySelector('.compare-btn');
+  var n = checks.length;
+  btn.textContent = 'Compare (' + n + ' selected)';
+  btn.disabled = n < 2;
+  // sync "select all" checkbox
+  var allChecks = section.querySelectorAll('.agent-select');
+  var selectAll = section.querySelector('.select-all');
+  if (selectAll) selectAll.checked = checks.length === allChecks.length;
 }
-function toggleIterDetails(id) {
-  var el = document.getElementById('iter-' + id);
-  if (el) el.classList.toggle('open');
+
+function toggleSelectAll(checkbox) {
+  var section = checkbox.closest('.task-section');
+  var checks = section.querySelectorAll('.agent-select');
+  for (var i = 0; i < checks.length; i++) checks[i].checked = checkbox.checked;
+  var btn = section.querySelector('.compare-btn');
+  var n = checkbox.checked ? checks.length : 0;
+  btn.textContent = 'Compare (' + n + ' selected)';
+  btn.disabled = n < 2;
+}
+
+function openCompare(button) {
+  var section = button.closest('.task-section');
+  var listView = section.querySelector('.agent-list-view');
+  var compareView = section.querySelector('.compare-view');
+  var grid = compareView.querySelector('.compare-grid');
+  grid.innerHTML = '';
+
+  var cards = section.querySelectorAll('.agent-card');
+  var n = 0;
+  for (var i = 0; i < cards.length; i++) {
+    var cb = cards[i].querySelector('.agent-select');
+    if (!cb || !cb.checked) continue;
+    n++;
+    var col = document.createElement('div');
+    col.className = 'compare-col';
+    // header: clone summary info (name + badges)
+    var header = document.createElement('div');
+    header.className = 'compare-col-header';
+    var summary = cards[i].querySelector('.agent-summary');
+    var children = summary.children;
+    for (var j = 0; j < children.length; j++) {
+      if (children[j].classList.contains('agent-select')) continue;
+      header.appendChild(children[j].cloneNode(true));
+    }
+    col.appendChild(header);
+    // body: clone detail content
+    var detail = cards[i].querySelector('.agent-detail');
+    if (detail) {
+      var body = document.createElement('div');
+      body.className = 'compare-col-body';
+      body.innerHTML = detail.innerHTML;
+      col.appendChild(body);
+    }
+    grid.appendChild(col);
+  }
+
+  grid.style.gridTemplateColumns = 'repeat(' + n + ', minmax(320px, 1fr))';
+  listView.classList.add('hidden');
+  compareView.classList.remove('hidden');
+}
+
+function closeCompare(button) {
+  var section = button.closest('.task-section');
+  var listView = section.querySelector('.agent-list-view');
+  var compareView = section.querySelector('.compare-view');
+  compareView.classList.add('hidden');
+  compareView.querySelector('.compare-grid').innerHTML = '';
+  listView.classList.remove('hidden');
 }
 </script>
 </body>
