@@ -32,8 +32,8 @@ repos:
   - repo: local
     hooks:
       - id: pytest-fast
-        name: pytest (fast tests only)
-        entry: uv run pytest -m "not integration" --tb=short
+        name: pytest (fast tests only) with 75% coverage gate
+        entry: uv run pytest -m "not integration" --tb=short --cov=src --cov-report=term-missing --cov-fail-under=75 tests/
         language: system
         types: [python]
         pass_filenames: false

@@ -1,7 +1,7 @@
 # pitlane 🏁
 
 [![CI](https://github.com/vburckhardt/pitlane/workflows/CI/badge.svg)](https://github.com/vburckhardt/pitlane/actions)
-[![codecov](https://codecov.io/gh/vburckhardt/pitlane/branch/main/graph/badge.svg)](https://codecov.io/gh/vburckhardt/pitlane)
+[![Coverage](https://raw.githubusercontent.com/vburckhardt/pitlane/badges/coverage.svg)](https://github.com/vburckhardt/pitlane/actions)
 [![PyPI version](https://badge.fury.io/py/pitlane.svg)](https://badge.fury.io/py/pitlane)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
