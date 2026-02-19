@@ -33,7 +33,7 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 - Similarity metrics (ROUGE, BLEU, BERTScore, cosine similarity)
 - Metrics tracking (time, tokens, cost, file changes)
 - JUnit XML output (`junit.xml`) for native CI test reporting
-- HTML reports rendered by `junit2html`
+- Interactive HTML reports with side-by-side agent comparison
 - Parallel execution and repeated runs with statistics
 - Graceful interrupt handling (Ctrl+C generates partial reports)
 - TDD workflow support (red-green-refactor)
@@ -86,7 +86,7 @@ Benefits of persistent installation:
 - Faster execution (no download on each run)
 - Better tool management with `uv tool list`, `uv tool upgrade`, `uv tool uninstall`
 
-Results appear in `runs/<timestamp>/` containing `junit.xml` (canonical output) and `report.html` (rendered by `junit2html`).
+Results appear in `runs/<timestamp>/` containing `junit.xml` (canonical output) and `report.html`.
 
 You'll need example files locally to run evaluations. Clone the repository to access examples, or create your own benchmark YAML files.
 
