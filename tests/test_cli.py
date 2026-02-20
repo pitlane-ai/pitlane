@@ -330,10 +330,7 @@ tasks:
     mock_report.return_value = run_dir / "report.html"
     result = runner.invoke(app, ["run", str(config_file), "--no-open"])
     assert result.exit_code == 1
-    assert (
-        "interrupted" in result.output.lower()
-        or "partial" in result.output.lower()
-    )
+    assert "interrupted" in result.output.lower() or "partial" in result.output.lower()
 
 
 # ============================================================================
@@ -383,9 +380,7 @@ tasks:
 
     mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
     mock_report.return_value = run_dir / "report.html"
-    result = runner.invoke(
-        app, ["run", str(config_file), "--verbose", "--no-open"]
-    )
+    result = runner.invoke(app, ["run", str(config_file), "--verbose", "--no-open"])
 
     # Verify verbose flag was passed to Runner
     call_kwargs = mock_runner_class.call_args[1]

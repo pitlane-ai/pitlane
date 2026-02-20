@@ -506,7 +506,9 @@ def test_run_with_timeout(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     assert any("600s" in call for call in debug_calls)
 
 
-def test_run_success_with_session_stats(mocker, adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_success_with_session_stats(
+    mocker, adapter, mock_logger, tmp_path, monkeypatch
+):
     """Test successful run with session stats."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -606,7 +608,9 @@ def test_run_with_empty_response(mocker, adapter, mock_logger, tmp_path, monkeyp
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_run_with_invalid_response_format(mocker, adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_with_invalid_response_format(
+    mocker, adapter, mock_logger, tmp_path, monkeypatch
+):
     """Test run with invalid JSON response format."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -627,7 +631,9 @@ def test_run_with_invalid_response_format(mocker, adapter, mock_logger, tmp_path
     assert result.conversation == []  # Invalid JSON returns empty conversation
 
 
-def test_run_with_all_options_combined(mocker, adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_with_all_options_combined(
+    mocker, adapter, mock_logger, tmp_path, monkeypatch
+):
     """Test run with all configuration options combined."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"

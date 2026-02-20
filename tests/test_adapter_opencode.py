@@ -534,7 +534,8 @@ def test_opencode_run_with_debug_logging(mocker, tmp_path):
     )
 
     mock_streaming = mocker.patch(
-        "pitlane.adapters.opencode.run_command_with_streaming", new_callable=mocker.AsyncMock
+        "pitlane.adapters.opencode.run_command_with_streaming",
+        new_callable=mocker.AsyncMock,
     )
     mock_streaming.return_value = (mock_output, "", 0)
 
