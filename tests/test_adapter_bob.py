@@ -1,4 +1,6 @@
 import json
+import subprocess
+from unittest.mock import MagicMock
 from pitlane.adapters.bob import BobAdapter
 
 
@@ -184,3 +186,200 @@ def test_parse_non_cost_message_does_not_set_cost():
     )
     _, _, cost, _ = adapter._parse_output(stdout)
     assert cost is None
+
+
+def test_bob_with_custom_model():
+    """Test bob adapter with custom model configuration."""
+    adapter = BobAdapter()
+    config = {"model": "claude-3-5-sonnet-20241022"}
+    cmd = adapter._build_command("test prompt", config)
+    assert cmd[0] == "bob"
+    assert "--output-format" in cmd
+    assert "stream-json" in cmd
+    assert "--yolo" in cmd
+    assert cmd[-1] == "test prompt"
+
+
+def test_bob_with_api_error_handling(tmp_path, monkeypatch):
+    """Test bob adapter handles API errors gracefully."""
+    import logging
+
+    adapter = BobAdapter()
+    logger = logging.getLogger("test")
+
+    async def mock_run_command(*args, **kwargs):
+        raise Exception("API Error: Rate limit exceeded")
+
+    monkeypatch.setattr(
+        "pitlane.adapters.bob.run_command_with_streaming", mock_run_command
+    )
+
+    result = adapter.run("test", tmp_path, {}, logger)
+    assert result.exit_code == -1
+    assert "API Error" in result.stderr
+    assert result.conversation == []
+    assert result.token_usage is None
+    assert result.cost_usd is None
+
+
+def test_bob_with_timeout_error(tmp_path, monkeypatch):
+    """Test bob adapter handles timeout errors."""
+    import asyncio
+    import logging
+
+    adapter = BobAdapter()
+    logger = logging.getLogger("test")
+
+    async def mock_run_command(*args, **kwargs):
+        raise asyncio.TimeoutError("Command timed out")
+
+    monkeypatch.setattr(
+        "pitlane.adapters.bob.run_command_with_streaming", mock_run_command
+    )
+
+    result = adapter.run("test", tmp_path, {"timeout": 10}, logger)
+    assert result.exit_code == -1
+    assert "timed out" in result.stderr.lower()
+    assert result.duration_seconds > 0
+
+
+def test_bob_with_invalid_response_format():
+    """Test bob adapter handles invalid JSON response format."""
+    adapter = BobAdapter()
+    # Mix of invalid JSON and valid events
+    stdout = "\n".join(
+        [
+            "Invalid JSON line",
+            '{"type": "invalid_type", "data": "something"}',
+            _make_completion_event("Valid response"),
+            "Another non-JSON line",
+            _make_result_event(input_tokens=50, output_tokens=25),
+        ]
+    )
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
+    # Should still parse valid events
+    assert len(conversation) == 1
+    assert conversation[0]["content"] == "Valid response"
+    assert token_usage["input"] == 50
+    assert token_usage["output"] == 25
+
+
+def test_bob_with_empty_response():
+    """Test bob adapter handles empty or whitespace-only response."""
+    adapter = BobAdapter()
+    # Empty completion result
+    empty_completion = json.dumps(
+        {
+            "type": "tool_use",
+            "tool_name": "attempt_completion",
+            "tool_id": "tool-1",
+            "parameters": {"result": ""},
+        }
+    )
+    stdout = "\n".join(
+        [
+            empty_completion,
+            _make_result_event(input_tokens=10, output_tokens=5),
+        ]
+    )
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
+    # Empty result should not be added to conversation
+    assert len(conversation) == 0
+    assert token_usage["input"] == 10
+    assert token_usage["output"] == 5
+
+
+def test_bob_with_all_options_combined():
+    """Test bob adapter with all configuration options combined."""
+    adapter = BobAdapter()
+    config = {
+        "chat_mode": "code",
+        "max_coins": 500,
+        "timeout": 600,
+        "model": "claude-3-5-sonnet-20241022",
+    }
+    cmd = adapter._build_command("complex task", config)
+    assert cmd[0] == "bob"
+    assert "--output-format" in cmd
+    assert "stream-json" in cmd
+    assert "--yolo" in cmd
+    assert "--chat-mode" in cmd
+    assert "code" in cmd
+    assert "--max-coins" in cmd
+    assert "500" in cmd
+    assert cmd[-1] == "complex task"
+
+
+def test_bob_cli_name():
+    """Test bob adapter returns correct CLI name."""
+    adapter = BobAdapter()
+    assert adapter.cli_name() == "bob"
+
+
+def test_bob_agent_type():
+    """Test bob adapter returns correct agent type."""
+    adapter = BobAdapter()
+    assert adapter.agent_type() == "bob"
+
+
+def test_bob_get_cli_version_success(monkeypatch):
+    """Test bob adapter gets CLI version successfully."""
+    adapter = BobAdapter()
+
+    def mock_run(*args, **kwargs):
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = "bob version 1.0.0\n"
+        return result
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    version = adapter.get_cli_version()
+    assert version == "bob version 1.0.0"
+
+
+def test_bob_get_cli_version_failure(monkeypatch):
+    """Test bob adapter handles CLI version check failure."""
+    adapter = BobAdapter()
+
+    def mock_run(*args, **kwargs):
+        raise Exception("Command not found")
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    version = adapter.get_cli_version()
+    assert version is None
+
+
+def test_bob_run_with_debug_logging(tmp_path, monkeypatch):
+    """Test bob adapter logs debug information during run."""
+    import logging
+
+    adapter = BobAdapter()
+    logger = logging.getLogger("test")
+    logger.setLevel(logging.DEBUG)
+
+    # Capture log messages
+    log_messages = []
+    original_debug = logger.debug
+
+    def capture_debug(msg):
+        log_messages.append(msg)
+        original_debug(msg)
+
+    logger.debug = capture_debug
+
+    async def mock_run_command(*args, **kwargs):
+        return "test output", "", 0
+
+    monkeypatch.setattr(
+        "pitlane.adapters.bob.run_command_with_streaming", mock_run_command
+    )
+
+    result = adapter.run("test prompt", tmp_path, {"timeout": 60}, logger)
+
+    # Verify debug logging occurred
+    assert any("Command:" in msg for msg in log_messages)
+    assert any("Working directory:" in msg for msg in log_messages)
+    assert any("Timeout:" in msg for msg in log_messages)
+    assert any("Config:" in msg for msg in log_messages)
+    assert any("Command completed" in msg for msg in log_messages)
+    assert result.exit_code == 0
