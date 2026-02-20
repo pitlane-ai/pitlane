@@ -32,18 +32,61 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
-      - name: Run pre-commit checks
-        run: uv run pre-commit run --all-files
+      - name: Run pre-commit checks (excluding tests)
+        run: SKIP=pytest-fast uv run pre-commit run --all-files
 
       - name: Run tests with coverage
-        run: uv run pytest --cov --cov-branch --cov-report=xml
+        run: |
+          uv run pytest \
+            --cov=src/pitlane \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term-missing \
+            --cov-fail-under=75
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name: coverage-reports-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            htmlcov/
+
+      - name: Generate coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
+        run: |
+          # Install genbadge
+          uv pip install --system genbadge[coverage]
+
+          # Generate badge
+          uv run genbadge coverage -i coverage.xml -o coverage.svg
+
+      - name: Upload coverage badge to artifacts
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
+        with:
+          name: coverage-badge
+          path: coverage.svg
+
+      - name: Commit coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Create/switch to badges branch
+          git fetch origin badges || true
+          git checkout badges || git checkout --orphan badges
+
+          # Keep only the badge file
+          git rm -rf . || true
+          git checkout HEAD -- coverage.svg || cp ../coverage.svg . || true
+
+          # Commit and push
+          git add coverage.svg
+          git diff --staged --quiet || git commit -m "Update coverage badge"
+          git push origin badges
 
   release:
     needs: test

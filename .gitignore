@@ -6,3 +6,9 @@ runs/
 .secrets.baseline
 
 .bob/
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
