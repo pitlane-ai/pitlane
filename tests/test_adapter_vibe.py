@@ -1,16 +1,15 @@
 import json
 import logging
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock
 import pytest
 from pitlane.adapters.mistral_vibe import MistralVibeAdapter
 
 
 @pytest.fixture
-def mock_logger():
+def mock_logger(mocker):
     """Create a mock logger for testing."""
-    logger = Mock(spec=logging.Logger)
-    logger.debug = Mock()
+    logger = mocker.Mock(spec=logging.Logger)
+    logger.debug = mocker.Mock()
     return logger
 
 
@@ -457,7 +456,7 @@ def test_run_missing_env_file(adapter, mock_logger, tmp_path, monkeypatch):
         adapter.run("test prompt", tmp_path, {}, mock_logger)
 
 
-def test_run_command_exception(adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_command_exception(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run method handles command execution exceptions."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -468,22 +467,22 @@ def test_run_command_exception(adapter, mock_logger, tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     # Mock run_command_with_streaming to raise exception
-    with patch(
+    mock_streaming = mocker.patch(
         "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=AsyncMock,
-    ) as mock_streaming:
-        mock_streaming.side_effect = Exception("Command failed")
+        new_callable=mocker.AsyncMock,
+    )
+    mock_streaming.side_effect = Exception("Command failed")
 
-        result = adapter.run("test prompt", tmp_path, {}, mock_logger)
-        assert result.exit_code == -1
-        assert "Command failed" in result.stderr
-        assert result.duration_seconds > 0
+    result = adapter.run("test prompt", tmp_path, {}, mock_logger)
+    assert result.exit_code == -1
+    assert "Command failed" in result.stderr
+    assert result.duration_seconds > 0
 
 
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_run_with_timeout(adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_with_timeout(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run method with custom timeout."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -494,20 +493,20 @@ def test_run_with_timeout(adapter, mock_logger, tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     # Mock successful command execution
-    with patch(
+    mock_streaming = mocker.patch(
         "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=AsyncMock,
-    ) as mock_streaming:
-        mock_streaming.return_value = ("output", "", 0)
+        new_callable=mocker.AsyncMock,
+    )
+    mock_streaming.return_value = ("output", "", 0)
 
-        adapter.run("test", tmp_path, {"timeout": 600}, mock_logger)
+    adapter.run("test", tmp_path, {"timeout": 600}, mock_logger)
 
-        # Verify timeout was logged
-        debug_calls = [call[0][0] for call in mock_logger.debug.call_args_list]
-        assert any("600s" in call for call in debug_calls)
+    # Verify timeout was logged
+    debug_calls = [call[0][0] for call in mock_logger.debug.call_args_list]
+    assert any("600s" in call for call in debug_calls)
 
 
-def test_run_success_with_session_stats(adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_success_with_session_stats(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test successful run with session stats."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -542,24 +541,24 @@ def test_run_success_with_session_stats(adapter, mock_logger, tmp_path, monkeypa
 
     # Mock successful command with JSON output
     output = json.dumps([{"role": "assistant", "content": "Done"}])
-    with patch(
+    mock_streaming = mocker.patch(
         "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=AsyncMock,
-    ) as mock_streaming:
-        mock_streaming.return_value = (output, "", 0)
+        new_callable=mocker.AsyncMock,
+    )
+    mock_streaming.return_value = (output, "", 0)
 
-        result = adapter.run("test", tmp_path, {}, mock_logger)
-        assert result.exit_code == 0
-        assert result.token_usage == {"input": 150, "output": 75}
-        assert result.cost_usd == 0.05
-        assert result.tool_calls_count == 3
-        assert len(result.conversation) == 1
+    result = adapter.run("test", tmp_path, {}, mock_logger)
+    assert result.exit_code == 0
+    assert result.token_usage == {"input": 150, "output": 75}
+    assert result.cost_usd == 0.05
+    assert result.tool_calls_count == 3
+    assert len(result.conversation) == 1
 
 
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_run_with_custom_model(adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_with_custom_model(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run with custom model configuration."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -569,21 +568,21 @@ def test_run_with_custom_model(adapter, mock_logger, tmp_path, monkeypatch):
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    with patch(
+    mock_streaming = mocker.patch(
         "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=AsyncMock,
-    ) as mock_streaming:
-        mock_streaming.return_value = ("[]", "", 0)
+        new_callable=mocker.AsyncMock,
+    )
+    mock_streaming.return_value = ("[]", "", 0)
 
-        adapter.run("test", tmp_path, {"model": "codestral-latest"}, mock_logger)
+    adapter.run("test", tmp_path, {"model": "codestral-latest"}, mock_logger)
 
-        # Verify config was generated
-        config_file = tmp_path / ".vibe" / "config.toml"
-        assert config_file.exists()
-        assert "codestral-latest" in config_file.read_text()
+    # Verify config was generated
+    config_file = tmp_path / ".vibe" / "config.toml"
+    assert config_file.exists()
+    assert "codestral-latest" in config_file.read_text()
 
 
-def test_run_with_empty_response(adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_with_empty_response(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run with empty response."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -593,21 +592,21 @@ def test_run_with_empty_response(adapter, mock_logger, tmp_path, monkeypatch):
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    with patch(
+    mock_streaming = mocker.patch(
         "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=AsyncMock,
-    ) as mock_streaming:
-        mock_streaming.return_value = ("", "", 0)
+        new_callable=mocker.AsyncMock,
+    )
+    mock_streaming.return_value = ("", "", 0)
 
-        result = adapter.run("test", tmp_path, {}, mock_logger)
-        assert result.exit_code == 0
-        assert result.conversation == []
+    result = adapter.run("test", tmp_path, {}, mock_logger)
+    assert result.exit_code == 0
+    assert result.conversation == []
 
 
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_run_with_invalid_response_format(adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_with_invalid_response_format(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run with invalid JSON response format."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -617,18 +616,18 @@ def test_run_with_invalid_response_format(adapter, mock_logger, tmp_path, monkey
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    with patch(
+    mock_streaming = mocker.patch(
         "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=AsyncMock,
-    ) as mock_streaming:
-        mock_streaming.return_value = ("invalid json {[", "", 0)
+        new_callable=mocker.AsyncMock,
+    )
+    mock_streaming.return_value = ("invalid json {[", "", 0)
 
-        result = adapter.run("test", tmp_path, {}, mock_logger)
-        assert result.exit_code == 0
-        assert result.conversation == []  # Invalid JSON returns empty conversation
+    result = adapter.run("test", tmp_path, {}, mock_logger)
+    assert result.exit_code == 0
+    assert result.conversation == []  # Invalid JSON returns empty conversation
 
 
-def test_run_with_all_options_combined(adapter, mock_logger, tmp_path, monkeypatch):
+def test_run_with_all_options_combined(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run with all configuration options combined."""
     # Setup fake home with .env
     fake_home = tmp_path / "fake_home"
@@ -638,28 +637,28 @@ def test_run_with_all_options_combined(adapter, mock_logger, tmp_path, monkeypat
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    with patch(
+    mock_streaming = mocker.patch(
         "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=AsyncMock,
-    ) as mock_streaming:
-        mock_streaming.return_value = ("[]", "", 0)
+        new_callable=mocker.AsyncMock,
+    )
+    mock_streaming.return_value = ("[]", "", 0)
 
-        config = {
-            "model": "codestral-latest",
-            "max_turns": 25,
-            "max_price": 2.0,
-            "timeout": 600,
-            "mcp_servers": [{"name": "test-server", "command": "node server.js"}],
-        }
+    config = {
+        "model": "codestral-latest",
+        "max_turns": 25,
+        "max_price": 2.0,
+        "timeout": 600,
+        "mcp_servers": [{"name": "test-server", "command": "node server.js"}],
+    }
 
-        result = adapter.run("complex test", tmp_path, config, mock_logger)
-        assert result.exit_code == 0
+    result = adapter.run("complex test", tmp_path, config, mock_logger)
+    assert result.exit_code == 0
 
-        # Verify config file has all settings
-        config_file = tmp_path / ".vibe" / "config.toml"
-        content = config_file.read_text()
-        assert "codestral-latest" in content
-        assert "test-server" in content
+    # Verify config file has all settings
+    config_file = tmp_path / ".vibe" / "config.toml"
+    content = config_file.read_text()
+    assert "codestral-latest" in content
+    assert "test-server" in content
 
 
 # ============================================================================
@@ -680,25 +679,25 @@ def test_agent_type(adapter):
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-@patch("subprocess.run")
-def test_get_cli_version_success(mock_run, adapter):
+def test_get_cli_version_success(mocker, adapter):
     """Test getting CLI version successfully."""
-    mock_run.return_value = Mock(returncode=0, stdout="vibe 1.0.0\n")
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = mocker.Mock(returncode=0, stdout="vibe 1.0.0\n")
     version = adapter.get_cli_version()
     assert version == "vibe 1.0.0"
 
 
-@patch("subprocess.run")
-def test_get_cli_version_failure(mock_run, adapter):
+def test_get_cli_version_failure(mocker, adapter):
     """Test getting CLI version when command fails."""
-    mock_run.return_value = Mock(returncode=1, stdout="")
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = mocker.Mock(returncode=1, stdout="")
     version = adapter.get_cli_version()
     assert version is None
 
 
-@patch("subprocess.run")
-def test_get_cli_version_exception(mock_run, adapter):
+def test_get_cli_version_exception(mocker, adapter):
     """Test getting CLI version when exception occurs."""
+    mock_run = mocker.patch("subprocess.run")
     mock_run.side_effect = Exception("Command not found")
     version = adapter.get_cli_version()
     assert version is None

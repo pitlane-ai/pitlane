@@ -1,6 +1,5 @@
 import json
 import subprocess
-from unittest.mock import MagicMock
 from pitlane.adapters.claude_code import ClaudeCodeAdapter
 
 
@@ -230,12 +229,12 @@ def test_claude_agent_type():
     assert adapter.agent_type() == "claude-code"
 
 
-def test_claude_get_cli_version_success(monkeypatch):
+def test_claude_get_cli_version_success(mocker, monkeypatch):
     """Test claude adapter gets CLI version successfully."""
     adapter = ClaudeCodeAdapter()
 
     def mock_run(*args, **kwargs):
-        result = MagicMock()
+        result = mocker.Mock()
         result.returncode = 0
         result.stdout = "claude version 2.0.0\n"
         return result

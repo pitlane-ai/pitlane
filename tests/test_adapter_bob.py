@@ -1,6 +1,5 @@
 import json
 import subprocess
-from unittest.mock import MagicMock
 from pitlane.adapters.bob import BobAdapter
 
 
@@ -322,12 +321,12 @@ def test_bob_agent_type():
     assert adapter.agent_type() == "bob"
 
 
-def test_bob_get_cli_version_success(monkeypatch):
+def test_bob_get_cli_version_success(mocker, monkeypatch):
     """Test bob adapter gets CLI version successfully."""
     adapter = BobAdapter()
 
     def mock_run(*args, **kwargs):
-        result = MagicMock()
+        result = mocker.Mock()
         result.returncode = 0
         result.stdout = "bob version 1.0.0\n"
         return result

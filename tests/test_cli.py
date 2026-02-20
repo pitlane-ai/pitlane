@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from unittest.mock import Mock, patch
 from typer.testing import CliRunner
 from pitlane.cli import app
 
@@ -163,7 +162,7 @@ tasks:
     assert result.exit_code != 0
 
 
-def test_run_command_with_adapter_error(tmp_path, monkeypatch):
+def test_run_command_with_adapter_error(tmp_path, monkeypatch, mocker):
     """Test run command when adapter execution fails."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
@@ -187,17 +186,17 @@ tasks:
     fixtures.mkdir(parents=True, exist_ok=True)
 
     # Mock the Runner to simulate an adapter error
-    with patch("pitlane.runner.Runner") as mock_runner_class:
-        mock_runner = Mock()
-        mock_runner.interrupted = False
-        mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
-        mock_runner_class.return_value = mock_runner
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = False
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
 
-        # Create a minimal junit.xml with failures
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        junit_xml = run_dir / "junit.xml"
-        junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+    # Create a minimal junit.xml with failures
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
   <testsuite name="test-task" tests="1" failures="1" errors="0">
     <testcase name="test-assistant" classname="test-task">
@@ -207,13 +206,13 @@ tasks:
 </testsuites>
 """)
 
-        with patch("pitlane.reporting.junit.generate_report") as mock_report:
-            mock_report.return_value = run_dir / "report.html"
-            result = runner.invoke(app, ["run", str(config_file), "--no-open"])
-            assert result.exit_code == 1
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    result = runner.invoke(app, ["run", str(config_file), "--no-open"])
+    assert result.exit_code == 1
 
 
-def test_run_command_with_assertion_error(tmp_path, monkeypatch):
+def test_run_command_with_assertion_error(tmp_path, monkeypatch, mocker):
     """Test run command when assertions fail."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
@@ -237,17 +236,17 @@ tasks:
     fixtures.mkdir(parents=True, exist_ok=True)
 
     # Mock the Runner to simulate assertion failures
-    with patch("pitlane.runner.Runner") as mock_runner_class:
-        mock_runner = Mock()
-        mock_runner.interrupted = False
-        mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
-        mock_runner_class.return_value = mock_runner
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = False
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
 
-        # Create a junit.xml with assertion failures
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        junit_xml = run_dir / "junit.xml"
-        junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+    # Create a junit.xml with assertion failures
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
   <testsuite name="test-task" tests="1" failures="1" errors="0">
     <testcase name="test-assistant" classname="test-task">
@@ -257,10 +256,10 @@ tasks:
 </testsuites>
 """)
 
-        with patch("pitlane.reporting.junit.generate_report") as mock_report:
-            mock_report.return_value = run_dir / "report.html"
-            result = runner.invoke(app, ["run", str(config_file), "--no-open"])
-            assert result.exit_code == 1
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    result = runner.invoke(app, ["run", str(config_file), "--no-open"])
+    assert result.exit_code == 1
 
 
 def test_run_command_with_workspace_error(tmp_path, monkeypatch):
@@ -287,7 +286,7 @@ tasks:
     assert result.exit_code != 0
 
 
-def test_run_command_with_keyboard_interrupt(tmp_path, monkeypatch):
+def test_run_command_with_keyboard_interrupt(tmp_path, monkeypatch, mocker):
     """Test run command handles KeyboardInterrupt gracefully."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
@@ -311,30 +310,30 @@ tasks:
     fixtures.mkdir(parents=True, exist_ok=True)
 
     # Mock the Runner to simulate interrupted execution
-    with patch("pitlane.runner.Runner") as mock_runner_class:
-        mock_runner = Mock()
-        mock_runner.interrupted = True
-        mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
-        mock_runner_class.return_value = mock_runner
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = True
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
 
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        junit_xml = run_dir / "junit.xml"
-        junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
   <testsuite name="test-task" tests="0" failures="0" errors="0">
   </testsuite>
 </testsuites>
 """)
 
-        with patch("pitlane.reporting.junit.generate_report") as mock_report:
-            mock_report.return_value = run_dir / "report.html"
-            result = runner.invoke(app, ["run", str(config_file), "--no-open"])
-            assert result.exit_code == 1
-            assert (
-                "interrupted" in result.output.lower()
-                or "partial" in result.output.lower()
-            )
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    result = runner.invoke(app, ["run", str(config_file), "--no-open"])
+    assert result.exit_code == 1
+    assert (
+        "interrupted" in result.output.lower()
+        or "partial" in result.output.lower()
+    )
 
 
 # ============================================================================
@@ -342,7 +341,7 @@ tasks:
 # ============================================================================
 
 
-def test_run_command_with_verbose_flag(tmp_path, monkeypatch):
+def test_run_command_with_verbose_flag(tmp_path, monkeypatch, mocker):
     """Test run command with verbose flag."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
@@ -365,16 +364,16 @@ tasks:
     fixtures = tmp_path / "fixtures/empty"
     fixtures.mkdir(parents=True, exist_ok=True)
 
-    with patch("pitlane.runner.Runner") as mock_runner_class:
-        mock_runner = Mock()
-        mock_runner.interrupted = False
-        mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
-        mock_runner_class.return_value = mock_runner
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = False
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
 
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        junit_xml = run_dir / "junit.xml"
-        junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
   <testsuite name="test-task" tests="1" failures="0" errors="0">
     <testcase name="test-assistant" classname="test-task"/>
@@ -382,19 +381,19 @@ tasks:
 </testsuites>
 """)
 
-        with patch("pitlane.reporting.junit.generate_report") as mock_report:
-            mock_report.return_value = run_dir / "report.html"
-            result = runner.invoke(
-                app, ["run", str(config_file), "--verbose", "--no-open"]
-            )
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    result = runner.invoke(
+        app, ["run", str(config_file), "--verbose", "--no-open"]
+    )
 
-            # Verify verbose flag was passed to Runner
-            call_kwargs = mock_runner_class.call_args[1]
-            assert call_kwargs["verbose"] is True
-            assert result.exit_code == 0
+    # Verify verbose flag was passed to Runner
+    call_kwargs = mock_runner_class.call_args[1]
+    assert call_kwargs["verbose"] is True
+    assert result.exit_code == 0
 
 
-def test_run_command_with_no_open_flag(tmp_path, monkeypatch):
+def test_run_command_with_no_open_flag(tmp_path, monkeypatch, mocker):
     """Test run command with --no-open flag doesn't open browser."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
@@ -417,16 +416,16 @@ tasks:
     fixtures = tmp_path / "fixtures/empty"
     fixtures.mkdir(parents=True, exist_ok=True)
 
-    with patch("pitlane.runner.Runner") as mock_runner_class:
-        mock_runner = Mock()
-        mock_runner.interrupted = False
-        mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
-        mock_runner_class.return_value = mock_runner
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = False
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
 
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        junit_xml = run_dir / "junit.xml"
-        junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
   <testsuite name="test-task" tests="1" failures="0" errors="0">
     <testcase name="test-assistant" classname="test-task"/>
@@ -434,16 +433,16 @@ tasks:
 </testsuites>
 """)
 
-        with patch("pitlane.reporting.junit.generate_report") as mock_report:
-            mock_report.return_value = run_dir / "report.html"
-            with patch("webbrowser.open") as mock_browser:
-                result = runner.invoke(app, ["run", str(config_file), "--no-open"])
-                assert result.exit_code == 0
-                # Browser should not be opened
-                mock_browser.assert_not_called()
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    mock_browser = mocker.patch("webbrowser.open")
+    result = runner.invoke(app, ["run", str(config_file), "--no-open"])
+    assert result.exit_code == 0
+    # Browser should not be opened
+    mock_browser.assert_not_called()
 
 
-def test_run_command_opens_browser_by_default(tmp_path, monkeypatch):
+def test_run_command_opens_browser_by_default(tmp_path, monkeypatch, mocker):
     """Test run command opens browser by default (without --no-open)."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
@@ -466,16 +465,16 @@ tasks:
     fixtures = tmp_path / "fixtures/empty"
     fixtures.mkdir(parents=True, exist_ok=True)
 
-    with patch("pitlane.runner.Runner") as mock_runner_class:
-        mock_runner = Mock()
-        mock_runner.interrupted = False
-        mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
-        mock_runner_class.return_value = mock_runner
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = False
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
 
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        junit_xml = run_dir / "junit.xml"
-        junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
   <testsuite name="test-task" tests="1" failures="0" errors="0">
     <testcase name="test-assistant" classname="test-task"/>
@@ -483,16 +482,16 @@ tasks:
 </testsuites>
 """)
 
-        with patch("pitlane.reporting.junit.generate_report") as mock_report:
-            mock_report.return_value = run_dir / "report.html"
-            with patch("webbrowser.open") as mock_browser:
-                result = runner.invoke(app, ["run", str(config_file)])
-                assert result.exit_code == 0
-                # Browser should be opened
-                mock_browser.assert_called_once()
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    mock_browser = mocker.patch("webbrowser.open")
+    result = runner.invoke(app, ["run", str(config_file)])
+    assert result.exit_code == 0
+    # Browser should be opened
+    mock_browser.assert_called_once()
 
 
-def test_run_command_with_all_options_combined(tmp_path, monkeypatch):
+def test_run_command_with_all_options_combined(tmp_path, monkeypatch, mocker):
     """Test run command with multiple options combined."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
@@ -515,16 +514,16 @@ tasks:
     fixtures = tmp_path / "fixtures/empty"
     fixtures.mkdir(parents=True, exist_ok=True)
 
-    with patch("pitlane.runner.Runner") as mock_runner_class:
-        mock_runner = Mock()
-        mock_runner.interrupted = False
-        mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
-        mock_runner_class.return_value = mock_runner
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = False
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
 
-        run_dir = tmp_path / "runs" / "test-run"
-        run_dir.mkdir(parents=True, exist_ok=True)
-        junit_xml = run_dir / "junit.xml"
-        junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
   <testsuite name="test-task" tests="1" failures="0" errors="0">
     <testcase name="test-assistant" classname="test-task"/>
@@ -532,37 +531,37 @@ tasks:
 </testsuites>
 """)
 
-        with patch("pitlane.reporting.junit.generate_report") as mock_report:
-            mock_report.return_value = run_dir / "report.html"
-            result = runner.invoke(
-                app,
-                [
-                    "run",
-                    str(config_file),
-                    "--verbose",
-                    "--no-open",
-                    "--parallel",
-                    "2",
-                    "--repeat",
-                    "3",
-                    "--task",
-                    "test-task",
-                    "--assistant",
-                    "test-assistant",
-                    "--output-dir",
-                    "custom-runs",
-                ],
-            )
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(config_file),
+            "--verbose",
+            "--no-open",
+            "--parallel",
+            "2",
+            "--repeat",
+            "3",
+            "--task",
+            "test-task",
+            "--assistant",
+            "test-assistant",
+            "--output-dir",
+            "custom-runs",
+        ],
+    )
 
-            # Verify all options were passed correctly
-            call_kwargs = mock_runner_class.call_args[1]
-            assert call_kwargs["verbose"] is True
-            assert call_kwargs["parallel_tasks"] == 2
-            assert call_kwargs["repeat"] == 3
-            assert call_kwargs["task_filter"] == "test-task"
-            assert call_kwargs["assistant_filter"] == "test-assistant"
-            assert call_kwargs["output_dir"] == Path("custom-runs")
-            assert result.exit_code == 0
+    # Verify all options were passed correctly
+    call_kwargs = mock_runner_class.call_args[1]
+    assert call_kwargs["verbose"] is True
+    assert call_kwargs["parallel_tasks"] == 2
+    assert call_kwargs["repeat"] == 3
+    assert call_kwargs["task_filter"] == "test-task"
+    assert call_kwargs["assistant_filter"] == "test-assistant"
+    assert call_kwargs["output_dir"] == Path("custom-runs")
+    assert result.exit_code == 0
 
 
 # ============================================================================
@@ -577,7 +576,7 @@ def test_report_command_with_invalid_directory():
     assert "not a valid run directory" in result.output
 
 
-def test_report_command_with_open_flag(tmp_path):
+def test_report_command_with_open_flag(tmp_path, mocker):
     """Test report command with --open flag."""
     run_dir = tmp_path / "test-run"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -590,15 +589,15 @@ def test_report_command_with_open_flag(tmp_path):
 </testsuites>
 """)
 
-    with patch("pitlane.reporting.junit.generate_report") as mock_report:
-        mock_report.return_value = run_dir / "report.html"
-        with patch("webbrowser.open") as mock_browser:
-            result = runner.invoke(app, ["report", str(run_dir), "--open"])
-            assert result.exit_code == 0
-            mock_browser.assert_called_once()
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    mock_browser = mocker.patch("webbrowser.open")
+    result = runner.invoke(app, ["report", str(run_dir), "--open"])
+    assert result.exit_code == 0
+    mock_browser.assert_called_once()
 
 
-def test_report_command_regeneration(tmp_path):
+def test_report_command_regeneration(tmp_path, mocker):
     """Test report command regenerates report from existing run."""
     run_dir = tmp_path / "test-run"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -611,12 +610,12 @@ def test_report_command_regeneration(tmp_path):
 </testsuites>
 """)
 
-    with patch("pitlane.reporting.junit.generate_report") as mock_report:
-        mock_report.return_value = run_dir / "report.html"
-        result = runner.invoke(app, ["report", str(run_dir)])
-        assert result.exit_code == 0
-        assert "Report generated" in result.output
-        mock_report.assert_called_once_with(run_dir)
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    result = runner.invoke(app, ["report", str(run_dir)])
+    assert result.exit_code == 0
+    assert "Report generated" in result.output
+    mock_report.assert_called_once_with(run_dir)
 
 
 # ============================================================================
@@ -639,15 +638,15 @@ def test_init_with_existing_eval_yaml(tmp_path, monkeypatch):
     assert eval_yaml.read_text() == "existing content"
 
 
-def test_init_with_examples_source_not_found(tmp_path, monkeypatch):
+def test_init_with_examples_source_not_found(tmp_path, monkeypatch, mocker):
     """Test init command when examples source cannot be found."""
     monkeypatch.chdir(tmp_path)
 
     # Mock _examples_source to return None
-    with patch("pitlane.cli._examples_source", return_value=None):
-        result = runner.invoke(app, ["init", "--with-examples"])
-        assert result.exit_code == 1
-        assert "examples not found" in result.output
+    mocker.patch("pitlane.cli._examples_source", return_value=None)
+    result = runner.invoke(app, ["init", "--with-examples"])
+    assert result.exit_code == 1
+    assert "examples not found" in result.output
 
 
 # ============================================================================
@@ -655,15 +654,15 @@ def test_init_with_examples_source_not_found(tmp_path, monkeypatch):
 # ============================================================================
 
 
-def test_schema_install_non_interactive_without_yes(tmp_path, monkeypatch):
+def test_schema_install_non_interactive_without_yes(tmp_path, monkeypatch, mocker):
     """Test schema install in non-interactive mode without --yes flag."""
     monkeypatch.chdir(tmp_path)
 
     # Simulate non-interactive environment
-    with patch("sys.stdin.isatty", return_value=False):
-        result = runner.invoke(app, ["schema", "install"])
-        assert result.exit_code == 1
-        assert "requires --yes" in result.output
+    mocker.patch("sys.stdin.isatty", return_value=False)
+    result = runner.invoke(app, ["schema", "install"])
+    assert result.exit_code == 1
+    assert "requires --yes" in result.output
 
 
 def test_schema_install_with_backup(tmp_path, monkeypatch):

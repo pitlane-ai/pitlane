@@ -188,64 +188,62 @@ def test_evaluate_assertion_default_weight(tmp_path):
     assert r.weight == 1.0
 
 
-def test_similarity_score_normalized_against_min_score(tmp_path):
+def test_similarity_score_normalized_against_min_score(mocker, tmp_path):
     """Similarity scores should be normalized so meeting min_score = 1.0."""
     from pitlane.assertions.similarity import evaluate_similarity_assertion
-    from unittest.mock import patch
 
     (tmp_path / "a.txt").write_text("actual text")
     (tmp_path / "b.txt").write_text("expected text")
 
     # Mock ROUGE to return a raw score of 0.42 with min_score 0.3
     # Normalized: min(0.42 / 0.3, 1.0) = 1.0 (capped)
-    with patch("pitlane.assertions.similarity._score_rouge", return_value=0.42):
-        r = evaluate_similarity_assertion(
-            tmp_path,
-            "rouge",
-            {
-                "actual": "a.txt",
-                "expected": "b.txt",
-                "metric": "rougeL",
-                "min_score": 0.3,
-            },
-            logger=_test_logger,
-        )
+    mocker.patch("pitlane.assertions.similarity._score_rouge", return_value=0.42)
+    r = evaluate_similarity_assertion(
+        tmp_path,
+        "rouge",
+        {
+            "actual": "a.txt",
+            "expected": "b.txt",
+            "metric": "rougeL",
+            "min_score": 0.3,
+        },
+        logger=_test_logger,
+    )
     assert r.passed is True
     assert r.score == 1.0  # 0.42/0.3 > 1.0, capped at 1.0
 
     # Mock ROUGE to return a raw score of 0.15 with min_score 0.3
     # Normalized: min(0.15 / 0.3, 1.0) = 0.5
-    with patch("pitlane.assertions.similarity._score_rouge", return_value=0.15):
-        r = evaluate_similarity_assertion(
-            tmp_path,
-            "rouge",
-            {
-                "actual": "a.txt",
-                "expected": "b.txt",
-                "metric": "rougeL",
-                "min_score": 0.3,
-            },
-            logger=_test_logger,
-        )
+    mocker.patch("pitlane.assertions.similarity._score_rouge", return_value=0.15)
+    r = evaluate_similarity_assertion(
+        tmp_path,
+        "rouge",
+        {
+            "actual": "a.txt",
+            "expected": "b.txt",
+            "metric": "rougeL",
+            "min_score": 0.3,
+        },
+        logger=_test_logger,
+    )
     assert r.passed is False
     assert r.score == pytest.approx(0.5)  # 0.15/0.3 = 0.5
 
 
-def test_similarity_score_raw_when_no_min_score(tmp_path):
+def test_similarity_score_raw_when_no_min_score(mocker, tmp_path):
     """Without min_score, similarity score should be the raw metric value."""
     from pitlane.assertions.similarity import evaluate_similarity_assertion
-    from unittest.mock import patch
 
     (tmp_path / "a.txt").write_text("actual text")
     (tmp_path / "b.txt").write_text("expected text")
 
-    with patch("pitlane.assertions.similarity._score_rouge", return_value=0.42):
-        r = evaluate_similarity_assertion(
-            tmp_path,
-            "rouge",
-            {"actual": "a.txt", "expected": "b.txt", "metric": "rougeL"},
-            logger=_test_logger,
-        )
+    mocker.patch("pitlane.assertions.similarity._score_rouge", return_value=0.42)
+    r = evaluate_similarity_assertion(
+        tmp_path,
+        "rouge",
+        {"actual": "a.txt", "expected": "b.txt", "metric": "rougeL"},
+        logger=_test_logger,
+    )
     assert r.passed is True  # no min_score → always passes
     assert r.score == pytest.approx(0.42)  # raw score, not normalized
 

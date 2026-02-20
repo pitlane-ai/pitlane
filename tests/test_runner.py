@@ -1,7 +1,6 @@
 import pytest
 import yaml
 from concurrent.futures import as_completed
-from unittest.mock import patch
 from junitparser import JUnitXml
 from pitlane.runner import Runner, IterationResult
 from pitlane.metrics import compute_stats, aggregate_results
@@ -34,7 +33,7 @@ tasks:
     return load_config(config_file)
 
 
-def test_runner_creates_run_directory(tmp_path, eval_config):
+def test_runner_creates_run_directory(mocker, tmp_path, eval_config):
     runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
 
     mock_result = AdapterResult(
@@ -43,11 +42,11 @@ def test_runner_creates_run_directory(tmp_path, eval_config):
         exit_code=0,
         duration_seconds=1.0,
     )
-    with patch(
+    mocker.patch(
         "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
-    ):
-        run_dir = runner.execute()
+    )
+    run_dir = runner.execute()
 
     assert run_dir.exists()
     assert (run_dir / "junit.xml").exists()
@@ -56,7 +55,7 @@ def test_runner_creates_run_directory(tmp_path, eval_config):
     assert not (run_dir / "results.json").exists()
 
 
-def test_runner_captures_results(tmp_path, eval_config):
+def test_runner_captures_results(mocker, tmp_path, eval_config):
     runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
 
     mock_result = AdapterResult(
@@ -67,11 +66,11 @@ def test_runner_captures_results(tmp_path, eval_config):
         token_usage={"input": 100, "output": 50},
         cost_usd=0.01,
     )
-    with patch(
+    mocker.patch(
         "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
-    ):
-        run_dir = runner.execute()
+    )
+    run_dir = runner.execute()
 
     xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
     suite_names = {s.name for s in xml}
@@ -83,7 +82,7 @@ def test_runner_captures_results(tmp_path, eval_config):
     assert "assertion_pass_rate" in props
 
 
-def test_runner_parallel_execution(tmp_path, eval_config):
+def test_runner_parallel_execution(mocker, tmp_path, eval_config):
     """Test that parallel execution works correctly."""
     # Create a config with multiple tasks
     fixture_dir = tmp_path / "fixtures" / "empty"
@@ -133,11 +132,11 @@ tasks:
         exit_code=0,
         duration_seconds=0.1,
     )
-    with patch(
+    mocker.patch(
         "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
-    ):
-        run_dir = runner.execute()
+    )
+    run_dir = runner.execute()
 
     # Verify all tasks completed successfully
     xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
@@ -154,7 +153,7 @@ tasks:
         assert "assertion_pass_rate" in props
 
 
-def test_runner_sequential_execution(tmp_path, eval_config):
+def test_runner_sequential_execution(mocker, tmp_path, eval_config):
     """Test that sequential execution works when parallel_tasks=1."""
     runner = Runner(
         config=eval_config,
@@ -169,11 +168,11 @@ def test_runner_sequential_execution(tmp_path, eval_config):
         exit_code=0,
         duration_seconds=1.0,
     )
-    with patch(
+    mocker.patch(
         "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
-    ):
-        run_dir = runner.execute()
+    )
+    run_dir = runner.execute()
 
     xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
     suite_names = {s.name for s in xml}
@@ -192,7 +191,7 @@ def test_runner_default_repeat(tmp_path, eval_config):
     assert runner.repeat == 1
 
 
-def test_runner_repeat_execution(tmp_path, eval_config):
+def test_runner_repeat_execution(mocker, tmp_path, eval_config):
     """Test that repeat=3 runs the task 3 times and aggregates results."""
     runner = Runner(
         config=eval_config, output_dir=tmp_path / "runs", verbose=False, repeat=3
@@ -212,10 +211,10 @@ def test_runner_repeat_execution(tmp_path, eval_config):
             cost_usd=0.01 * call_count,
         )
 
-    with patch(
+    mocker.patch(
         "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", side_effect=mock_run
-    ):
-        run_dir = runner.execute()
+    )
+    run_dir = runner.execute()
 
     assert call_count == 3
 
@@ -233,7 +232,7 @@ def test_runner_repeat_execution(tmp_path, eval_config):
     assert float(props["wall_clock_seconds_avg"]) == pytest.approx(2.0)
 
 
-def test_runner_repeat_meta_includes_repeat_count(tmp_path, eval_config):
+def test_runner_repeat_meta_includes_repeat_count(mocker, tmp_path, eval_config):
     """Test that meta.yaml includes the repeat count."""
     import yaml
 
@@ -247,11 +246,11 @@ def test_runner_repeat_meta_includes_repeat_count(tmp_path, eval_config):
         exit_code=0,
         duration_seconds=1.0,
     )
-    with patch(
+    mocker.patch(
         "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
         return_value=mock_result,
-    ):
-        run_dir = runner.execute()
+    )
+    run_dir = runner.execute()
 
     meta = yaml.safe_load((run_dir / "meta.yaml").read_text())
     assert meta["repeat"] == 5
@@ -355,7 +354,7 @@ def test_aggregate_results():
     assert len(result.repeat.iterations) == 3
 
 
-def test_runner_interrupt_saves_partial_results(tmp_path):
+def test_runner_interrupt_saves_partial_results(mocker, tmp_path):
     """Test that interrupting a run saves partial results and generates report."""
     fixture_dir = tmp_path / "fixtures" / "empty"
     fixture_dir.mkdir(parents=True)
@@ -431,11 +430,9 @@ tasks:
         config=config, output_dir=tmp_path / "runs", verbose=False, parallel_tasks=1
     )
 
-    with (
-        patch.object(runner, "_run_task", return_value=completed_result),
-        patch("pitlane.runner.as_completed", side_effect=mock_as_completed),
-    ):
-        run_dir = runner.execute()
+    mocker.patch.object(runner, "_run_task", return_value=completed_result)
+    mocker.patch("pitlane.runner.as_completed", side_effect=mock_as_completed)
+    run_dir = runner.execute()
 
     # Runner should be marked as interrupted
     assert runner.interrupted is True
@@ -460,7 +457,7 @@ tasks:
     assert meta["interrupted"] is True
 
 
-def test_runner_interrupt_report_generation(tmp_path):
+def test_runner_interrupt_report_generation(mocker, tmp_path):
     """Test that a report can be generated from partial results."""
     from pitlane.reporting.junit import generate_report
 
@@ -531,11 +528,9 @@ tasks:
         config=config, output_dir=tmp_path / "runs", verbose=False, parallel_tasks=1
     )
 
-    with (
-        patch.object(runner, "_run_task", return_value=completed_result),
-        patch("pitlane.runner.as_completed", side_effect=mock_as_completed),
-    ):
-        run_dir = runner.execute()
+    mocker.patch.object(runner, "_run_task", return_value=completed_result)
+    mocker.patch("pitlane.runner.as_completed", side_effect=mock_as_completed)
+    run_dir = runner.execute()
 
     # Report should be generatable from partial results
     report_path = generate_report(run_dir)

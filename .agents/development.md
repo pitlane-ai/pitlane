@@ -13,6 +13,7 @@ The tool enables TDD-style development of AI assistant capabilities:
 - Use type hints (Python 3.11+ syntax)
 - Leverage Pydantic for configuration validation
 - Document adapter-specific behavior and limitations
+- **Testing**: Favor `pytest-mock` over `unittest.mock` for consistency across the codebase
 
 ## Benchmark Design
 

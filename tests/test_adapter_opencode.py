@@ -1,5 +1,4 @@
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -97,60 +96,60 @@ def test_parse_empty_output():
     assert cost is None
 
 
-def test_get_cli_version_success():
+def test_get_cli_version_success(mocker):
     """Test getting CLI version when opencode is available."""
     adapter = OpenCodeAdapter()
-    with patch("subprocess.run") as mock_run:
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "opencode 1.2.3\n"
-        mock_run.return_value = mock_result
+    mock_run = mocker.patch("subprocess.run")
+    mock_result = mocker.Mock()
+    mock_result.returncode = 0
+    mock_result.stdout = "opencode 1.2.3\n"
+    mock_run.return_value = mock_result
 
-        version = adapter.get_cli_version()
+    version = adapter.get_cli_version()
 
-        assert version == "opencode 1.2.3"
-        mock_run.assert_called_once_with(
-            ["opencode", "--version"], capture_output=True, text=True, timeout=5
-        )
+    assert version == "opencode 1.2.3"
+    mock_run.assert_called_once_with(
+        ["opencode", "--version"], capture_output=True, text=True, timeout=5
+    )
 
 
-def test_get_cli_version_not_found():
+def test_get_cli_version_not_found(mocker):
     """Test getting CLI version when opencode is not installed."""
     adapter = OpenCodeAdapter()
-    with patch("subprocess.run") as mock_run:
-        mock_run.side_effect = FileNotFoundError("opencode not found")
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.side_effect = FileNotFoundError("opencode not found")
 
-        version = adapter.get_cli_version()
+    version = adapter.get_cli_version()
 
-        assert version is None
+    assert version is None
 
 
-def test_get_cli_version_error():
+def test_get_cli_version_error(mocker):
     """Test getting CLI version when command fails."""
     adapter = OpenCodeAdapter()
-    with patch("subprocess.run") as mock_run:
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ""
-        mock_run.return_value = mock_result
+    mock_run = mocker.patch("subprocess.run")
+    mock_result = mocker.Mock()
+    mock_result.returncode = 1
+    mock_result.stdout = ""
+    mock_run.return_value = mock_result
 
-        version = adapter.get_cli_version()
+    version = adapter.get_cli_version()
 
-        assert version is None
+    assert version is None
 
 
-def test_get_cli_version_empty_output():
+def test_get_cli_version_empty_output(mocker):
     """Test getting CLI version when output is empty."""
     adapter = OpenCodeAdapter()
-    with patch("subprocess.run") as mock_run:
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "   \n  "
-        mock_run.return_value = mock_result
+    mock_run = mocker.patch("subprocess.run")
+    mock_result = mocker.Mock()
+    mock_result.returncode = 0
+    mock_result.stdout = "   \n  "
+    mock_run.return_value = mock_result
 
-        version = adapter.get_cli_version()
+    version = adapter.get_cli_version()
 
-        assert version is None
+    assert version is None
 
 
 def test_cli_name():
@@ -376,57 +375,57 @@ def test_parse_output_step_finish_with_cost():
     assert cost == 0.015
 
 
-def test_opencode_with_api_error_handling(tmp_path):
+def test_opencode_with_api_error_handling(mocker, tmp_path):
     """Test OpenCode adapter handling API errors."""
     adapter = OpenCodeAdapter()
-    logger = MagicMock()
+    logger = mocker.Mock()
 
-    with patch("pitlane.adapters.opencode.asyncio.run") as mock_asyncio_run:
-        mock_asyncio_run.return_value = ("", "API Error: Rate limit exceeded", 1)
+    mock_asyncio_run = mocker.patch("pitlane.adapters.opencode.asyncio.run")
+    mock_asyncio_run.return_value = ("", "API Error: Rate limit exceeded", 1)
 
-        result = adapter.run("test prompt", tmp_path, {}, logger)
+    result = adapter.run("test prompt", tmp_path, {}, logger)
 
-        assert result.exit_code == 1
-        assert "Rate limit exceeded" in result.stderr
-        assert result.duration_seconds > 0
+    assert result.exit_code == 1
+    assert "Rate limit exceeded" in result.stderr
+    assert result.duration_seconds > 0
 
 
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_opencode_with_timeout_error(tmp_path):
+def test_opencode_with_timeout_error(mocker, tmp_path):
     """Test OpenCode adapter handling timeout errors."""
     adapter = OpenCodeAdapter()
-    logger = MagicMock()
+    logger = mocker.Mock()
 
     def mock_asyncio_run(coro):
         raise TimeoutError("Command timed out")
 
-    with patch("pitlane.adapters.opencode.asyncio.run", side_effect=mock_asyncio_run):
-        result = adapter.run("test prompt", tmp_path, {"timeout": 10}, logger)
+    mocker.patch("pitlane.adapters.opencode.asyncio.run", side_effect=mock_asyncio_run)
+    result = adapter.run("test prompt", tmp_path, {"timeout": 10}, logger)
 
-        assert result.exit_code == -1
-        assert "timed out" in result.stderr.lower()
-        assert result.duration_seconds > 0
+    assert result.exit_code == -1
+    assert "timed out" in result.stderr.lower()
+    assert result.duration_seconds > 0
 
 
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_opencode_with_command_exception(tmp_path):
+def test_opencode_with_command_exception(mocker, tmp_path):
     """Test OpenCode adapter handling general command exceptions."""
     adapter = OpenCodeAdapter()
-    logger = MagicMock()
+    logger = mocker.Mock()
 
-    with patch("pitlane.adapters.opencode.asyncio.run") as mock_asyncio_run:
-        mock_asyncio_run.side_effect = Exception("Unexpected error")
+    mock_asyncio_run = mocker.patch("pitlane.adapters.opencode.asyncio.run")
+    mock_asyncio_run.side_effect = Exception("Unexpected error")
 
-        result = adapter.run("test prompt", tmp_path, {}, logger)
+    result = adapter.run("test prompt", tmp_path, {}, logger)
 
-        assert result.exit_code == -1
-        assert "Unexpected error" in result.stderr
-        assert result.duration_seconds > 0
-        logger.debug.assert_called()
+    assert result.exit_code == -1
+    assert "Unexpected error" in result.stderr
+    assert result.duration_seconds > 0
+    logger.debug.assert_called()
 
 
 @pytest.mark.filterwarnings(
@@ -451,10 +450,10 @@ def test_parse_output_with_invalid_response_format():
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_opencode_with_all_options_combined(tmp_path):
+def test_opencode_with_all_options_combined(mocker, tmp_path):
     """Test OpenCode adapter with all configuration options combined."""
     adapter = OpenCodeAdapter()
-    logger = MagicMock()
+    logger = mocker.Mock()
 
     config = {
         "model": "anthropic/claude-sonnet-4-5-20250929",
@@ -482,47 +481,47 @@ def test_opencode_with_all_options_combined(tmp_path):
         }
     )
 
-    with patch(
+    mocker.patch(
         "pitlane.adapters.opencode.asyncio.run", return_value=(mock_output, "", 0)
-    ):
-        result = adapter.run("Complex test prompt", tmp_path, config, logger)
+    )
+    result = adapter.run("Complex test prompt", tmp_path, config, logger)
 
-        # Verify command was built correctly
-        cmd = adapter._build_command("Complex test prompt", config)
-        assert "--model" in cmd
-        assert "anthropic/claude-sonnet-4-5-20250929" in cmd
-        assert "--agent" in cmd
-        assert "coder" in cmd
-        assert "--file" in cmd
-        assert "main.py" in cmd
-        assert "test.py" in cmd
-        assert "--session" in cmd
-        assert "test-session-123" in cmd
-        assert "--continue" in cmd
-        assert "--fork" in cmd
-        assert "--title" in cmd
-        assert "Complex Test Task" in cmd
-        assert "--share" in cmd
-        assert "--attach" in cmd
-        assert "http://localhost:4096" in cmd
-        assert "--port" in cmd
-        assert "8080" in cmd
+    # Verify command was built correctly
+    cmd = adapter._build_command("Complex test prompt", config)
+    assert "--model" in cmd
+    assert "anthropic/claude-sonnet-4-5-20250929" in cmd
+    assert "--agent" in cmd
+    assert "coder" in cmd
+    assert "--file" in cmd
+    assert "main.py" in cmd
+    assert "test.py" in cmd
+    assert "--session" in cmd
+    assert "test-session-123" in cmd
+    assert "--continue" in cmd
+    assert "--fork" in cmd
+    assert "--title" in cmd
+    assert "Complex Test Task" in cmd
+    assert "--share" in cmd
+    assert "--attach" in cmd
+    assert "http://localhost:4096" in cmd
+    assert "--port" in cmd
+    assert "8080" in cmd
 
-        # Verify result
-        assert result.exit_code == 0
-        assert result.token_usage is not None
-        assert result.token_usage["input"] == 1000
-        assert result.token_usage["output"] == 500
-        assert result.cost_usd == 0.025
+    # Verify result
+    assert result.exit_code == 0
+    assert result.token_usage is not None
+    assert result.token_usage["input"] == 1000
+    assert result.token_usage["output"] == 500
+    assert result.cost_usd == 0.025
 
 
 @pytest.mark.filterwarnings(
     "ignore::RuntimeWarning"
 )  # Suppress mock introspection warnings for async functions
-def test_opencode_run_with_debug_logging(tmp_path):
+def test_opencode_run_with_debug_logging(mocker, tmp_path):
     """Test that debug logging is called during run."""
     adapter = OpenCodeAdapter()
-    logger = MagicMock()
+    logger = mocker.Mock()
 
     mock_output = json.dumps(
         {
@@ -534,24 +533,24 @@ def test_opencode_run_with_debug_logging(tmp_path):
         }
     )
 
-    with patch(
-        "pitlane.adapters.opencode.run_command_with_streaming", new_callable=AsyncMock
-    ) as mock_streaming:
-        mock_streaming.return_value = (mock_output, "", 0)
+    mock_streaming = mocker.patch(
+        "pitlane.adapters.opencode.run_command_with_streaming", new_callable=mocker.AsyncMock
+    )
+    mock_streaming.return_value = (mock_output, "", 0)
 
-        adapter.run("test", tmp_path, {"timeout": 30}, logger)
+    adapter.run("test", tmp_path, {"timeout": 30}, logger)
 
-        # Verify debug logging was called
-        assert logger.debug.call_count >= 4
-        # Check that specific debug messages were logged
-        debug_calls = [call[0][0] for call in logger.debug.call_args_list]
-        assert any("Command:" in call for call in debug_calls)
-        assert any("Working directory:" in call for call in debug_calls)
-        assert any("Timeout:" in call for call in debug_calls)
-        assert any("Command completed" in call for call in debug_calls)
-        assert any("Parsed token_usage:" in call for call in debug_calls)
-        assert any("Parsed cost:" in call for call in debug_calls)
-        assert any("Parsed tool_calls_count:" in call for call in debug_calls)
+    # Verify debug logging was called
+    assert logger.debug.call_count >= 4
+    # Check that specific debug messages were logged
+    debug_calls = [call[0][0] for call in logger.debug.call_args_list]
+    assert any("Command:" in call for call in debug_calls)
+    assert any("Working directory:" in call for call in debug_calls)
+    assert any("Timeout:" in call for call in debug_calls)
+    assert any("Command completed" in call for call in debug_calls)
+    assert any("Parsed token_usage:" in call for call in debug_calls)
+    assert any("Parsed cost:" in call for call in debug_calls)
+    assert any("Parsed tool_calls_count:" in call for call in debug_calls)
 
 
 def test_parse_output_message_with_empty_content():
