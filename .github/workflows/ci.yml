@@ -48,10 +48,22 @@ jobs:
             coverage.xml
             htmlcov/
 
-      - name: Generate coverage badge
+      - name: Generate and push coverage badge
         if: always() # github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
         run: |
           uv run genbadge coverage -i coverage.xml -o coverage.svg
+
+          # Push badge svg to badge branch (README.md points to it)
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git fetch origin badges || true
+          git checkout badges || git checkout -b badges
+
+          git add coverage.svg
+          git commit -m "ci: update coverage badge"
+          git push origin badges
+
 
       - name: Upload coverage badge to artifacts
         uses: actions/upload-artifact@v4
@@ -59,26 +71,7 @@ jobs:
         with:
           name: coverage-badge
           path: coverage.svg
-
-      - name: Commit coverage badge (to badge branch)
-        # todo: add back && github.ref == 'refs/heads/main'
-        if: always() # github.event_name == 'push' && matrix.python-version == '3.11'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-          # Push badge svg to badge branch (README.md points to it)
-          git fetch origin badges || true
-          git checkout badges || git checkout --orphan badges
-
-          # Keep only the badge file
-          git rm -rf . || true
-          git checkout HEAD -- coverage.svg || cp ../coverage.svg . || true
-
-          git add coverage.svg
-          git diff --staged --quiet || git commit -m "Update coverage badge"
-          git push origin badges
-
+          
   release:
     needs: test
     runs-on: ubuntu-latest
