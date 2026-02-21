@@ -109,11 +109,9 @@ jobs:
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Install dependencies
-        run: uv sync
-
       - name: Build package
-        run: uv build
+        if: steps.version_check.outputs.changed == 'true'
+        run: uv sync && uv build
 
       - name: Create GitHub Release
         if: steps.version_check.outputs.changed == 'true'
