@@ -1,6 +1,5 @@
 import pytest
 from pathlib import Path
-from unittest.mock import patch
 from junitparser import JUnitXml
 from pitlane.adapters.base import AdapterResult
 from pitlane.config import load_config
@@ -53,44 +52,42 @@ def _make_mock_result(workdir: Path) -> AdapterResult:
     )
 
 
-def test_full_pipeline(full_eval_setup):
+def test_full_pipeline(mocker, full_eval_setup):
     config_file, tmp_path = full_eval_setup
     config = load_config(config_file)
 
     def mock_run(self, prompt, workdir, config, logger):
         return _make_mock_result(workdir)
 
-    with (
-        patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run),
-        patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run),
-    ):
-        runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
-        run_dir = runner.execute()
+    mocker.patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run)
+    mocker.patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run)
+    runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
+    run_dir = runner.execute()
 
-        # Verify run directory structure
-        assert (run_dir / "junit.xml").exists()
-        assert (run_dir / "meta.yaml").exists()
-        assert not (run_dir / "results.json").exists()
+    # Verify run directory structure
+    assert (run_dir / "junit.xml").exists()
+    assert (run_dir / "meta.yaml").exists()
+    assert not (run_dir / "results.json").exists()
 
-        # Verify junit.xml content
-        xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
-        suite_names = {s.name for s in xml}
-        assert "claude-baseline / create-script" in suite_names
-        assert "opencode-baseline / create-script" in suite_names
+    # Verify junit.xml content
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "claude-baseline / create-script" in suite_names
+    assert "opencode-baseline / create-script" in suite_names
 
-        for suite in xml:
-            assert suite.failures == 0
-            # wall_clock_seconds and cost_usd are stored as properties
-            props = {p.name: p.value for p in suite.properties()}
-            assert props["cost_usd"] == "0.02"
+    for suite in xml:
+        assert suite.failures == 0
+        # wall_clock_seconds and cost_usd are stored as properties
+        props = {p.name: p.value for p in suite.properties()}
+        assert props["cost_usd"] == "0.02"
 
-        # Generate and verify report
-        report_path = generate_report(run_dir)
-        assert report_path.exists()
-        html = report_path.read_text()
-        assert "claude-baseline" in html
-        assert "opencode-baseline" in html
-        assert "create-script" in html
+    # Generate and verify report
+    report_path = generate_report(run_dir)
+    assert report_path.exists()
+    html = report_path.read_text()
+    assert "claude-baseline" in html
+    assert "opencode-baseline" in html
+    assert "create-script" in html
 
 
 @pytest.mark.integration
@@ -120,7 +117,7 @@ def test_skill_installation_non_interactive(tmp_path):
     )
 
 
-def test_simple_codegen_eval_example(tmp_path):
+def test_simple_codegen_eval_example(mocker, tmp_path):
     """Unit test: Verify runner works with example config using mocked adapters."""
     from pathlib import Path
 
@@ -142,37 +139,35 @@ def test_simple_codegen_eval_example(tmp_path):
         )
 
     # Mock all adapters in the example
-    with (
-        patch("pitlane.adapters.bob.BobAdapter.run", mock_run),
-        patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run),
-        patch("pitlane.adapters.mistral_vibe.MistralVibeAdapter.run", mock_run),
-        patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run),
-    ):
-        runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
-        run_dir = runner.execute()
+    mocker.patch("pitlane.adapters.bob.BobAdapter.run", mock_run)
+    mocker.patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run)
+    mocker.patch("pitlane.adapters.mistral_vibe.MistralVibeAdapter.run", mock_run)
+    mocker.patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run)
+    runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
+    run_dir = runner.execute()
 
-        # Verify run completed successfully
-        assert (run_dir / "junit.xml").exists()
-        assert (run_dir / "meta.yaml").exists()
-        assert not (run_dir / "results.json").exists()
+    # Verify run completed successfully
+    assert (run_dir / "junit.xml").exists()
+    assert (run_dir / "meta.yaml").exists()
+    assert not (run_dir / "results.json").exists()
 
-        # Verify all assistants ran
-        xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
-        suite_names = {s.name for s in xml}
-        expected_assistants = [
-            "opencode-baseline",
-        ]
-        for assistant in expected_assistants:
-            assert f"{assistant} / hello-world-python" in suite_names
+    # Verify all assistants ran
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    expected_assistants = [
+        "opencode-baseline",
+    ]
+    for assistant in expected_assistants:
+        assert f"{assistant} / hello-world-python" in suite_names
 
-        # Verify all suites passed and cost_usd is correct
-        for suite in xml:
-            assert suite.failures == 0
-            props = {p.name: p.value for p in suite.properties()}
-            assert props["cost_usd"] == "0.01"
+    # Verify all suites passed and cost_usd is correct
+    for suite in xml:
+        assert suite.failures == 0
+        props = {p.name: p.value for p in suite.properties()}
+        assert props["cost_usd"] == "0.01"
 
-        # Verify HTML report can be generated
-        report_path = generate_report(run_dir)
-        assert report_path.exists()
-        html = report_path.read_text()
-        assert "hello-world-python" in html
+    # Verify HTML report can be generated
+    report_path = generate_report(run_dir)
+    assert report_path.exists()
+    html = report_path.read_text()
+    assert "hello-world-python" in html

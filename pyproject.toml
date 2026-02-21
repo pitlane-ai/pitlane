@@ -37,10 +37,23 @@ markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
 ]
 
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
     "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
     "ruff>=0.15.0",
     "mypy>=1.13.0",
     "pre-commit>=4.0.0",
