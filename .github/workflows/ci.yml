@@ -61,7 +61,7 @@ jobs:
           path: coverage.svg
 
       - name: Commit coverage badge (to badge branch)
-        # todo: add back && github.ref == 'refs/heads/main' 
+        # todo: add back && github.ref == 'refs/heads/main'
         if: github.event_name == 'push' && matrix.python-version == '3.11'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
