@@ -14,7 +14,18 @@ app.add_typer(schema_app, name="schema")
 def run(
     config: str = typer.Argument(help="Path to eval YAML config"),
     task: str | None = typer.Option(None, help="Run only this task"),
-    assistant: str | None = typer.Option(None, help="Run only this assistant"),
+    include_assistants: str | None = typer.Option(
+        None,
+        "--include-assistants",
+        "-i",
+        help="Run only these assistants (comma-separated)",
+    ),
+    exclude_assistants: str | None = typer.Option(
+        None,
+        "--exclude-assistants",
+        "-e",
+        help="Exclude these assistants (comma-separated)",
+    ),
     output_dir: str = typer.Option("runs", help="Output directory for run results"),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable debug output to terminal"
@@ -42,11 +53,23 @@ def run(
 
     eval_config = load_config(config_path)
 
+    include_filter = (
+        [a.strip() for a in include_assistants.split(",")]
+        if include_assistants
+        else None
+    )
+    exclude_filter = (
+        [a.strip() for a in exclude_assistants.split(",")]
+        if exclude_assistants
+        else None
+    )
+
     runner = Runner(
         config=eval_config,
         output_dir=Path(output_dir),
         task_filter=task,
-        assistant_filter=assistant,
+        assistant_filter=include_filter,
+        exclude_assistants=exclude_filter,
         verbose=verbose,
         parallel_tasks=parallel,
         repeat=repeat,
