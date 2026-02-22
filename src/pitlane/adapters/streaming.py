@@ -19,7 +19,12 @@ def run_streaming_sync(
     env: dict[str, str] | None = None,
 ) -> tuple[str, str, int, bool]:
     proc = subprocess.Popen(
-        cmd, cwd=workdir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
+        cmd,
+        cwd=workdir,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=env,
     )
 
     def _read(stream, lines: list[str], prefix: str) -> None:

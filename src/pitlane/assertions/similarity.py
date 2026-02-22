@@ -8,7 +8,13 @@ from typing import Any
 
 from pitlane.assertions.base import AssertionResult
 
-for _name in ("huggingface_hub", "transformers", "sentence_transformers", "evaluate", "filelock"):
+for _name in (
+    "huggingface_hub",
+    "transformers",
+    "sentence_transformers",
+    "evaluate",
+    "filelock",
+):
     logging.getLogger(_name).setLevel(logging.ERROR)
 
 

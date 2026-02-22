@@ -319,7 +319,10 @@ def test_mcp_server_config_env_expansion(monkeypatch):
     assert expandvars("${MY_TEST_KEY}", nounset=True) == "secret"
     assert expandvars("${MISSING_VAR:-fallback}", nounset=True) == "fallback"
     assert expandvars("plain", nounset=True) == "plain"
-    assert expandvars("prefix-${MY_TEST_KEY}-suffix", nounset=True) == "prefix-secret-suffix"
+    assert (
+        expandvars("prefix-${MY_TEST_KEY}-suffix", nounset=True)
+        == "prefix-secret-suffix"
+    )
     with pytest.raises(Exception):
         expandvars("${MISSING_VAR_NO_DEFAULT}", nounset=True)
 
