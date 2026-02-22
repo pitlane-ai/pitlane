@@ -2,7 +2,13 @@
   "$defs": {
     "AdapterType": {
       "enum": [
+        "bob",
         "claude-code",
+        "cline",
+        "codex",
+        "copilot",
+        "gemini",
+        "kilo",
         "mistral-vibe",
         "opencode"
       ],
