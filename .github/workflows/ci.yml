@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write # for pushing badge updates
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -51,14 +54,14 @@ jobs:
       - name: Generate and push coverage badge
         if: always() # github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
         run: |
-          uv run genbadge coverage -i coverage.xml -o coverage.svg
-
           # Push badge svg to badge branch (README.md points to it)
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
           git fetch origin badge || true
           git checkout badge || git checkout -b badge
+
+          uv run genbadge coverage -i coverage.xml -o coverage.svg
 
           git add coverage.svg
           git commit -m "ci: update coverage badge"
