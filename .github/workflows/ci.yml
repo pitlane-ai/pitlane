@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11"] #TODO: put back 3.14 . # Min / max versions
+        python-version: ["3.11", "3.14"] # Min / max versions
 
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
             htmlcov/
 
       - name: Generate and push coverage badge
-        if: always() # github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
         run: |
           # Push badge svg to badge branch (README.md points to it)
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload coverage badge to artifacts
         uses: actions/upload-artifact@v4
-        if: always() #github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
         with:
           name: coverage-badge
           path: coverage.svg
