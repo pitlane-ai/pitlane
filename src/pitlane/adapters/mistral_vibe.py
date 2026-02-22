@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import shutil
@@ -10,7 +9,7 @@ from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 from pitlane.adapters.base import AdapterResult, BaseAdapter
-from pitlane.adapters.streaming import run_command_with_streaming
+from pitlane.adapters.streaming import run_streaming_sync
 
 if TYPE_CHECKING:
     import logging
@@ -44,6 +43,26 @@ class MistralVibeAdapter(BaseAdapter):
             cmd.extend(["--max-price", str(max_price)])
         return cmd
 
+    def install_mcp(self, workspace: Path, mcp: Any) -> None:
+        from pitlane.workspace import _expand_env
+
+        expanded_env = {k: _expand_env(v) for k, v in mcp.env.items()}
+        sidecar = workspace / ".pitlane_mcps.json"
+        entries: list = []
+        if sidecar.exists():
+            entries = json.loads(sidecar.read_text())
+        entry: dict = {"name": mcp.name, "transport": mcp.type}
+        if mcp.command is not None:
+            entry["command"] = mcp.command
+        if mcp.args:
+            entry["args"] = mcp.args
+        if mcp.url is not None:
+            entry["url"] = mcp.url
+        if expanded_env:
+            entry["env"] = expanded_env
+        entries.append(entry)
+        sidecar.write_text(json.dumps(entries, indent=2))
+
     def _generate_config(self, workdir: Path, config: dict[str, Any]) -> None:
         """Generate .vibe/config.toml in the workspace."""
         lines = []
@@ -60,6 +79,29 @@ class MistralVibeAdapter(BaseAdapter):
                         lines.append(f'{key} = "{value}"')
                     else:
                         lines.append(f"{key} = {value}")
+
+        # Append MCPs written by workspace_mgr.install_mcp() via sidecar file
+        sidecar = workdir / ".pitlane_mcps.json"
+        if sidecar.exists():
+            try:
+                entries = json.loads(sidecar.read_text())
+            except (json.JSONDecodeError, OSError):
+                entries = []
+            for server in entries:
+                lines.append("")
+                lines.append("[[mcp_servers]]")
+                lines.append(f'name = "{server["name"]}"')
+                lines.append(f'transport = "{server.get("transport", "stdio")}"')
+                if "command" in server:
+                    lines.append(f'command = "{server["command"]}"')
+                if "args" in server:
+                    args_toml = "[" + ", ".join(f'"{a}"' for a in server["args"]) + "]"
+                    lines.append(f"args = {args_toml}")
+                if server.get("env"):
+                    env_pairs = ", ".join(
+                        f'{k} = "{v}"' for k, v in server["env"].items()
+                    )
+                    lines.append(f"env = {{ {env_pairs} }}")
 
         if lines:
             config_dir = workdir / ".vibe"
@@ -199,8 +241,8 @@ class MistralVibeAdapter(BaseAdapter):
 
         start = time.monotonic()
         try:
-            stdout, stderr, exit_code = asyncio.run(
-                run_command_with_streaming(cmd, workdir, timeout, logger, env)
+            stdout, stderr, exit_code, timed_out = run_streaming_sync(
+                cmd, workdir, timeout, logger, env
             )
         except Exception as e:
             duration = time.monotonic() - start
@@ -233,4 +275,5 @@ class MistralVibeAdapter(BaseAdapter):
             token_usage=token_usage,
             cost_usd=cost,
             tool_calls_count=tool_calls_count,
+            timed_out=timed_out,
         )

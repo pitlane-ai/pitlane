@@ -3,10 +3,26 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
 from pitlane.assertions.base import AssertionResult
+
+
+_NOISY_LOGGERS = (
+    "huggingface_hub",
+    "transformers",
+    "sentence_transformers",
+    "evaluate",
+    "filelock",
+)
+
+
+def _silence_third_party() -> None:
+    for name in _NOISY_LOGGERS:
+        logging.getLogger(name).setLevel(logging.ERROR)
+    os.environ.setdefault("TQDM_DISABLE", "1")
 
 
 def _require_similarity_deps() -> None:
@@ -72,12 +88,23 @@ def evaluate_similarity_assertion(
     logger: logging.Logger,
 ) -> AssertionResult:
     _require_similarity_deps()
+    _silence_third_party()
 
     logger.info(
         f"Evaluating {kind} similarity: {spec.get('actual')} vs {spec.get('expected')}"
     )
 
-    actual_text = _read_text(workdir, spec["actual"])
+    actual_path = spec["actual"]
+    try:
+        actual_text = _read_text(workdir, actual_path)
+    except FileNotFoundError:
+        logger.warning(f"File {actual_path} not found")
+        return AssertionResult(
+            name=f"{kind}:{actual_path}:{spec['expected']}",
+            passed=False,
+            message=f"{actual_path} not found",
+            score=0.0,
+        )
     # Read expected files from original source_dir (not workspace) so that
     # reference files don't need to be copied into the AI-visible workspace.
     expected_base = Path(source_dir) if source_dir else Path(workdir)

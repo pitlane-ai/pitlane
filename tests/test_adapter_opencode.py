@@ -3,6 +3,7 @@ import json
 import pytest
 
 from pitlane.adapters.opencode import OpenCodeAdapter
+from pitlane.config import McpServerConfig
 
 
 def test_build_command_minimal():
@@ -380,8 +381,10 @@ def test_opencode_with_api_error_handling(mocker, tmp_path):
     adapter = OpenCodeAdapter()
     logger = mocker.Mock()
 
-    mock_asyncio_run = mocker.patch("pitlane.adapters.opencode.asyncio.run")
-    mock_asyncio_run.return_value = ("", "API Error: Rate limit exceeded", 1)
+    mocker.patch(
+        "pitlane.adapters.opencode.run_streaming_sync",
+        return_value=("", "API Error: Rate limit exceeded", 1, False),
+    )
 
     result = adapter.run("test prompt", tmp_path, {}, logger)
 
@@ -390,18 +393,15 @@ def test_opencode_with_api_error_handling(mocker, tmp_path):
     assert result.duration_seconds > 0
 
 
-@pytest.mark.filterwarnings(
-    "ignore::RuntimeWarning"
-)  # Suppress mock introspection warnings for async functions
 def test_opencode_with_timeout_error(mocker, tmp_path):
     """Test OpenCode adapter handling timeout errors."""
     adapter = OpenCodeAdapter()
     logger = mocker.Mock()
 
-    def mock_asyncio_run(coro):
-        raise TimeoutError("Command timed out")
-
-    mocker.patch("pitlane.adapters.opencode.asyncio.run", side_effect=mock_asyncio_run)
+    mocker.patch(
+        "pitlane.adapters.opencode.run_streaming_sync",
+        side_effect=TimeoutError("Command timed out"),
+    )
     result = adapter.run("test prompt", tmp_path, {"timeout": 10}, logger)
 
     assert result.exit_code == -1
@@ -409,16 +409,15 @@ def test_opencode_with_timeout_error(mocker, tmp_path):
     assert result.duration_seconds > 0
 
 
-@pytest.mark.filterwarnings(
-    "ignore::RuntimeWarning"
-)  # Suppress mock introspection warnings for async functions
 def test_opencode_with_command_exception(mocker, tmp_path):
     """Test OpenCode adapter handling general command exceptions."""
     adapter = OpenCodeAdapter()
     logger = mocker.Mock()
 
-    mock_asyncio_run = mocker.patch("pitlane.adapters.opencode.asyncio.run")
-    mock_asyncio_run.side_effect = Exception("Unexpected error")
+    mocker.patch(
+        "pitlane.adapters.opencode.run_streaming_sync",
+        side_effect=Exception("Unexpected error"),
+    )
 
     result = adapter.run("test prompt", tmp_path, {}, logger)
 
@@ -447,9 +446,6 @@ def test_parse_output_with_invalid_response_format():
     assert isinstance(tool_calls_count, int)
 
 
-@pytest.mark.filterwarnings(
-    "ignore::RuntimeWarning"
-)  # Suppress mock introspection warnings for async functions
 def test_opencode_with_all_options_combined(mocker, tmp_path):
     """Test OpenCode adapter with all configuration options combined."""
     adapter = OpenCodeAdapter()
@@ -482,7 +478,8 @@ def test_opencode_with_all_options_combined(mocker, tmp_path):
     )
 
     mocker.patch(
-        "pitlane.adapters.opencode.asyncio.run", return_value=(mock_output, "", 0)
+        "pitlane.adapters.opencode.run_streaming_sync",
+        return_value=(mock_output, "", 0, False),
     )
     result = adapter.run("Complex test prompt", tmp_path, config, logger)
 
@@ -515,9 +512,6 @@ def test_opencode_with_all_options_combined(mocker, tmp_path):
     assert result.cost_usd == 0.025
 
 
-@pytest.mark.filterwarnings(
-    "ignore::RuntimeWarning"
-)  # Suppress mock introspection warnings for async functions
 def test_opencode_run_with_debug_logging(mocker, tmp_path):
     """Test that debug logging is called during run."""
     adapter = OpenCodeAdapter()
@@ -533,11 +527,10 @@ def test_opencode_run_with_debug_logging(mocker, tmp_path):
         }
     )
 
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.opencode.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    mocker.patch(
+        "pitlane.adapters.opencode.run_streaming_sync",
+        return_value=(mock_output, "", 0, False),
     )
-    mock_streaming.return_value = (mock_output, "", 0)
 
     adapter.run("test", tmp_path, {"timeout": 30}, logger)
 
@@ -577,3 +570,47 @@ def test_build_command_with_port_as_int():
     port_idx = cmd.index("--port")
     assert cmd[port_idx + 1] == "8080"
     assert isinstance(cmd[port_idx + 1], str)
+
+
+# ── install_mcp tests ─────────────────────────────────────────────────────────
+
+
+def test_install_mcp_creates_opencode_json(tmp_path):
+    adapter = OpenCodeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    mcp = McpServerConfig(
+        name="oc-server",
+        type="stdio",
+        command="npx",
+        args=["-y", "@org/pkg"],
+        env={"TOKEN": "abc"},
+    )
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    target = ws / "opencode.json"
+    assert target.exists()
+    data = json.loads(target.read_text())
+    entry = data["mcp"]["oc-server"]
+    assert entry["type"] == "local"
+    assert entry["command"] == ["npx", "-y", "@org/pkg"]
+    assert entry["environment"] == {"TOKEN": "abc"}
+    assert entry["enabled"] is True
+
+
+def test_install_mcp_merges_existing(tmp_path):
+    adapter = OpenCodeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    existing = {"someOtherKey": True, "mcp": {"old": {"type": "local", "command": []}}}
+    (ws / "opencode.json").write_text(json.dumps(existing))
+
+    mcp = McpServerConfig(name="new", command="cmd")
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    data = json.loads((ws / "opencode.json").read_text())
+    assert data["someOtherKey"] is True
+    assert "old" in data["mcp"]
+    assert "new" in data["mcp"]

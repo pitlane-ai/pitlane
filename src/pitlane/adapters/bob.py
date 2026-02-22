@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import re
 import time
@@ -10,7 +9,7 @@ from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 from pitlane.adapters.base import AdapterResult, BaseAdapter
-from pitlane.adapters.streaming import run_command_with_streaming
+from pitlane.adapters.streaming import run_streaming_sync
 
 if TYPE_CHECKING:
     import logging
@@ -35,6 +34,29 @@ class BobAdapter(BaseAdapter):
         except Exception:
             pass
         return None
+
+    def install_mcp(self, workspace: Path, mcp: Any) -> None:
+        from pitlane.workspace import _expand_env
+
+        expanded_env = {k: _expand_env(v) for k, v in mcp.env.items()}
+        bob_dir = workspace / ".bob"
+        bob_dir.mkdir(exist_ok=True)
+        target = bob_dir / "mcp.json"
+        data: dict = {}
+        if target.exists():
+            data = json.loads(target.read_text())
+        servers = data.setdefault("mcpServers", {})
+        entry: dict = {"type": mcp.type}
+        if mcp.command is not None:
+            entry["command"] = mcp.command
+        if mcp.args:
+            entry["args"] = mcp.args
+        if mcp.url is not None:
+            entry["url"] = mcp.url
+        if expanded_env:
+            entry["env"] = expanded_env
+        servers[mcp.name] = entry
+        target.write_text(json.dumps(data, indent=2))
 
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = [
@@ -123,8 +145,8 @@ class BobAdapter(BaseAdapter):
         start = time.monotonic()
 
         try:
-            stdout, stderr, exit_code = asyncio.run(
-                run_command_with_streaming(cmd, workdir, timeout, logger)
+            stdout, stderr, exit_code, timed_out = run_streaming_sync(
+                cmd, workdir, timeout, logger
             )
         except Exception as e:
             duration = time.monotonic() - start
@@ -157,4 +179,5 @@ class BobAdapter(BaseAdapter):
             token_usage=token_usage,
             cost_usd=cost,
             tool_calls_count=tool_calls_count,
+            timed_out=timed_out,
         )

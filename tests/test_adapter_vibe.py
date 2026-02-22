@@ -1,8 +1,11 @@
 import json
 import logging
 from pathlib import Path
+
 import pytest
+
 from pitlane.adapters.mistral_vibe import MistralVibeAdapter
+from pitlane.config import McpServerConfig
 
 
 @pytest.fixture
@@ -466,12 +469,11 @@ def test_run_command_exception(mocker, adapter, mock_logger, tmp_path, monkeypat
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    # Mock run_command_with_streaming to raise exception
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    # Mock run_streaming_sync to raise exception
+    mocker.patch(
+        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        side_effect=Exception("Command failed"),
     )
-    mock_streaming.side_effect = Exception("Command failed")
 
     result = adapter.run("test prompt", tmp_path, {}, mock_logger)
     assert result.exit_code == -1
@@ -479,9 +481,6 @@ def test_run_command_exception(mocker, adapter, mock_logger, tmp_path, monkeypat
     assert result.duration_seconds > 0
 
 
-@pytest.mark.filterwarnings(
-    "ignore::RuntimeWarning"
-)  # Suppress mock introspection warnings for async functions
 def test_run_with_timeout(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run method with custom timeout."""
     # Setup fake home with .env
@@ -493,11 +492,10 @@ def test_run_with_timeout(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     # Mock successful command execution
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    mocker.patch(
+        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        return_value=("output", "", 0, False),
     )
-    mock_streaming.return_value = ("output", "", 0)
 
     adapter.run("test", tmp_path, {"timeout": 600}, mock_logger)
 
@@ -543,11 +541,10 @@ def test_run_success_with_session_stats(
 
     # Mock successful command with JSON output
     output = json.dumps([{"role": "assistant", "content": "Done"}])
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    mocker.patch(
+        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        return_value=(output, "", 0, False),
     )
-    mock_streaming.return_value = (output, "", 0)
 
     result = adapter.run("test", tmp_path, {}, mock_logger)
     assert result.exit_code == 0
@@ -557,9 +554,6 @@ def test_run_success_with_session_stats(
     assert len(result.conversation) == 1
 
 
-@pytest.mark.filterwarnings(
-    "ignore::RuntimeWarning"
-)  # Suppress mock introspection warnings for async functions
 def test_run_with_custom_model(mocker, adapter, mock_logger, tmp_path, monkeypatch):
     """Test run with custom model configuration."""
     # Setup fake home with .env
@@ -570,11 +564,10 @@ def test_run_with_custom_model(mocker, adapter, mock_logger, tmp_path, monkeypat
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    mocker.patch(
+        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        return_value=("[]", "", 0, False),
     )
-    mock_streaming.return_value = ("[]", "", 0)
 
     adapter.run("test", tmp_path, {"model": "codestral-latest"}, mock_logger)
 
@@ -594,20 +587,16 @@ def test_run_with_empty_response(mocker, adapter, mock_logger, tmp_path, monkeyp
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    mocker.patch(
+        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        return_value=("", "", 0, False),
     )
-    mock_streaming.return_value = ("", "", 0)
 
     result = adapter.run("test", tmp_path, {}, mock_logger)
     assert result.exit_code == 0
     assert result.conversation == []
 
 
-@pytest.mark.filterwarnings(
-    "ignore::RuntimeWarning"
-)  # Suppress mock introspection warnings for async functions
 def test_run_with_invalid_response_format(
     mocker, adapter, mock_logger, tmp_path, monkeypatch
 ):
@@ -620,11 +609,10 @@ def test_run_with_invalid_response_format(
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    mocker.patch(
+        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        return_value=("invalid json {[", "", 0, False),
     )
-    mock_streaming.return_value = ("invalid json {[", "", 0)
 
     result = adapter.run("test", tmp_path, {}, mock_logger)
     assert result.exit_code == 0
@@ -643,11 +631,10 @@ def test_run_with_all_options_combined(
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    mock_streaming = mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_streaming",
-        new_callable=mocker.AsyncMock,
+    mocker.patch(
+        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        return_value=("[]", "", 0, False),
     )
-    mock_streaming.return_value = ("[]", "", 0)
 
     config = {
         "model": "codestral-latest",
@@ -707,3 +694,112 @@ def test_get_cli_version_exception(mocker, adapter):
     mock_run.side_effect = Exception("Command not found")
     version = adapter.get_cli_version()
     assert version is None
+
+
+# ============================================================================
+# MCP Sidecar Config Tests
+# ============================================================================
+
+
+def test_generate_config_reads_pitlane_mcps_sidecar(tmp_path):
+    """_generate_config appends MCP entries from .pitlane_mcps.json to the TOML."""
+    sidecar = tmp_path / ".pitlane_mcps.json"
+    sidecar.write_text(
+        json.dumps(
+            [
+                {
+                    "name": "my-server",
+                    "transport": "stdio",
+                    "command": "npx",
+                    "args": ["-y", "@org/pkg"],
+                    "env": {"KEY": "value"},
+                }
+            ]
+        )
+    )
+
+    adapter = MistralVibeAdapter()
+    adapter._generate_config(tmp_path, {"model": "devstral-2"})
+
+    config_file = tmp_path / ".vibe" / "config.toml"
+    assert config_file.exists()
+    content = config_file.read_text()
+
+    assert "[[mcp_servers]]" in content
+    assert 'name = "my-server"' in content
+    assert 'transport = "stdio"' in content
+    assert 'command = "npx"' in content
+    # Proper TOML array syntax (quoted strings)
+    assert '"-y"' in content
+    assert '"@org/pkg"' in content
+    # Proper TOML inline table syntax
+    assert 'KEY = "value"' in content
+
+
+def test_generate_config_no_sidecar_is_noop(tmp_path):
+    """_generate_config does not crash if .pitlane_mcps.json is absent."""
+    adapter = MistralVibeAdapter()
+    adapter._generate_config(tmp_path, {"model": "devstral-2"})
+    config_file = tmp_path / ".vibe" / "config.toml"
+    assert config_file.exists()
+    content = config_file.read_text()
+    assert "mcp_servers" not in content
+
+
+def test_generate_config_sidecar_no_env(tmp_path):
+    """MCP entry with no env omits the env line from TOML."""
+    sidecar = tmp_path / ".pitlane_mcps.json"
+    sidecar.write_text(
+        json.dumps([{"name": "bare", "transport": "stdio", "command": "cmd"}])
+    )
+
+    adapter = MistralVibeAdapter()
+    adapter._generate_config(tmp_path, {"model": "devstral-2"})
+
+    content = (tmp_path / ".vibe" / "config.toml").read_text()
+    assert 'name = "bare"' in content
+    assert "env = {" not in content
+
+
+# ── install_mcp tests ─────────────────────────────────────────────────────────
+
+
+def test_install_mcp_creates_sidecar(tmp_path):
+    adapter = MistralVibeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    mcp = McpServerConfig(
+        name="vibe-server",
+        type="stdio",
+        command="npx",
+        args=["-y", "@org/pkg"],
+    )
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    sidecar = ws / ".pitlane_mcps.json"
+    assert sidecar.exists()
+    entries = json.loads(sidecar.read_text())
+    assert len(entries) == 1
+    entry = entries[0]
+    assert entry["name"] == "vibe-server"
+    assert entry["transport"] == "stdio"
+    assert entry["command"] == "npx"
+    assert entry["args"] == ["-y", "@org/pkg"]
+
+
+def test_install_mcp_accumulates_entries(tmp_path):
+    adapter = MistralVibeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    mcp1 = McpServerConfig(name="server-a", command="cmd-a")
+    mcp2 = McpServerConfig(name="server-b", command="cmd-b")
+    adapter.install_mcp(workspace=ws, mcp=mcp1)
+    adapter.install_mcp(workspace=ws, mcp=mcp2)
+
+    entries = json.loads((ws / ".pitlane_mcps.json").read_text())
+    assert len(entries) == 2
+    names = [e["name"] for e in entries]
+    assert "server-a" in names
+    assert "server-b" in names

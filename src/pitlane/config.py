@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
@@ -28,10 +28,21 @@ class SkillRef(BaseModel):
     skill: str | None = None
 
 
+class McpServerConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str
+    type: Literal["stdio", "sse", "http"] = "stdio"
+    command: str | None = None
+    args: list[str] = []
+    url: str | None = None
+    env: dict[str, str] = {}
+
+
 class AssistantConfig(BaseModel):
     adapter: AdapterType
     args: dict[str, Any] = {}
     skills: list[SkillRef] = []
+    mcps: list[McpServerConfig] = []
 
     @field_validator("skills", mode="before")
     @classmethod

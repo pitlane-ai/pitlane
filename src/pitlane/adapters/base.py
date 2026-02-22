@@ -7,6 +7,7 @@ from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import logging
+    from pitlane.config import McpServerConfig
 
 
 @dataclass
@@ -19,6 +20,7 @@ class AdapterResult:
     token_usage: dict[str, int] | None = None
     cost_usd: float | None = None
     tool_calls_count: int | None = None
+    timed_out: bool = False
 
 
 class BaseAdapter(ABC):
@@ -46,4 +48,9 @@ class BaseAdapter(ABC):
     @abstractmethod
     def get_cli_version(self) -> str | None:
         """Get the version of the CLI tool this adapter uses."""
+        ...
+
+    @abstractmethod
+    def install_mcp(self, workspace: Path, mcp: McpServerConfig) -> None:
+        """Write MCP server config into the workspace for this agent."""
         ...

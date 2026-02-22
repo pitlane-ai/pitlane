@@ -19,7 +19,7 @@ from pitlane.metrics import (
     aggregate_results,
 )
 from pitlane.verbose import setup_logger
-from pitlane.workspace import WorkspaceManager
+from pitlane.workspace import WorkspaceManager, validate_mcp_env
 
 AssistantName = str
 TaskName = str
@@ -84,12 +84,19 @@ class Runner:
                 k: v for k, v in assistants.items() if k == self.assistant_filter
             }
 
+        validate_mcp_env(assistants)
+
         cli_versions = {}
         for assistant_name, assistant_config in assistants.items():
             adapter = get_adapter(assistant_config.adapter)
             version = adapter.get_cli_version()
             if version:
                 cli_versions[f"{assistant_name} ({adapter.cli_name()})"] = version
+
+        total_tasks = len(assistants) * len(tasks) * self.repeat
+        print(
+            f"Running {total_tasks} task(s) with parallelism {self.parallel_tasks}..."
+        )
 
         with ThreadPoolExecutor(max_workers=self.parallel_tasks) as executor:
             future_to_task = {}
@@ -119,11 +126,28 @@ class Runner:
             for assistant_name in assistants:
                 iteration_results[assistant_name] = {}
 
+            completed_count = 0
             try:
                 for future in as_completed(future_to_task):
                     assistant_name, task_name, iteration = future_to_task[future]
                     try:
                         result_dict = future.result()
+
+                        completed_count += 1
+                        status = "PASS" if result_dict["all_passed"] else "FAIL"
+                        n_passed = sum(
+                            1 for a in result_dict["assertions"] if a["passed"]
+                        )
+                        n_total = len(result_dict["assertions"])
+                        duration = result_dict["metrics"].get("wall_clock_seconds")
+                        dur = f", {duration:.0f}s" if duration is not None else ""
+                        label = f"{assistant_name} / {task_name}"
+                        if self.repeat > 1:
+                            label += f" iter-{iteration}"
+                        print(
+                            f"  [{completed_count}/{len(future_to_task)}] {status}  {label} ({n_passed}/{n_total} assertions{dur})"
+                        )
+
                         # Convert dict to IterationResult object
                         result = IterationResult(
                             metrics=result_dict["metrics"],
@@ -135,6 +159,13 @@ class Runner:
                             iteration_results[assistant_name][task_name] = []
                         iteration_results[assistant_name][task_name].append(result)
                     except Exception as e:
+                        completed_count += 1
+                        label = f"{assistant_name} / {task_name}"
+                        if self.repeat > 1:
+                            label += f" iter-{iteration}"
+                        print(
+                            f"  [{completed_count}/{len(future_to_task)}] ERROR  {label}: {e}"
+                        )
                         logger.error(
                             f"Task '{task_name}' failed for assistant '{assistant_name}': {e}"
                         )
@@ -289,6 +320,9 @@ class Runner:
                 skill=skill,
                 agent_type=adapter.agent_type(),
             )
+
+        for mcp in assistant_config.mcps:
+            adapter.install_mcp(workspace=workspace, mcp=mcp)
 
         config = {**assistant_config.args, "timeout": task.timeout}
         adapter_result = adapter.run(

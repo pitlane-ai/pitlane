@@ -200,6 +200,7 @@ def collect_metrics(
         "token_usage_output": tu.get("output"),
         "cost_usd": adapter_result.cost_usd,
         "tool_calls_count": adapter_result.tool_calls_count,
+        "timed_out": adapter_result.timed_out,
         "assertion_pass_count": passed,
         "assertion_fail_count": failed,
         "assertion_pass_rate": round(pass_rate, 2),

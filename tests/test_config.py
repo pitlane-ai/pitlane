@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pitlane.config import SkillRef, load_config
+from pitlane.config import McpServerConfig, SkillRef, load_config
 
 
 def _example_configs() -> list[Path]:
@@ -212,3 +212,172 @@ def test_assertion_validation_rejects_unknown(tmp_yaml):
     """)
     with pytest.raises(Exception):
         load_config(path)
+
+
+def test_load_config_with_mcps(tmp_yaml):
+    path = tmp_yaml("""\
+        assistants:
+          mcp-assistant:
+            adapter: claude-code
+            mcps:
+              - name: my-server
+                type: stdio
+                command: npx
+                args: ["-y", "@my-org/my-mcp-server"]
+                env:
+                  API_KEY: "hardcoded"
+        tasks:
+          - name: t1
+            prompt: do something
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    mcps = cfg.assistants["mcp-assistant"].mcps
+    assert len(mcps) == 1
+    mcp = mcps[0]
+    assert mcp.name == "my-server"
+    assert mcp.type == "stdio"
+    assert mcp.command == "npx"
+    assert mcp.args == ["-y", "@my-org/my-mcp-server"]
+    assert mcp.env == {"API_KEY": "hardcoded"}
+
+
+def test_load_config_mcps_defaults(tmp_yaml):
+    path = tmp_yaml("""\
+        assistants:
+          a:
+            adapter: claude-code
+            mcps:
+              - name: minimal
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    mcp = cfg.assistants["a"].mcps[0]
+    assert mcp.name == "minimal"
+    assert mcp.type == "stdio"
+    assert mcp.command is None
+    assert mcp.args == []
+    assert mcp.url is None
+    assert mcp.env == {}
+
+
+def test_load_config_mcps_sse_type(tmp_yaml):
+    path = tmp_yaml("""\
+        assistants:
+          a:
+            adapter: claude-code
+            mcps:
+              - name: remote
+                type: sse
+                url: "http://localhost:8080/sse"
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    mcp = cfg.assistants["a"].mcps[0]
+    assert mcp.type == "sse"
+    assert mcp.url == "http://localhost:8080/sse"
+
+
+def test_load_config_mcps_rejects_extra_fields(tmp_yaml):
+    path = tmp_yaml("""\
+        assistants:
+          a:
+            adapter: claude-code
+            mcps:
+              - name: bad
+                unknown_field: oops
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    with pytest.raises(Exception):
+        load_config(path)
+
+
+def test_mcp_server_config_env_expansion(monkeypatch):
+    """${VAR} in env values is expanded by workspace_mgr at install time, not parse time."""
+    monkeypatch.setenv("MY_TEST_KEY", "secret")
+    from pitlane.workspace import _expand_env
+
+    assert _expand_env("${MY_TEST_KEY}") == "secret"
+    assert _expand_env("${MISSING_VAR:-fallback}") == "fallback"
+    assert _expand_env("plain") == "plain"
+    assert _expand_env("prefix-${MY_TEST_KEY}-suffix") == "prefix-secret-suffix"
+    with pytest.raises(ValueError, match="MISSING_VAR_NO_DEFAULT"):
+        _expand_env("${MISSING_VAR_NO_DEFAULT}")
+
+
+def test_validate_mcp_env_fails_fast_on_missing_vars(monkeypatch):
+    """validate_mcp_env raises listing all missing vars before any work starts."""
+    monkeypatch.setenv("SET_VAR", "ok")
+    monkeypatch.delenv("MISSING_A", raising=False)
+    monkeypatch.delenv("MISSING_B", raising=False)
+    from pitlane.workspace import validate_mcp_env
+    from pitlane.config import AssistantConfig
+
+    assistants = {
+        "a1": AssistantConfig(
+            adapter="claude-code",
+            mcps=[McpServerConfig(name="m1", env={"K": "${SET_VAR}"})],
+        ),
+        "a2": AssistantConfig(
+            adapter="claude-code",
+            mcps=[
+                McpServerConfig(
+                    name="m2", env={"X": "${MISSING_A}", "Y": "${MISSING_B:-ok}"}
+                )
+            ],
+        ),
+    }
+    # SET_VAR is fine, MISSING_B has a default — only MISSING_A should fail
+    with pytest.raises(ValueError, match="MISSING_A") as exc_info:
+        validate_mcp_env(assistants)
+    assert "MISSING_B" not in str(exc_info.value)
+    assert "a2" in str(exc_info.value)
+    assert "m2" in str(exc_info.value)
+
+
+def test_validate_mcp_env_passes_when_all_set(monkeypatch):
+    """validate_mcp_env does not raise when all vars are present."""
+    monkeypatch.setenv("TOKEN", "x")
+    from pitlane.workspace import validate_mcp_env
+    from pitlane.config import AssistantConfig
+
+    assistants = {
+        "a1": AssistantConfig(
+            adapter="claude-code",
+            mcps=[McpServerConfig(name="m1", env={"T": "${TOKEN}"})],
+        ),
+    }
+    validate_mcp_env(assistants)  # should not raise
+
+
+def test_load_config_no_mcps_defaults_to_empty(tmp_yaml):
+    path = tmp_yaml("""\
+        assistants:
+          a:
+            adapter: claude-code
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    assert cfg.assistants["a"].mcps == []

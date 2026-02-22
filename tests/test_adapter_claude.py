@@ -1,6 +1,11 @@
 import json
 import subprocess
+from pathlib import Path
+
+import pytest
+
 from pitlane.adapters.claude_code import ClaudeCodeAdapter
+from pitlane.config import McpServerConfig
 
 
 def test_build_command_minimal():
@@ -91,11 +96,11 @@ def test_claude_with_api_error_handling(tmp_path, monkeypatch):
     adapter = ClaudeCodeAdapter()
     logger = logging.getLogger("test")
 
-    async def mock_run_command(*args, **kwargs):
+    def mock_run_command(*args, **kwargs):
         raise Exception("API Error: Authentication failed")
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_command_with_streaming", mock_run_command
+        "pitlane.adapters.claude_code.run_streaming_sync", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {"model": "sonnet"}, logger)
@@ -109,16 +114,15 @@ def test_claude_with_api_error_handling(tmp_path, monkeypatch):
 def test_claude_with_timeout_error(tmp_path, monkeypatch):
     """Test claude adapter handles timeout errors."""
     import logging
-    import asyncio
 
     adapter = ClaudeCodeAdapter()
     logger = logging.getLogger("test")
 
-    async def mock_run_command(*args, **kwargs):
-        raise asyncio.TimeoutError("Command execution timed out")
+    def mock_run_command(*args, **kwargs):
+        raise TimeoutError("Command execution timed out")
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_command_with_streaming", mock_run_command
+        "pitlane.adapters.claude_code.run_streaming_sync", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {"model": "sonnet", "timeout": 30}, logger)
@@ -310,11 +314,11 @@ def test_claude_run_with_debug_logging(tmp_path, monkeypatch):
 
     logger.debug = capture_debug
 
-    async def mock_run_command(*args, **kwargs):
-        return "test output", "", 0
+    def mock_run_command(*args, **kwargs):
+        return "test output", "", 0, False
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_command_with_streaming", mock_run_command
+        "pitlane.adapters.claude_code.run_streaming_sync", mock_run_command
     )
 
     result = adapter.run(
@@ -328,3 +332,86 @@ def test_claude_run_with_debug_logging(tmp_path, monkeypatch):
     assert any("Config:" in msg for msg in log_messages)
     assert any("Command completed" in msg for msg in log_messages)
     assert result.exit_code == 0
+
+
+# ── install_mcp tests ─────────────────────────────────────────────────────────
+
+
+def test_install_mcp_creates_mcp_json(tmp_path: Path):
+    adapter = ClaudeCodeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    mcp = McpServerConfig(
+        name="my-server",
+        type="stdio",
+        command="npx",
+        args=["-y", "@org/pkg"],
+        env={"KEY": "val"},
+    )
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    target = ws / ".mcp.json"
+    assert target.exists()
+    data = json.loads(target.read_text())
+    assert "mcpServers" in data
+    entry = data["mcpServers"]["my-server"]
+    assert entry["type"] == "stdio"
+    assert entry["command"] == "npx"
+    assert entry["args"] == ["-y", "@org/pkg"]
+    assert entry["env"] == {"KEY": "val"}
+
+
+def test_install_mcp_merges_existing(tmp_path: Path):
+    adapter = ClaudeCodeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    existing = {"mcpServers": {"old-server": {"type": "stdio", "command": "old-cmd"}}}
+    (ws / ".mcp.json").write_text(json.dumps(existing))
+
+    mcp = McpServerConfig(name="new-server", type="stdio", command="new-cmd")
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    data = json.loads((ws / ".mcp.json").read_text())
+    assert "old-server" in data["mcpServers"]
+    assert "new-server" in data["mcpServers"]
+
+
+def test_install_mcp_env_expansion(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    adapter = ClaudeCodeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    monkeypatch.setenv("TEST_SECRET", "my-secret-value")
+
+    mcp = McpServerConfig(
+        name="env-server",
+        command="cmd",
+        env={"SECRET": "${TEST_SECRET}", "STATIC": "literal"},
+    )
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    data = json.loads((ws / ".mcp.json").read_text())
+    entry_env = data["mcpServers"]["env-server"]["env"]
+    assert entry_env["SECRET"] == "my-secret-value"
+    assert entry_env["STATIC"] == "literal"
+
+
+def test_install_mcp_env_expansion_with_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    adapter = ClaudeCodeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    monkeypatch.delenv("UNSET_VAR", raising=False)
+
+    mcp = McpServerConfig(
+        name="default-server",
+        command="cmd",
+        env={"VAR": "${UNSET_VAR:-fallback-value}"},
+    )
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    data = json.loads((ws / ".mcp.json").read_text())
+    entry_env = data["mcpServers"]["default-server"]["env"]
+    assert entry_env["VAR"] == "fallback-value"

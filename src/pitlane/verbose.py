@@ -30,6 +30,7 @@ def setup_logger(
         )
 
     logger = logging.getLogger(logger_name)
+    logger.propagate = False  # prevent leaking to root logger / stderr
 
     # Clear any existing handlers for this specific logger
     logger.handlers.clear()

@@ -1,6 +1,8 @@
 import pytest
+import textwrap
 import yaml
 from concurrent.futures import as_completed
+from unittest.mock import patch
 from junitparser import JUnitXml
 from pitlane.runner import Runner, IterationResult
 from pitlane.metrics import compute_stats, aggregate_results
@@ -537,3 +539,104 @@ tasks:
     assert report_path.exists()
     html_content = report_path.read_text()
     assert "task-" in html_content
+
+
+def test_runner_calls_install_mcp_for_each_mcp(tmp_path):
+    """Runner calls adapter.install_mcp for each MCP in assistant_config.mcps."""
+    fixture_dir = tmp_path / "fixtures" / "empty"
+    fixture_dir.mkdir(parents=True)
+    (fixture_dir / ".gitkeep").write_text("")
+
+    config_file = tmp_path / "eval.yaml"
+    config_file.write_text(
+        textwrap.dedent(f"""\
+        assistants:
+          mcp-assistant:
+            adapter: claude-code
+            args:
+              model: haiku
+            mcps:
+              - name: server-a
+                command: npx
+                args: ["-y", "@org/a"]
+              - name: server-b
+                type: sse
+                url: "http://localhost:9000/sse"
+
+        tasks:
+          - name: simple-test
+            prompt: "Create hello.py"
+            workdir: {fixture_dir}
+            timeout: 10
+            assertions:
+              - file_exists: "hello.py"
+        """)
+    )
+    config = load_config(config_file)
+
+    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+
+    install_mcp_calls = []
+
+    def fake_install_mcp(workspace, mcp):
+        install_mcp_calls.append(mcp.name)
+
+    with (
+        patch(
+            "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+            return_value=mock_result,
+        ),
+        patch(
+            "pitlane.adapters.claude_code.ClaudeCodeAdapter.install_mcp",
+            side_effect=fake_install_mcp,
+        ),
+    ):
+        runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
+        runner.execute()
+
+    assert len(install_mcp_calls) == 2
+    assert "server-a" in install_mcp_calls
+    assert "server-b" in install_mcp_calls
+
+
+def test_runner_no_mcps_does_not_call_install_mcp(tmp_path):
+    """Runner does not call install_mcp when assistant has no mcps."""
+    fixture_dir = tmp_path / "fixtures" / "empty"
+    fixture_dir.mkdir(parents=True)
+    (fixture_dir / ".gitkeep").write_text("")
+
+    config_file = tmp_path / "eval.yaml"
+    config_file.write_text(
+        textwrap.dedent(f"""\
+        assistants:
+          baseline:
+            adapter: claude-code
+            args:
+              model: haiku
+
+        tasks:
+          - name: t
+            prompt: p
+            workdir: {fixture_dir}
+            timeout: 10
+            assertions:
+              - command_succeeds: "true"
+        """)
+    )
+    config = load_config(config_file)
+
+    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+
+    with (
+        patch(
+            "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+            return_value=mock_result,
+        ),
+        patch(
+            "pitlane.adapters.claude_code.ClaudeCodeAdapter.install_mcp"
+        ) as mock_install_mcp,
+    ):
+        runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
+        runner.execute()
+
+    mock_install_mcp.assert_not_called()

@@ -1,11 +1,16 @@
-# Terraform IBM Modules (TIM) Skill Evaluation
+# Terraform IBM Modules (TIM) Skill + MCP Evaluation
 #
-# Evaluates whether the terraform-ibm-modules-skills skill improves
-# an assistant's ability to generate correct, idiomatic Terraform
-# solutions using curated IBM-maintained modules (TIM).
+# Compares baseline, skill-augmented, and MCP-augmented assistants on
+# their ability to generate correct, idiomatic Terraform solutions using
+# curated IBM-maintained modules (TIM).
 #
-# What the skill provides:
-#   - Module discovery via MCP or Terraform Registry API
+# Tooling options (both provide the same capabilities):
+#   skill (tim-skill): npm-based skill installed into the workspace
+#   mcp   (tim-mcp):   Python MCP server run via uvx at task time
+#                      https://github.com/terraform-ibm-modules/tim-mcp
+#
+# Both provide:
+#   - Module discovery via Terraform Registry API
 #   - Guidance to prefer TIM modules over raw provider resources
 #   - Example-driven code generation from real module examples
 #   - Validation workflow (terraform init/validate/plan)
@@ -19,6 +24,7 @@
 #   6. Variable/output design quality (vs golden reference)
 #
 # Requires: pip install pitlane[similarity] for rouge/bleu/bertscore checks
+# Set GITHUB_TOKEN to avoid GitHub API rate limits when using tim-mcp.
 
 assistants:
   # Bob baseline for comparison
@@ -26,6 +32,22 @@ assistants:
     adapter: bob
     args:
       chat_mode: code
+
+  # With TIM MCP: same capability as the skill but via MCP server
+  bob-with-tim-mcp:
+    adapter: bob
+    args:
+      chat_mode: advance
+    mcps:
+      - name: tim-mcp
+        type: stdio
+        command: uvx
+        args:
+          - "--from"
+          - "git+https://github.com/terraform-ibm-modules/tim-mcp.git"
+          - "tim-mcp"
+        env:
+          GITHUB_TOKEN: "${GITHUB_TOKEN}"
 
   # Baseline: no skill — relies on the model's training data alone
   claude-baseline:
@@ -42,6 +64,22 @@ assistants:
       - source: terraform-ibm-modules/terraform-ibm-modules-skills
         skill: terraform-ibm-modules-solution-builder
 
+  # With TIM MCP: same capability as the skill but via MCP server
+  claude-with-tim-mcp:
+    adapter: claude-code
+    args:
+      model: haiku
+    mcps:
+      - name: tim-mcp
+        type: stdio
+        command: uvx
+        args:
+          - "--from"
+          - "git+https://github.com/terraform-ibm-modules/tim-mcp.git"
+          - "tim-mcp"
+        env:
+          GITHUB_TOKEN: "${GITHUB_TOKEN}"
+
   # mistral vibe baseline for cross-assistant comparison
   vibe-baseline:
     adapter: mistral-vibe
@@ -53,8 +91,24 @@ assistants:
     args:
       model: devstral-2
     skills:
-        - source: terraform-ibm-modules/terraform-ibm-modules-skills
-          skill: terraform-ibm-modules-solution-builder
+      - source: terraform-ibm-modules/terraform-ibm-modules-skills
+        skill: terraform-ibm-modules-solution-builder
+
+  # With TIM MCP: same capability as the skill but via MCP server
+  vibe-with-tim-mcp:
+    adapter: mistral-vibe
+    args:
+      model: devstral-2
+    mcps:
+      - name: tim-mcp
+        type: stdio
+        command: uvx
+        args:
+          - "--from"
+          - "git+https://github.com/terraform-ibm-modules/tim-mcp.git"
+          - "tim-mcp"
+        env:
+          GITHUB_TOKEN: "${GITHUB_TOKEN}"
 
 tasks:
   - name: compose-vpc-and-vsi

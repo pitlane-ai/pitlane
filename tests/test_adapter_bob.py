@@ -1,6 +1,8 @@
 import json
 import subprocess
+
 from pitlane.adapters.bob import BobAdapter
+from pitlane.config import McpServerConfig
 
 
 def test_build_command_minimal():
@@ -206,12 +208,10 @@ def test_bob_with_api_error_handling(tmp_path, monkeypatch):
     adapter = BobAdapter()
     logger = logging.getLogger("test")
 
-    async def mock_run_command(*args, **kwargs):
+    def mock_run_command(*args, **kwargs):
         raise Exception("API Error: Rate limit exceeded")
 
-    monkeypatch.setattr(
-        "pitlane.adapters.bob.run_command_with_streaming", mock_run_command
-    )
+    monkeypatch.setattr("pitlane.adapters.bob.run_streaming_sync", mock_run_command)
 
     result = adapter.run("test", tmp_path, {}, logger)
     assert result.exit_code == -1
@@ -223,18 +223,15 @@ def test_bob_with_api_error_handling(tmp_path, monkeypatch):
 
 def test_bob_with_timeout_error(tmp_path, monkeypatch):
     """Test bob adapter handles timeout errors."""
-    import asyncio
     import logging
 
     adapter = BobAdapter()
     logger = logging.getLogger("test")
 
-    async def mock_run_command(*args, **kwargs):
-        raise asyncio.TimeoutError("Command timed out")
+    def mock_run_command(*args, **kwargs):
+        raise TimeoutError("Command timed out")
 
-    monkeypatch.setattr(
-        "pitlane.adapters.bob.run_command_with_streaming", mock_run_command
-    )
+    monkeypatch.setattr("pitlane.adapters.bob.run_streaming_sync", mock_run_command)
 
     result = adapter.run("test", tmp_path, {"timeout": 10}, logger)
     assert result.exit_code == -1
@@ -366,12 +363,10 @@ def test_bob_run_with_debug_logging(tmp_path, monkeypatch):
 
     logger.debug = capture_debug
 
-    async def mock_run_command(*args, **kwargs):
-        return "test output", "", 0
+    def mock_run_command(*args, **kwargs):
+        return "test output", "", 0, False
 
-    monkeypatch.setattr(
-        "pitlane.adapters.bob.run_command_with_streaming", mock_run_command
-    )
+    monkeypatch.setattr("pitlane.adapters.bob.run_streaming_sync", mock_run_command)
 
     result = adapter.run("test prompt", tmp_path, {"timeout": 60}, logger)
 
@@ -382,3 +377,61 @@ def test_bob_run_with_debug_logging(tmp_path, monkeypatch):
     assert any("Config:" in msg for msg in log_messages)
     assert any("Command completed" in msg for msg in log_messages)
     assert result.exit_code == 0
+
+
+# ── install_mcp tests ─────────────────────────────────────────────────────────
+
+
+def test_install_mcp_creates_bob_mcp_json(tmp_path):
+    adapter = BobAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    mcp = McpServerConfig(
+        name="my-server",
+        type="stdio",
+        command="npx",
+        args=["-y", "@org/pkg"],
+        env={"KEY": "val"},
+    )
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    target = ws / ".bob" / "mcp.json"
+    assert target.exists()
+    data = json.loads(target.read_text())
+    assert "mcpServers" in data
+    entry = data["mcpServers"]["my-server"]
+    assert entry["type"] == "stdio"
+    assert entry["command"] == "npx"
+    assert entry["args"] == ["-y", "@org/pkg"]
+    assert entry["env"] == {"KEY": "val"}
+
+
+def test_install_mcp_merges_existing(tmp_path):
+    adapter = BobAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    bob_dir = ws / ".bob"
+    bob_dir.mkdir()
+    existing = {"mcpServers": {"old-server": {"type": "stdio", "command": "old-cmd"}}}
+    (bob_dir / "mcp.json").write_text(json.dumps(existing))
+
+    mcp = McpServerConfig(name="new-server", type="stdio", command="new-cmd")
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    data = json.loads((bob_dir / "mcp.json").read_text())
+    assert "old-server" in data["mcpServers"]
+    assert "new-server" in data["mcpServers"]
+
+
+def test_install_mcp_creates_bob_dir(tmp_path):
+    adapter = BobAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    mcp = McpServerConfig(name="server", type="stdio", command="cmd")
+    adapter.install_mcp(workspace=ws, mcp=mcp)
+
+    assert (ws / ".bob").is_dir()
+    assert (ws / ".bob" / "mcp.json").exists()

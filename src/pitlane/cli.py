@@ -52,8 +52,11 @@ def run(
         repeat=repeat,
     )
 
-    typer.echo("Starting evaluation run...")
-    run_dir = runner.execute()
+    try:
+        run_dir = runner.execute()
+    except ValueError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
 
     if runner.interrupted:
         typer.echo("Run interrupted. Saving partial results...")

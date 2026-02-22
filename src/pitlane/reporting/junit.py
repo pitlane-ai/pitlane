@@ -54,6 +54,7 @@ def write_junit(run_dir: Path, all_results: dict[str, dict[str, Any]]) -> Path:
                 "files_created",
                 "files_modified",
                 "tool_calls_count",
+                "timed_out",
             ]
             for key in prop_keys:
                 val = metrics.get(key)

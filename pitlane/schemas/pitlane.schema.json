@@ -20,6 +20,14 @@
           "title": "Args",
           "type": "object"
         },
+        "mcps": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/McpServerConfig"
+          },
+          "title": "Mcps",
+          "type": "array"
+        },
         "skills": {
           "default": [],
           "items": {
@@ -235,6 +243,70 @@
         "pattern"
       ],
       "title": "FileContainsSpec",
+      "type": "object"
+    },
+    "McpServerConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "args": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Args",
+          "type": "array"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Env",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "stdio",
+          "enum": [
+            "stdio",
+            "sse",
+            "http"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "McpServerConfig",
       "type": "object"
     },
     "FileExistsAssertion": {

@@ -648,6 +648,9 @@
             {% set passed = suite.tests - suite.failures - suite.errors %}
             <span class="badge badge-pass">{{ passed }}/{{ suite.tests }}</span>
             {% endif %}
+            {% if props.get('timed_out') and props.timed_out|float > 0 %}
+            <span class="badge badge-error">TIMEOUT</span>
+            {% endif %}
             {% if suite.time %}
             <span class="suite-time">{{ "%.2f"|format(suite.time) }}s</span>
             {% endif %}

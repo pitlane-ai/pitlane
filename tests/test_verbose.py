@@ -62,3 +62,16 @@ def test_logger_creates_parent_directories():
 
         assert debug_file.exists()
         assert debug_file.parent.exists()
+
+
+def test_logger_propagate_is_false():
+    """Logger should not propagate to root logger."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        debug_file = Path(tmpdir) / "debug.log"
+        logger = setup_logger(
+            debug_file=debug_file,
+            verbose=False,
+            logger_name="pitlane_propagate_test",
+        )
+
+        assert logger.propagate is False

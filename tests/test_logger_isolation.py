@@ -154,3 +154,19 @@ def test_collision_detection_prevents_log_mixing(tmp_path: Path):
         setup_logger(
             log3, verbose=False, logger_name="pitlane_collision_assistant1_task1"
         )
+
+
+def test_non_verbose_logger_produces_no_stderr(tmp_path: Path, capsys):
+    """Non-verbose logger must not leak any output to stderr."""
+    log_file = tmp_path / "silent.log"
+    logger = setup_logger(
+        log_file, verbose=False, logger_name="pitlane_stderr_silence_test"
+    )
+
+    logger.debug("debug message")
+    logger.info("info message")
+    logger.warning("warning message")
+
+    captured = capsys.readouterr()
+    assert captured.err == "", f"Unexpected stderr output: {captured.err!r}"
+    assert captured.out == "", f"Unexpected stdout output: {captured.out!r}"

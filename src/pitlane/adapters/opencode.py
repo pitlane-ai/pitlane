@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 from pitlane.adapters.base import AdapterResult, BaseAdapter
-from pitlane.adapters.streaming import run_command_with_streaming
+from pitlane.adapters.streaming import run_streaming_sync
 
 if TYPE_CHECKING:
     import logging
@@ -34,6 +33,30 @@ class OpenCodeAdapter(BaseAdapter):
         except Exception:
             pass
         return None
+
+    def install_mcp(self, workspace: Path, mcp: Any) -> None:
+        from pitlane.workspace import _expand_env
+
+        expanded_env = {k: _expand_env(v) for k, v in mcp.env.items()}
+        target = workspace / "opencode.json"
+        data: dict = {}
+        if target.exists():
+            data = json.loads(target.read_text())
+        mcp_section = data.setdefault("mcp", {})
+        full_command: list[str] = []
+        if mcp.command is not None:
+            full_command.append(mcp.command)
+        full_command.extend(mcp.args)
+        entry: dict = {
+            "type": "local",
+            "command": full_command,
+            "environment": expanded_env,
+            "enabled": True,
+        }
+        if mcp.url is not None:
+            entry["url"] = mcp.url
+        mcp_section[mcp.name] = entry
+        target.write_text(json.dumps(data, indent=2))
 
     def _build_command(self, prompt: str, config: dict[str, Any]) -> list[str]:
         cmd = ["opencode", "run", "--format", "json"]
@@ -148,8 +171,8 @@ class OpenCodeAdapter(BaseAdapter):
 
         start = time.monotonic()
         try:
-            stdout, stderr, exit_code = asyncio.run(
-                run_command_with_streaming(cmd, workdir, timeout, logger)
+            stdout, stderr, exit_code, timed_out = run_streaming_sync(
+                cmd, workdir, timeout, logger
             )
         except Exception as e:
             duration = time.monotonic() - start
@@ -185,4 +208,5 @@ class OpenCodeAdapter(BaseAdapter):
             token_usage=token_usage,
             cost_usd=cost,
             tool_calls_count=tool_calls_count,
+            timed_out=timed_out,
         )
