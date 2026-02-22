@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitlane Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -58,6 +59,62 @@
     .meta-label { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
     .meta-value { font-family: monospace; color: #374151; }
 
+    /* Charts section */
+    .charts-section {
+      padding: 16px 24px 8px;
+    }
+    .chart-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      overflow: hidden;
+    }
+    .chart-tabs {
+      display: flex;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    .chart-tab-btn {
+      padding: 8px 16px;
+      border: none;
+      background: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      white-space: nowrap;
+      transition: color .15s, border-color .15s;
+    }
+    .chart-tab-btn:hover { color: #374151; }
+    .chart-tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+    .chart-panel { display: none; padding: 16px; }
+    .chart-panel.active { display: block; }
+    .chart-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .chart-controls label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .chart-controls select {
+      font-size: 13px;
+      padding: 4px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #f9fafb;
+      color: #374151;
+      cursor: pointer;
+    }
+
+
     /* Summary cards */
     .summary {
       display: flex;
@@ -85,10 +142,26 @@
       font-weight: 700;
       margin-top: 4px;
     }
-    .card.total  .card-value { color: #374151; }
-    .card.passed .card-value { color: #22c55e; }
-    .card.failed .card-value { color: #ef4444; }
+    .card.configurations .card-value { color: #374151; }
+    .card.avg-score .card-value { color: #3b82f6; }
     .card.errored .card-value { color: #f59e0b; }
+
+
+    /* Chart containers */
+    .chart-container {
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .chart-container canvas {
+      max-height: 350px;
+    }
+    .chart-fallback {
+      padding: 24px;
+      text-align: center;
+      color: #6b7280;
+      font-style: italic;
+    }
 
     /* Suites container */
     .suites {
@@ -168,6 +241,13 @@
       padding: 2px 8px;
       border-radius: 4px;
       white-space: nowrap;
+    }
+    .metric-label {
+      font-size: 10px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-right: 2px;
     }
     .agent-select {
       width: 16px;
@@ -383,6 +463,17 @@
     .badge-role-assistant { background: #ede9fe; color: #5b21b6; }
     .badge-role-tool      { background: #dbeafe; color: #1e40af; }
 
+    /* Score pill — color set inline via style attribute */
+    .score-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
     /* Drill-down sections */
     .drill-section {
       margin-top: 12px;
@@ -400,8 +491,8 @@
     }
     .drill-section > summary::-webkit-details-marker { display: none; }
     .drill-section > summary::marker { display: none; }
-    .drill-section > summary::before { content: "▶ "; font-size: 10px; color: #9ca3af; }
-    .drill-section[open] > summary::before { content: "▼ "; }
+    .drill-section > summary::before { content: "\25B6 "; font-size: 10px; color: #9ca3af; }
+    .drill-section[open] > summary::before { content: "\25BC "; }
 
     /* Debug log */
     .debug-log-pre {
@@ -473,8 +564,8 @@
     }
     .tool-call-details > summary::-webkit-details-marker { display: none; }
     .tool-call-details > summary::marker { display: none; }
-    .tool-call-details > summary::before { content: "▶ "; font-size: 10px; color: #93c5fd; }
-    .tool-call-details[open] > summary::before { content: "▼ "; }
+    .tool-call-details > summary::before { content: "\25B6 "; font-size: 10px; color: #93c5fd; }
+    .tool-call-details[open] > summary::before { content: "\25BC "; }
     .tool-input-pre {
       padding: 8px 12px;
       font-family: monospace;
@@ -502,8 +593,8 @@
     }
     details.dir-item > summary::-webkit-details-marker { display: none; }
     details.dir-item > summary::marker { display: none; }
-    details.dir-item > summary::before { content: "📁 "; }
-    details.dir-item[open] > summary::before { content: "📂 "; }
+    details.dir-item > summary::before { content: "\1F4C1 "; }
+    details.dir-item[open] > summary::before { content: "\1F4C2 "; }
     .dir-children { padding-left: 16px; border-left: 1px solid #e5e7eb; margin-left: 8px; }
     details.file-item > summary {
       cursor: pointer;
@@ -514,7 +605,7 @@
     }
     details.file-item > summary::-webkit-details-marker { display: none; }
     details.file-item > summary::marker { display: none; }
-    details.file-item > summary::before { content: "📄 "; }
+    details.file-item > summary::before { content: "\1F4C4 "; }
     .file-content {
       font-family: monospace;
       font-size: 11px;
@@ -547,21 +638,33 @@
 {% endfor %}
 {% endmacro %}
 
+{# ── Score pill macro: red→amber→green continuous color ────────────────── #}
+{% macro score_pill(score) %}
+{% if score is not none %}
+  {% set s = score|float %}
+  {% set t = [[s / 100, 1.0]|min, 0.0]|max %}
+  {% if t < 0.5 %}
+    {% set r = 239 %}
+    {% set g = (68 + (t * 2) * (158 - 68))|int %}
+    {% set b = (68 + (t * 2) * (11 - 68))|int %}
+  {% else %}
+    {% set r = (239 + ((t - 0.5) * 2) * (34 - 239))|int %}
+    {% set g = (158 + ((t - 0.5) * 2) * (197 - 158))|int %}
+    {% set b = (11 + ((t - 0.5) * 2) * (94 - 11))|int %}
+  {% endif %}
+  <span class="score-pill" style="background:rgba({{ r }},{{ g }},{{ b }},0.25); color:rgb({{ r }},{{ g }},{{ b }});">{{ s }}</span>
+{% endif %}
+{% endmacro %}
+
 <header class="header">
   <div style="flex:1">
     <h1>Pitlane Report</h1>
     <div class="run-dir">{{ run_dir }}</div>
   </div>
   <div class="header-badges">
-    <span class="badge badge-neutral">{{ total_tests }} tests</span>
-    {% if total_failures > 0 %}
-    <span class="badge badge-fail">{{ total_failures }} failed</span>
-    {% endif %}
+    <span class="badge badge-neutral">{{ total_configurations }} configurations</span>
     {% if total_errors > 0 %}
     <span class="badge badge-error">{{ total_errors }} errors</span>
-    {% endif %}
-    {% if total_failures == 0 and total_errors == 0 %}
-    <span class="badge badge-pass">all passed</span>
     {% endif %}
   </div>
 </header>
@@ -591,25 +694,24 @@
   {% if meta.repeat and meta.repeat > 1 %}
   <div class="meta-item">
     <span class="meta-label">Repeat</span>
-    <span class="meta-value">{{ meta.repeat }}×</span>
+    <span class="meta-value">{{ meta.repeat }}&times;</span>
   </div>
   {% endif %}
 </div>
 {% endif %}
 
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{# ── Summary cards + table ────────────────────────────────────────────────── #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+
 <section class="summary">
-  {% set total_passed = total_tests - total_failures - total_errors %}
-  <div class="card total">
-    <div class="card-label">Total</div>
-    <div class="card-value">{{ total_tests }}</div>
+  <div class="card configurations">
+    <div class="card-label">Configurations</div>
+    <div class="card-value">{{ total_configurations }}</div>
   </div>
-  <div class="card passed">
-    <div class="card-label">Passed</div>
-    <div class="card-value">{{ total_passed }}</div>
-  </div>
-  <div class="card failed">
-    <div class="card-label">Failed</div>
-    <div class="card-value">{{ total_failures }}</div>
+  <div class="card avg-score">
+    <div class="card-label">Avg Score</div>
+    <div class="card-value">{{ avg_score if avg_score is not none else '-' }}</div>
   </div>
   <div class="card errored">
     <div class="card-label">Errors</div>
@@ -617,47 +719,81 @@
   </div>
 </section>
 
-<section class="suites">
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{# ── Charts ──────────────────────────────────────────────────────────────── #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="charts-section">
+  <div class="chart-card">
+    <div class="chart-tabs">
+      <button class="chart-tab-btn active" onclick="switchChart(event,'chart-panel-overview')">Cost vs Time</button>
+      <button class="chart-tab-btn" onclick="switchChart(event,'chart-panel-explore')">Explore</button>
+    </div>
+    <div id="chart-panel-overview" class="chart-panel active">
+      <div class="chart-container">
+        <canvas id="chart-cost-time"></canvas>
+        <div class="chart-fallback hidden" id="fallback-cost-time">Chart.js could not be loaded.</div>
+      </div>
+    </div>
+    <div id="chart-panel-explore" class="chart-panel">
+      <div class="chart-controls">
+        <label for="explore-x">X axis</label>
+        <select id="explore-x" onchange="renderExploreChart()"></select>
+        <label for="explore-y">Y axis</label>
+        <select id="explore-y" onchange="renderExploreChart()"></select>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart-explore"></canvas>
+        <div class="chart-fallback hidden" id="fallback-explore">Chart.js could not be loaded.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{# ── Configuration Results ───────────────────────────────────────────────── #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<section class="suites" id="detailed-data">
   {% for task_name, agents in tasks %}
-  {% set task_failures = agents | sum(attribute='failures') %}
-  {% set task_tests    = agents | sum(attribute='tests') %}
+  {% set ns_task = namespace(score_sum=0, score_count=0) %}
+  {% for suite in agents %}
+    {% if suite.properties.get('weighted_score') is not none %}
+      {% set ns_task.score_sum = ns_task.score_sum + suite.properties.weighted_score|float %}
+      {% set ns_task.score_count = ns_task.score_count + 1 %}
+    {% endif %}
+  {% endfor %}
+  {% set task_avg = (ns_task.score_sum / ns_task.score_count)|round(1) if ns_task.score_count > 0 else none %}
   <div class="task-section">
     <div class="task-header">
       <span class="task-name">{{ task_name }}</span>
-      {% if task_failures > 0 %}
-      <span class="badge badge-fail">{{ task_failures }} failed</span>
-      {% else %}
-      <span class="badge badge-pass">{{ task_tests - task_failures }}/{{ task_tests }} passed</span>
+      {% if task_avg is not none %}
+      <span class="agent-metric">Avg: {{ task_avg }}</span>
+      {{ score_pill(task_avg) }}
       {% endif %}
     </div>
 
-    {# ── List view (default) ──────────────────────────────────────────── #}
     <div class="agent-list-view">
       {% for suite in agents %}
       {% set props = suite.properties %}
-      {% set is_failing = suite.failures > 0 or suite.errors > 0 %}
+      {% set score_val = props.get('weighted_score') %}
       <div class="agent-card" data-agent-idx="{{ loop.index0 }}">
         <details {% if agents | length == 1 %}open{% endif %}>
           <summary class="agent-summary">
             <input type="checkbox" class="agent-select"
                    onclick="event.stopPropagation(); updateCompareBtn(this)">
             <span class="agent-name">{{ suite.assistant_name }}</span>
-            {% if is_failing %}
-            <span class="badge badge-fail">{{ suite.failures }} failed</span>
-            {% else %}
-            {% set passed = suite.tests - suite.failures - suite.errors %}
-            <span class="badge badge-pass">{{ passed }}/{{ suite.tests }}</span>
+            {{ score_pill(score_val) }}
+            {% if props.get('weighted_score_stddev') is not none %}<span style="color:#9ca3af; font-size:11px;">&plusmn;{{ props.weighted_score_stddev }}</span>{% endif %}
+            <span class="agent-metric"><span class="metric-label">cost</span> ${{ props.cost_usd if props.get('cost_usd') is not none else '-' }}</span>
+            {% if suite.time %}
+            <span class="agent-metric"><span class="metric-label">time</span> {{ "%.2f"|format(suite.time) }}s</span>
             {% endif %}
+            <span class="agent-metric">
+              {% set passed = suite.tests - suite.failures - suite.errors %}
+              <span class="metric-label">assertions</span> {{ passed }}/{{ suite.tests }}
+            </span>
             {% if props.get('timed_out') and props.timed_out|float > 0 %}
             <span class="badge badge-error">TIMEOUT</span>
             {% endif %}
-            {% if suite.time %}
-            <span class="suite-time">{{ "%.2f"|format(suite.time) }}s</span>
-            {% endif %}
-            {% if props.get('weighted_score') is not none %}
-            <span class="agent-metric">Score: {{ props.weighted_score }}</span>
-            {% endif %}
-            <span class="agent-metric">${{ props.cost_usd if props.get('cost_usd') is not none else '-' }}</span>
           </summary>
 
           <div class="agent-detail">
@@ -789,7 +925,7 @@
 
             {# ── Debug log ──────────────────────────────────────────── #}
             {% if suite.debug_log %}
-            <details class="drill-section" {% if is_failing %}open{% endif %}>
+            <details class="drill-section" {% if suite.errors > 0 %}open{% endif %}>
               <summary>Debug log</summary>
               <pre class="debug-log-pre">{{ suite.debug_log }}</pre>
             </details>
@@ -852,7 +988,7 @@
     {# ── Compare view (hidden) ─────────────────────────────────────── #}
     <div class="compare-view hidden">
       <div class="compare-bar">
-        <button class="back-btn" onclick="closeCompare(this)">&#8592; Back to list</button>
+        <button class="back-btn" onclick="closeCompare(this)">&larr; Back to list</button>
       </div>
       <div class="compare-grid"></div>
     </div>
@@ -861,6 +997,20 @@
 </section>
 
 <script>
+/* ── Chart data ──────────────────────────────────────────────────────────── */
+var chartData = {{ chart_data_json|safe }};
+
+/* ── Chart tab switching ─────────────────────────────────────────────────── */
+function switchChart(event, panelId) {
+  var btns = document.querySelectorAll('.chart-tab-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+  event.currentTarget.classList.add('active');
+  var panels = document.querySelectorAll('.chart-panel');
+  for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+/* ── Compare functions ────────────────────────────────────────────────────── */
 function updateCompareBtn(checkbox) {
   var section = checkbox.closest('.task-section');
   var checks = section.querySelectorAll('.agent-select:checked');
@@ -868,7 +1018,6 @@ function updateCompareBtn(checkbox) {
   var n = checks.length;
   btn.textContent = 'Compare (' + n + ' selected)';
   btn.disabled = n < 2;
-  // sync "select all" checkbox
   var allChecks = section.querySelectorAll('.agent-select');
   var selectAll = section.querySelector('.select-all');
   if (selectAll) selectAll.checked = checks.length === allChecks.length;
@@ -899,7 +1048,6 @@ function openCompare(button) {
     n++;
     var col = document.createElement('div');
     col.className = 'compare-col';
-    // header: clone summary info (name + badges)
     var header = document.createElement('div');
     header.className = 'compare-col-header';
     var summary = cards[i].querySelector('.agent-summary');
@@ -909,7 +1057,6 @@ function openCompare(button) {
       header.appendChild(children[j].cloneNode(true));
     }
     col.appendChild(header);
-    // body: clone detail content
     var detail = cards[i].querySelector('.agent-detail');
     if (detail) {
       var body = document.createElement('div');
@@ -932,6 +1079,157 @@ function closeCompare(button) {
   compareView.classList.add('hidden');
   compareView.querySelector('.compare-grid').innerHTML = '';
   listView.classList.remove('hidden');
+}
+
+
+/* ── Score color helper (red→amber→green) ────────────────────────────────── */
+function scoreColor(score) {
+  var t = Math.min(Math.max(score / 100, 0), 1);
+  var r, g, b;
+  if (t < 0.5) {
+    r = 239; g = Math.round(68 + t * 2 * (158 - 68)); b = Math.round(68 + t * 2 * (11 - 68));
+  } else {
+    r = Math.round(239 + (t - 0.5) * 2 * (34 - 239)); g = Math.round(158 + (t - 0.5) * 2 * (197 - 158)); b = Math.round(11 + (t - 0.5) * 2 * (94 - 11));
+  }
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+/* ── Charts ──────────────────────────────────────────────────────────────── */
+/* Metric display names */
+var metricLabels = {
+  cost: 'Cost (USD)',
+  latency: 'Time (seconds)',
+  score: 'Score',
+  tool_calls_count: 'Tool Calls',
+  token_usage_input: 'Input Tokens',
+  token_usage_output: 'Output Tokens',
+  total_tokens: 'Total Tokens',
+  files_created: 'Files Created',
+  files_modified: 'Files Modified',
+  total_lines_generated: 'Lines Generated',
+  assertion_pass_rate: 'Assertion Pass Rate (%)'
+};
+
+var exploreChart = null;
+
+(function() {
+  if (typeof Chart === 'undefined') {
+    var fallbacks = document.querySelectorAll('.chart-fallback');
+    for (var i = 0; i < fallbacks.length; i++) fallbacks[i].classList.remove('hidden');
+    var canvases = document.querySelectorAll('.chart-container canvas');
+    for (var i = 0; i < canvases.length; i++) canvases[i].style.display = 'none';
+    return;
+  }
+
+  /* Cost vs Time scatter (dot color = score) */
+  var costTimeData = chartData.filter(function(d) { return d.cost !== null && d.latency !== null; });
+  if (costTimeData.length > 0) {
+    var points = [];
+    var colors = [];
+    for (var i = 0; i < costTimeData.length; i++) {
+      var d = costTimeData[i];
+      points.push({x: d.cost, y: d.latency, label: d.assistant, score: d.score});
+      colors.push(scoreColor(d.score));
+    }
+    new Chart(document.getElementById('chart-cost-time'), {
+      type: 'scatter',
+      data: {datasets: [{
+        data: points,
+        backgroundColor: colors,
+        borderColor: colors,
+        pointRadius: 8,
+        pointHoverRadius: 10
+      }]},
+      options: {
+        responsive: true,
+        plugins: {
+          title: {display: true, text: 'Cost vs Time (color = score)'},
+          legend: {display: false},
+          tooltip: {callbacks: {label: function(ctx) {
+            var p = ctx.raw;
+            return p.label + ': $' + p.x.toFixed(4) + ', ' + p.y.toFixed(1) + 's, Score ' + p.score;
+          }}}
+        },
+        scales: {
+          x: {title: {display: true, text: 'Cost (USD)'}},
+          y: {title: {display: true, text: 'Time (seconds)'}}
+        }
+      }
+    });
+  }
+
+  /* Populate explore axis dropdowns with metrics that have data */
+  var metricKeys = Object.keys(metricLabels);
+  var available = metricKeys.filter(function(k) {
+    return chartData.some(function(d) { return d[k] !== null && d[k] !== undefined; });
+  });
+
+  var xSel = document.getElementById('explore-x');
+  var ySel = document.getElementById('explore-y');
+  available.forEach(function(k) {
+    var ox = document.createElement('option');
+    ox.value = k; ox.textContent = metricLabels[k];
+    xSel.appendChild(ox);
+    var oy = document.createElement('option');
+    oy.value = k; oy.textContent = metricLabels[k];
+    ySel.appendChild(oy);
+  });
+
+  /* Default X=cost, Y=tool_calls_count (or first two available) */
+  var defX = available.indexOf('cost') >= 0 ? 'cost' : available[0];
+  var defY = available.indexOf('tool_calls_count') >= 0 ? 'tool_calls_count'
+           : available.indexOf('latency') >= 0 ? 'latency'
+           : available[1] || available[0];
+  xSel.value = defX;
+  ySel.value = defY;
+  renderExploreChart();
+})();
+
+function renderExploreChart() {
+  var xKey = document.getElementById('explore-x').value;
+  var yKey = document.getElementById('explore-y').value;
+  var data = chartData.filter(function(d) {
+    return d[xKey] !== null && d[xKey] !== undefined &&
+           d[yKey] !== null && d[yKey] !== undefined;
+  });
+
+  var points = [];
+  var colors = [];
+  for (var i = 0; i < data.length; i++) {
+    var d = data[i];
+    points.push({x: d[xKey], y: d[yKey], label: d.assistant, score: d.score});
+    colors.push(scoreColor(d.score));
+  }
+
+  var xLabel = metricLabels[xKey] || xKey;
+  var yLabel = metricLabels[yKey] || yKey;
+
+  if (exploreChart) { exploreChart.destroy(); }
+  exploreChart = new Chart(document.getElementById('chart-explore'), {
+    type: 'scatter',
+    data: {datasets: [{
+      data: points,
+      backgroundColor: colors,
+      borderColor: colors,
+      pointRadius: 8,
+      pointHoverRadius: 10
+    }]},
+    options: {
+      responsive: true,
+      plugins: {
+        title: {display: true, text: xLabel + ' vs ' + yLabel + ' (color = score)'},
+        legend: {display: false},
+        tooltip: {callbacks: {label: function(ctx) {
+          var p = ctx.raw;
+          return p.label + ': ' + p.x + ', ' + p.y + ', Score ' + p.score;
+        }}}
+      },
+      scales: {
+        x: {title: {display: true, text: xLabel}},
+        y: {title: {display: true, text: yLabel}}
+      }
+    }
+  });
 }
 </script>
 </body>
