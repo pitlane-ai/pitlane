@@ -542,7 +542,7 @@ tasks:
             "3",
             "--task",
             "test-task",
-            "--assistant",
+            "--include-assistants",
             "test-assistant",
             "--output-dir",
             "custom-runs",
@@ -555,7 +555,7 @@ tasks:
     assert call_kwargs["parallel_tasks"] == 2
     assert call_kwargs["repeat"] == 3
     assert call_kwargs["task_filter"] == "test-task"
-    assert call_kwargs["assistant_filter"] == "test-assistant"
+    assert call_kwargs["assistant_filter"] == ["test-assistant"]
     assert call_kwargs["output_dir"] == Path("custom-runs")
     assert result.exit_code == 0
 

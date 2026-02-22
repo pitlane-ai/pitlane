@@ -77,10 +77,12 @@ class Runner:
         all_results: dict[str, dict[str, Any]] = {}
 
         tasks = self.config.tasks
+        tasks = [t for t in tasks if t.enabled]
         if self.task_filter:
             tasks = [t for t in tasks if t.name == self.task_filter]
 
         assistants = self.config.assistants
+        assistants = {k: v for k, v in assistants.items() if v.enabled}
         if self.assistant_filter:
             assistants = {
                 k: v for k, v in assistants.items() if k in self.assistant_filter
