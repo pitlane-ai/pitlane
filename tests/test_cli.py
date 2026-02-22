@@ -137,6 +137,26 @@ def test_run_command_with_invalid_config(tmp_path, monkeypatch):
     assert result.exit_code != 0
 
 
+def test_run_command_with_invalid_yaml(tmp_path):
+    """Test run command with a config file that has invalid YAML syntax."""
+    config_file = tmp_path / "bad.yaml"
+    config_file.write_text("key: value: bad: [unclosed")
+
+    result = runner.invoke(app, ["run", str(config_file)])
+    assert result.exit_code == 1
+    assert "invalid YAML" in result.output
+
+
+def test_run_command_with_invalid_schema(tmp_path):
+    """Test run command with valid YAML but wrong schema (missing required keys)."""
+    config_file = tmp_path / "wrong.yaml"
+    config_file.write_text("assistants:\n  bob:\n    adapter: claude-code\n")
+
+    result = runner.invoke(app, ["run", str(config_file)])
+    assert result.exit_code == 1
+    assert "invalid config" in result.output
+
+
 def test_run_command_with_missing_adapter(tmp_path, monkeypatch):
     """Test run command when adapter is not found."""
     monkeypatch.chdir(tmp_path)

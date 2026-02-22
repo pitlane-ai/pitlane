@@ -51,7 +51,17 @@ def run(
         typer.echo(f"Error: config file not found: {config}", err=True)
         raise typer.Exit(1)
 
-    eval_config = load_config(config_path)
+    import yaml
+    from pydantic import ValidationError
+
+    try:
+        eval_config = load_config(config_path)
+    except yaml.YAMLError as e:
+        typer.echo(f"Error: invalid YAML in {config}: {e}", err=True)
+        raise typer.Exit(1)
+    except ValidationError as e:
+        typer.echo(f"Error: invalid config in {config}:\n{e}", err=True)
+        raise typer.Exit(1)
 
     include_filter = (
         [a.strip() for a in only_assistants.split(",")] if only_assistants else None
