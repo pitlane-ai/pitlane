@@ -271,7 +271,7 @@ def test_custom_script_with_interpreter(tmp_path):
         tmp_path,
         {
             "custom_script": {
-                "interpreter": "python",
+                "interpreter": "python3",
                 "script": "./test.py",
             }
         },
@@ -289,7 +289,7 @@ def test_custom_script_with_interpreter_args(tmp_path):
         tmp_path,
         {
             "custom_script": {
-                "interpreter": "python",
+                "interpreter": "python3",
                 "interpreter_args": ["-u"],
                 "script": "./test.py",
             }
@@ -314,7 +314,7 @@ else:
         tmp_path,
         {
             "custom_script": {
-                "interpreter": "python",
+                "interpreter": "python3",
                 "script": "./test.py",
                 "script_args": ["--strict", "--format=json"],
             }
@@ -339,7 +339,7 @@ else:
         tmp_path,
         {
             "custom_script": {
-                "interpreter": "python",
+                "interpreter": "python3",
                 "interpreter_args": ["-u"],
                 "script": "./test.py",
                 "script_args": ["--arg1", "--arg2"],
