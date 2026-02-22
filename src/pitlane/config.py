@@ -11,6 +11,11 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 class AdapterType(str, Enum):
     BOB = "bob"
     CLAUDE_CODE = "claude-code"
+    CLINE = "cline"
+    CODEX = "codex"
+    COPILOT = "copilot"
+    GEMINI = "gemini"
+    KILO = "kilo"
     MISTRAL_VIBE = "mistral-vibe"
     OPENCODE = "opencode"
 

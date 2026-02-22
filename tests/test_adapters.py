@@ -3,6 +3,11 @@ import pytest
 from pitlane.adapters import get_adapter
 from pitlane.adapters.base import AdapterResult, BaseAdapter
 from pitlane.adapters.claude_code import ClaudeCodeAdapter
+from pitlane.adapters.cline import ClineAdapter
+from pitlane.adapters.codex import CodexAdapter
+from pitlane.adapters.copilot import CopilotAdapter
+from pitlane.adapters.gemini import GeminiAdapter
+from pitlane.adapters.kilo import KiloAdapter
 from pitlane.adapters.mistral_vibe import MistralVibeAdapter
 from pitlane.adapters.opencode import OpenCodeAdapter
 
@@ -43,6 +48,11 @@ class TestGetAdapter:
         "name,expected_type,cli,agent",
         [
             ("claude-code", ClaudeCodeAdapter, "claude", "claude-code"),
+            ("cline", ClineAdapter, "cline", "cline"),
+            ("codex", CodexAdapter, "codex", "codex"),
+            ("copilot", CopilotAdapter, "gh", "copilot"),
+            ("gemini", GeminiAdapter, "gemini", "gemini"),
+            ("kilo", KiloAdapter, "kilo", "kilo"),
             ("mistral-vibe", MistralVibeAdapter, "vibe", "mistral-vibe"),
             ("opencode", OpenCodeAdapter, "opencode", "opencode"),
         ],
