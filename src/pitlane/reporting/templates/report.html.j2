@@ -1128,7 +1128,7 @@ var exploreChart = null;
     var colors = [];
     for (var i = 0; i < costTimeData.length; i++) {
       var d = costTimeData[i];
-      points.push({x: d.cost, y: d.latency, label: d.assistant, score: d.score});
+      points.push({x: d.latency, y: d.cost, label: d.assistant, score: d.score});
       colors.push(scoreColor(d.score));
     }
     new Chart(document.getElementById('chart-cost-time'), {
@@ -1143,16 +1143,16 @@ var exploreChart = null;
       options: {
         responsive: true,
         plugins: {
-          title: {display: true, text: 'Cost vs Time (color = score)'},
+          title: {display: true, text: 'Time vs Cost (color = score)'},
           legend: {display: false},
           tooltip: {callbacks: {label: function(ctx) {
             var p = ctx.raw;
-            return p.label + ': $' + p.x.toFixed(4) + ', ' + p.y.toFixed(1) + 's, Score ' + p.score;
+            return p.label + ': ' + p.x.toFixed(1) + 's, $' + p.y.toFixed(4) + ', Score ' + p.score;
           }}}
         },
         scales: {
-          x: {title: {display: true, text: 'Cost (USD)'}},
-          y: {title: {display: true, text: 'Time (seconds)'}}
+          x: {title: {display: true, text: 'Time (seconds)'}},
+          y: {title: {display: true, text: 'Cost (USD)'}}
         }
       }
     });
