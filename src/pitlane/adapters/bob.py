@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
+from expandvars import expandvars
+
 from pitlane.adapters.base import AdapterResult, BaseAdapter
 from pitlane.adapters.streaming import run_streaming_sync
 
@@ -36,9 +38,8 @@ class BobAdapter(BaseAdapter):
         return None
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
-        from pitlane.workspace import _expand_env
-
-        expanded_env = {k: _expand_env(v) for k, v in mcp.env.items()}
+        # Resolve ${VAR} references from the user's YAML config
+        env = {k: expandvars(v, nounset=True) for k, v in mcp.env.items()}
         bob_dir = workspace / ".bob"
         bob_dir.mkdir(exist_ok=True)
         target = bob_dir / "mcp.json"
@@ -53,8 +54,8 @@ class BobAdapter(BaseAdapter):
             entry["args"] = mcp.args
         if mcp.url is not None:
             entry["url"] = mcp.url
-        if expanded_env:
-            entry["env"] = expanded_env
+        if env:
+            entry["env"] = env
         servers[mcp.name] = entry
         target.write_text(json.dumps(data, indent=2))
 

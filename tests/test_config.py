@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pitlane.config import McpServerConfig, SkillRef, load_config
+from pitlane.config import SkillRef, load_config
 
 
 def _example_configs() -> list[Path]:
@@ -310,61 +310,18 @@ def test_load_config_mcps_rejects_extra_fields(tmp_yaml):
 
 
 def test_mcp_server_config_env_expansion(monkeypatch):
-    """${VAR} in env values is expanded by workspace_mgr at install time, not parse time."""
+    """${VAR} in env values is expanded by expandvars at install time, not parse time."""
     monkeypatch.setenv("MY_TEST_KEY", "secret")
-    from pitlane.workspace import _expand_env
+    monkeypatch.delenv("MISSING_VAR", raising=False)
+    monkeypatch.delenv("MISSING_VAR_NO_DEFAULT", raising=False)
+    from expandvars import expandvars
 
-    assert _expand_env("${MY_TEST_KEY}") == "secret"
-    assert _expand_env("${MISSING_VAR:-fallback}") == "fallback"
-    assert _expand_env("plain") == "plain"
-    assert _expand_env("prefix-${MY_TEST_KEY}-suffix") == "prefix-secret-suffix"
-    with pytest.raises(ValueError, match="MISSING_VAR_NO_DEFAULT"):
-        _expand_env("${MISSING_VAR_NO_DEFAULT}")
-
-
-def test_validate_mcp_env_fails_fast_on_missing_vars(monkeypatch):
-    """validate_mcp_env raises listing all missing vars before any work starts."""
-    monkeypatch.setenv("SET_VAR", "ok")
-    monkeypatch.delenv("MISSING_A", raising=False)
-    monkeypatch.delenv("MISSING_B", raising=False)
-    from pitlane.workspace import validate_mcp_env
-    from pitlane.config import AssistantConfig
-
-    assistants = {
-        "a1": AssistantConfig(
-            adapter="claude-code",
-            mcps=[McpServerConfig(name="m1", env={"K": "${SET_VAR}"})],
-        ),
-        "a2": AssistantConfig(
-            adapter="claude-code",
-            mcps=[
-                McpServerConfig(
-                    name="m2", env={"X": "${MISSING_A}", "Y": "${MISSING_B:-ok}"}
-                )
-            ],
-        ),
-    }
-    # SET_VAR is fine, MISSING_B has a default — only MISSING_A should fail
-    with pytest.raises(ValueError, match="MISSING_A") as exc_info:
-        validate_mcp_env(assistants)
-    assert "MISSING_B" not in str(exc_info.value)
-    assert "a2" in str(exc_info.value)
-    assert "m2" in str(exc_info.value)
-
-
-def test_validate_mcp_env_passes_when_all_set(monkeypatch):
-    """validate_mcp_env does not raise when all vars are present."""
-    monkeypatch.setenv("TOKEN", "x")
-    from pitlane.workspace import validate_mcp_env
-    from pitlane.config import AssistantConfig
-
-    assistants = {
-        "a1": AssistantConfig(
-            adapter="claude-code",
-            mcps=[McpServerConfig(name="m1", env={"T": "${TOKEN}"})],
-        ),
-    }
-    validate_mcp_env(assistants)  # should not raise
+    assert expandvars("${MY_TEST_KEY}", nounset=True) == "secret"
+    assert expandvars("${MISSING_VAR:-fallback}", nounset=True) == "fallback"
+    assert expandvars("plain", nounset=True) == "plain"
+    assert expandvars("prefix-${MY_TEST_KEY}-suffix", nounset=True) == "prefix-secret-suffix"
+    with pytest.raises(Exception):
+        expandvars("${MISSING_VAR_NO_DEFAULT}", nounset=True)
 
 
 def test_load_config_no_mcps_defaults_to_empty(tmp_yaml):

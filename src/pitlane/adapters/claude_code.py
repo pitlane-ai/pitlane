@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
+from expandvars import expandvars
+
 from pitlane.adapters.base import AdapterResult, BaseAdapter
 from pitlane.adapters.streaming import run_streaming_sync
 
@@ -111,9 +113,8 @@ class ClaudeCodeAdapter(BaseAdapter):
         return conversation, token_usage, cost, tool_calls_count
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
-        from pitlane.workspace import _expand_env
-
-        expanded_env = {k: _expand_env(v) for k, v in mcp.env.items()}
+        # Resolve ${VAR} references from the user's YAML config
+        env = {k: expandvars(v, nounset=True) for k, v in mcp.env.items()}
         target = workspace / ".mcp.json"
         data: dict = {}
         if target.exists():
@@ -126,8 +127,8 @@ class ClaudeCodeAdapter(BaseAdapter):
             entry["args"] = mcp.args
         if mcp.url is not None:
             entry["url"] = mcp.url
-        if expanded_env:
-            entry["env"] = expanded_env
+        if env:
+            entry["env"] = env
         servers[mcp.name] = entry
         target.write_text(json.dumps(data, indent=2))
 

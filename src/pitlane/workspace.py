@@ -2,53 +2,10 @@
 
 from __future__ import annotations
 
-import os
-import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any
-
 from pitlane.config import SkillRef
-
-
-_ENV_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z_0-9]*)(?::-(.*?))?\}")
-
-
-def _expand_env(value: str) -> str:
-    """Expand ${VAR} and ${VAR:-default} in a string using os.environ."""
-
-    def _replace(m: re.Match) -> str:
-        var = m.group(1)
-        default = m.group(2)
-        if var in os.environ:
-            return os.environ[var]
-        if default is not None:
-            return str(default)
-        raise ValueError(f"MCP env variable ${{{var}}} is not set in the environment")
-
-    return _ENV_RE.sub(_replace, value)
-
-
-def validate_mcp_env(assistants: dict[str, Any]) -> None:
-    """Check that all MCP env ${VAR} references (without defaults) are set.
-
-    Raises ValueError listing every missing variable so the user can fix them
-    all at once rather than hitting them one-by-one mid-run.
-    """
-    missing: list[str] = []
-    for name, asst in assistants.items():
-        for mcp in asst.mcps:
-            for key, value in mcp.env.items():
-                for m in _ENV_RE.finditer(value):
-                    var, default = m.group(1), m.group(2)
-                    if default is None and var not in os.environ:
-                        missing.append(f"  {name} -> mcp '{mcp.name}': ${{{var}}}")
-    if missing:
-        details = "\n".join(missing)
-        raise ValueError(
-            f"Missing environment variables required by MCP servers:\n{details}"
-        )
 
 
 class WorkspaceManager:

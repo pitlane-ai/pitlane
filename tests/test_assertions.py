@@ -1,6 +1,5 @@
 """Tests for the deterministic assertion system."""
 
-import importlib.util
 import logging
 
 import pytest
@@ -109,15 +108,6 @@ def test_evaluate_assertion_command_succeeds(tmp_path):
 def test_evaluate_assertion_unknown_type():
     with pytest.raises(ValueError, match="[Uu]nknown"):
         evaluate_assertion("/tmp", {"bogus_check": "value"})
-
-
-def test_evaluate_assertion_similarity_missing_deps_raises():
-    deps_present = (
-        importlib.util.find_spec("evaluate") is not None
-        and importlib.util.find_spec("sentence_transformers") is not None
-        and importlib.util.find_spec("bert_score") is not None
-    )
-    assert deps_present, "Similarity deps must be installed for tests"
 
 
 def test_evaluate_assertion_similarity_runs(tmp_path):

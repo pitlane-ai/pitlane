@@ -415,3 +415,20 @@ def test_install_mcp_env_expansion_with_default(
     data = json.loads((ws / ".mcp.json").read_text())
     entry_env = data["mcpServers"]["default-server"]["env"]
     assert entry_env["VAR"] == "fallback-value"
+
+
+def test_install_mcp_env_missing_var_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    adapter = ClaudeCodeAdapter()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    monkeypatch.delenv("TOTALLY_MISSING", raising=False)
+
+    mcp = McpServerConfig(
+        name="bad-server",
+        command="cmd",
+        env={"KEY": "${TOTALLY_MISSING}"},
+    )
+    with pytest.raises(Exception, match="TOTALLY_MISSING"):
+        adapter.install_mcp(workspace=ws, mcp=mcp)

@@ -19,7 +19,7 @@ from pitlane.metrics import (
     aggregate_results,
 )
 from pitlane.verbose import setup_logger
-from pitlane.workspace import WorkspaceManager, validate_mcp_env
+from pitlane.workspace import WorkspaceManager
 
 AssistantName = str
 TaskName = str
@@ -83,8 +83,6 @@ class Runner:
             assistants = {
                 k: v for k, v in assistants.items() if k == self.assistant_filter
             }
-
-        validate_mcp_env(assistants)
 
         cli_versions = {}
         for assistant_name, assistant_config in assistants.items():

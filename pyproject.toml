@@ -16,6 +16,7 @@ dependencies = [
     "nltk>=3.9.2",
     "sacrebleu>=2.6.0",
     "junitparser>=4.0",
+    "expandvars>=0.12",
 ]
 
 [project.scripts]
