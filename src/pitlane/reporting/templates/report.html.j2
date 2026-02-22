@@ -878,7 +878,7 @@
             {# Repeat stats — collapsed details #}
             {% if ns.repeat_items %}
             <details class="drill-section">
-              <summary>Repeat stats ({{ ns.repeat_items | length }})</summary>
+              <summary>Consistency metrics — avg/stddev/min/max across {{ meta.repeat }} runs</summary>
               <div class="props-grid">
                 {% for k, v in ns.repeat_items | sort %}
                 <div class="prop-item">
