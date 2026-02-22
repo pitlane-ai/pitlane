@@ -164,7 +164,7 @@ tasks:
 
 
 def test_run_command_with_adapter_error(tmp_path, monkeypatch, mocker):
-    """Test run command when adapter execution fails."""
+    """Test run command when adapter execution fails (hard error)."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
     config_file.write_text("""
@@ -193,15 +193,15 @@ tasks:
     mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
     mock_runner_class.return_value = mock_runner
 
-    # Create a minimal junit.xml with failures
+    # Create a minimal junit.xml with execution errors (not just assertion failures)
     run_dir = tmp_path / "runs" / "test-run"
     run_dir.mkdir(parents=True, exist_ok=True)
     junit_xml = run_dir / "junit.xml"
     junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <testsuites>
-  <testsuite name="test-task" tests="1" failures="1" errors="0">
+  <testsuite name="test-task" tests="1" failures="0" errors="1">
     <testcase name="test-assistant" classname="test-task">
-      <failure message="Adapter error">Test failed</failure>
+      <error message="Adapter crash">Execution error</error>
     </testcase>
   </testsuite>
 </testsuites>
@@ -214,7 +214,7 @@ tasks:
 
 
 def test_run_command_with_assertion_error(tmp_path, monkeypatch, mocker):
-    """Test run command when assertions fail."""
+    """Test run command exits 0 when only assertion failures occur (no hard errors)."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
     config_file.write_text("""
@@ -243,7 +243,7 @@ tasks:
     mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
     mock_runner_class.return_value = mock_runner
 
-    # Create a junit.xml with assertion failures
+    # Create a junit.xml with assertion failures (but no errors)
     run_dir = tmp_path / "runs" / "test-run"
     run_dir.mkdir(parents=True, exist_ok=True)
     junit_xml = run_dir / "junit.xml"
@@ -260,7 +260,7 @@ tasks:
     mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
     mock_report.return_value = run_dir / "report.html"
     result = runner.invoke(app, ["run", str(config_file), "--no-open"])
-    assert result.exit_code == 1
+    assert result.exit_code == 0
 
 
 def test_run_command_with_workspace_error(tmp_path, monkeypatch):
@@ -572,8 +572,8 @@ def test_report_command_with_invalid_directory():
     assert "not a valid run directory" in result.output
 
 
-def test_report_command_with_open_flag(tmp_path, mocker):
-    """Test report command with --open flag."""
+def test_report_command_opens_browser_by_default(tmp_path, mocker):
+    """Test report command opens browser by default."""
     run_dir = tmp_path / "test-run"
     run_dir.mkdir(parents=True, exist_ok=True)
     junit_xml = run_dir / "junit.xml"
@@ -588,9 +588,30 @@ def test_report_command_with_open_flag(tmp_path, mocker):
     mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
     mock_report.return_value = run_dir / "report.html"
     mock_browser = mocker.patch("webbrowser.open")
-    result = runner.invoke(app, ["report", str(run_dir), "--open"])
+    result = runner.invoke(app, ["report", str(run_dir)])
     assert result.exit_code == 0
     mock_browser.assert_called_once()
+
+
+def test_report_command_no_open_flag(tmp_path, mocker):
+    """Test report command with --no-open suppresses browser."""
+    run_dir = tmp_path / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="test-task" tests="1" failures="0" errors="0">
+    <testcase name="test-assistant" classname="test-task"/>
+  </testsuite>
+</testsuites>
+""")
+
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    mock_browser = mocker.patch("webbrowser.open")
+    result = runner.invoke(app, ["report", str(run_dir), "--no-open"])
+    assert result.exit_code == 0
+    mock_browser.assert_not_called()
 
 
 def test_report_command_regeneration(tmp_path, mocker):
@@ -608,6 +629,7 @@ def test_report_command_regeneration(tmp_path, mocker):
 
     mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
     mock_report.return_value = run_dir / "report.html"
+    mocker.patch("webbrowser.open")
     result = runner.invoke(app, ["report", str(run_dir)])
     assert result.exit_code == 0
     assert "Report generated" in result.output
@@ -790,6 +812,57 @@ def test_schema_install_user_confirmation_flow(tmp_path, monkeypatch):
 # ============================================================================
 # Schema Generate Command Tests
 # ============================================================================
+
+
+def test_run_command_exit_nonzero_on_timeout(tmp_path, monkeypatch, mocker):
+    """Test run command exits 1 when a suite has timed_out > 0."""
+    monkeypatch.chdir(tmp_path)
+    config_file = tmp_path / "eval.yaml"
+    config_file.write_text("""
+assistants:
+  test-assistant:
+    adapter: claude-code
+    args:
+      model: sonnet
+
+tasks:
+  - name: test-task
+    prompt: "Test prompt"
+    workdir: ./fixtures/empty
+    timeout: 60
+    assertions:
+      - file_exists: "test.txt"
+""")
+
+    fixtures = tmp_path / "fixtures/empty"
+    fixtures.mkdir(parents=True, exist_ok=True)
+
+    mock_runner_class = mocker.patch("pitlane.runner.Runner")
+    mock_runner = mocker.Mock()
+    mock_runner.interrupted = False
+    mock_runner.execute.return_value = tmp_path / "runs" / "test-run"
+    mock_runner_class.return_value = mock_runner
+
+    run_dir = tmp_path / "runs" / "test-run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    junit_xml = run_dir / "junit.xml"
+    junit_xml.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="test-assistant / test-task" tests="1" failures="1" errors="0">
+    <properties>
+      <property name="timed_out" value="1"/>
+    </properties>
+    <testcase name="file_exists: test.txt" classname="test-task">
+      <failure message="Timed out">Task timed out</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
+""")
+
+    mock_report = mocker.patch("pitlane.reporting.junit.generate_report")
+    mock_report.return_value = run_dir / "report.html"
+    result = runner.invoke(app, ["run", str(config_file), "--no-open"])
+    assert result.exit_code == 1
 
 
 def test_schema_generate_with_custom_paths(tmp_path, monkeypatch):

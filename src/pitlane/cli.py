@@ -96,21 +96,26 @@ def run(
 
         webbrowser.open(report_path.resolve().as_uri())
 
-    # Exit with non-zero if any assertion failed or run was interrupted
+    # Exit with non-zero on hard errors (execution errors, crashes, timeouts)
+    # Assertion failures are expected data, not errors — exit 0 for those
     if runner.interrupted:
         raise typer.Exit(1)
 
     xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
-    has_failures = any(suite.failures > 0 for suite in xml)
-    if has_failures:
+    has_errors = any(suite.errors > 0 for suite in xml)
+    has_timeouts = any(
+        any(p.name == "timed_out" and float(p.value) > 0 for p in suite.properties())
+        for suite in xml
+    )
+    if has_errors or has_timeouts:
         raise typer.Exit(1)
 
 
 @app.command()
 def report(
     run_dir: str = typer.Argument(help="Path to run output directory"),
-    open_report: bool = typer.Option(
-        False, "--open", help="Open report.html in browser after generating"
+    no_open: bool = typer.Option(
+        False, "--no-open", help="Do not open report.html in browser after generating"
     ),
 ):
     """Regenerate HTML report from a previous run."""
@@ -124,7 +129,7 @@ def report(
     report_path = generate_report(run_path)
     typer.echo(f"Report generated: {report_path}")
 
-    if open_report:
+    if not no_open:
         import webbrowser
 
         webbrowser.open(report_path.resolve().as_uri())
