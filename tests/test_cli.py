@@ -542,7 +542,7 @@ tasks:
             "3",
             "--task",
             "test-task",
-            "--include-assistants",
+            "--only-assistants",
             "test-assistant",
             "--output-dir",
             "custom-runs",
@@ -818,7 +818,7 @@ def test_schema_generate_with_custom_paths(tmp_path, monkeypatch):
 
 
 # ============================================================================
-# Include/Exclude Assistants CLI Tests
+# Only/Skip Assistants CLI Tests
 # ============================================================================
 
 
@@ -849,7 +849,7 @@ tasks:
     return config_file
 
 
-def test_include_assistants_flag_passes_list_to_runner(tmp_path):
+def test_only_assistants_flag_passes_list_to_runner(tmp_path):
     config_file = _make_run_config(tmp_path)
     captured = {}
 
@@ -867,13 +867,13 @@ def test_include_assistants_flag_passes_list_to_runner(tmp_path):
             )
             runner.invoke(
                 app,
-                ["run", str(config_file), "--include-assistants", "a,b", "--no-open"],
+                ["run", str(config_file), "--only-assistants", "a,b", "--no-open"],
             )
 
     assert captured.get("assistant_filter") == ["a", "b"]
 
 
-def test_include_assistants_short_flag(tmp_path):
+def test_only_assistants_short_flag(tmp_path):
     config_file = _make_run_config(tmp_path)
     captured = {}
 
@@ -889,12 +889,12 @@ def test_include_assistants_short_flag(tmp_path):
             mock_exec.return_value.__truediv__ = lambda s, o: MagicMock(
                 exists=lambda: False
             )
-            runner.invoke(app, ["run", str(config_file), "-i", "a", "--no-open"])
+            runner.invoke(app, ["run", str(config_file), "-o", "a", "--no-open"])
 
     assert captured.get("assistant_filter") == ["a"]
 
 
-def test_exclude_assistants_flag_passes_list_to_runner(tmp_path):
+def test_skip_assistants_flag_passes_list_to_runner(tmp_path):
     config_file = _make_run_config(tmp_path)
     captured = {}
 
@@ -912,13 +912,13 @@ def test_exclude_assistants_flag_passes_list_to_runner(tmp_path):
             )
             runner.invoke(
                 app,
-                ["run", str(config_file), "--exclude-assistants", "a,b", "--no-open"],
+                ["run", str(config_file), "--skip-assistants", "a,b", "--no-open"],
             )
 
-    assert captured.get("exclude_assistants") == ["a", "b"]
+    assert captured.get("skip_assistants") == ["a", "b"]
 
 
-def test_exclude_assistants_short_flag(tmp_path):
+def test_skip_assistants_short_flag(tmp_path):
     config_file = _make_run_config(tmp_path)
     captured = {}
 
@@ -934,6 +934,6 @@ def test_exclude_assistants_short_flag(tmp_path):
             mock_exec.return_value.__truediv__ = lambda s, o: MagicMock(
                 exists=lambda: False
             )
-            runner.invoke(app, ["run", str(config_file), "-e", "b", "--no-open"])
+            runner.invoke(app, ["run", str(config_file), "-s", "b", "--no-open"])
 
-    assert captured.get("exclude_assistants") == ["b"]
+    assert captured.get("skip_assistants") == ["b"]

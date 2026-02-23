@@ -14,17 +14,17 @@ app.add_typer(schema_app, name="schema")
 def run(
     config: str = typer.Argument(help="Path to eval YAML config"),
     task: str | None = typer.Option(None, help="Run only this task"),
-    include_assistants: str | None = typer.Option(
+    only_assistants: str | None = typer.Option(
         None,
-        "--include-assistants",
-        "-i",
+        "--only-assistants",
+        "-o",
         help="Run only these assistants (comma-separated)",
     ),
-    exclude_assistants: str | None = typer.Option(
+    skip_assistants: str | None = typer.Option(
         None,
-        "--exclude-assistants",
-        "-e",
-        help="Exclude these assistants (comma-separated)",
+        "--skip-assistants",
+        "-s",
+        help="Skip these assistants (comma-separated)",
     ),
     output_dir: str = typer.Option("runs", help="Output directory for run results"),
     verbose: bool = typer.Option(
@@ -54,14 +54,10 @@ def run(
     eval_config = load_config(config_path)
 
     include_filter = (
-        [a.strip() for a in include_assistants.split(",")]
-        if include_assistants
-        else None
+        [a.strip() for a in only_assistants.split(",")] if only_assistants else None
     )
     exclude_filter = (
-        [a.strip() for a in exclude_assistants.split(",")]
-        if exclude_assistants
-        else None
+        [a.strip() for a in skip_assistants.split(",")] if skip_assistants else None
     )
 
     runner = Runner(
@@ -69,7 +65,7 @@ def run(
         output_dir=Path(output_dir),
         task_filter=task,
         assistant_filter=include_filter,
-        exclude_assistants=exclude_filter,
+        skip_assistants=exclude_filter,
         verbose=verbose,
         parallel_tasks=parallel,
         repeat=repeat,

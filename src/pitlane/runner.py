@@ -45,7 +45,7 @@ class Runner:
         output_dir: Path,
         task_filter: str | None = None,
         assistant_filter: list[str] | None = None,
-        exclude_assistants: list[str] | None = None,
+        skip_assistants: list[str] | None = None,
         verbose: bool = False,
         parallel_tasks: int = 1,
         repeat: int = 1,
@@ -54,7 +54,7 @@ class Runner:
         self.output_dir = output_dir
         self.task_filter = task_filter
         self.assistant_filter = assistant_filter
-        self.exclude_assistants = exclude_assistants
+        self.skip_assistants = skip_assistants
         self.verbose = verbose
         self.parallel_tasks = parallel_tasks
         self.repeat = repeat
@@ -85,9 +85,9 @@ class Runner:
             assistants = {
                 k: v for k, v in assistants.items() if k in self.assistant_filter
             }
-        if self.exclude_assistants:
+        if self.skip_assistants:
             assistants = {
-                k: v for k, v in assistants.items() if k not in self.exclude_assistants
+                k: v for k, v in assistants.items() if k not in self.skip_assistants
             }
 
         validate_mcp_env(assistants)

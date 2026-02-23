@@ -530,11 +530,11 @@ def test_assistant_filter_multiple(tmp_path, multi_assistant_config):
     assert "c / simple-test" not in suite_names
 
 
-def test_exclude_assistants_single(tmp_path, multi_assistant_config):
+def test_skip_assistants_single(tmp_path, multi_assistant_config):
     runner = Runner(
         config=multi_assistant_config,
         output_dir=tmp_path / "runs",
-        exclude_assistants=["a"],
+        skip_assistants=["a"],
     )
     mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
     with patch(
@@ -549,11 +549,11 @@ def test_exclude_assistants_single(tmp_path, multi_assistant_config):
     assert "c / simple-test" in suite_names
 
 
-def test_exclude_assistants_multiple(tmp_path, multi_assistant_config):
+def test_skip_assistants_multiple(tmp_path, multi_assistant_config):
     runner = Runner(
         config=multi_assistant_config,
         output_dir=tmp_path / "runs",
-        exclude_assistants=["a", "b"],
+        skip_assistants=["a", "b"],
     )
     mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
     with patch(
@@ -568,12 +568,12 @@ def test_exclude_assistants_multiple(tmp_path, multi_assistant_config):
     assert "c / simple-test" in suite_names
 
 
-def test_include_and_exclude_combined(tmp_path, multi_assistant_config):
+def test_only_and_skip_combined(tmp_path, multi_assistant_config):
     runner = Runner(
         config=multi_assistant_config,
         output_dir=tmp_path / "runs",
         assistant_filter=["a", "b"],
-        exclude_assistants=["b"],
+        skip_assistants=["b"],
     )
     mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
     with patch(
