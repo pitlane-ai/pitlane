@@ -19,7 +19,7 @@ class GeminiAdapter(BaseAdapter):
         return "gemini"
 
     def agent_type(self) -> str:
-        return "gemini"
+        return "gemini-cli"
 
     def get_cli_version(self) -> str | None:
         try:

@@ -125,8 +125,7 @@ class CodexAdapter(BaseAdapter):
             lines = target.read_text().splitlines()
 
         lines.append("")
-        lines.append("[[mcp_servers]]")
-        lines.append(f'name = "{mcp.name}"')
+        lines.append(f"[mcp_servers.{mcp.name}]")
         if mcp.command is not None:
             lines.append(f'command = "{mcp.command}"')
         if mcp.args:

@@ -45,7 +45,7 @@ The user also needs at least one AI coding assistant CLI installed. Pitlane supp
 | `claude-code` | `claude` | `haiku` |
 | `cline` | `cline` | `deepseek-chat` |
 | `codex` | `codex` | `codex-mini-latest` |
-| `copilot` | `gh` | N/A (model determined by plan) |
+| `copilot` | `copilot` | N/A (uses default model) |
 | `gemini` | `gemini` | `gemini-2.5-pro` |
 | `kilo` | `kilo` | `minimax-m2.5` |
 | `mistral-vibe` | `vibe` | `devstral-small` |

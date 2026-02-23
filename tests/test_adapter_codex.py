@@ -159,8 +159,7 @@ def test_install_mcp_creates_file(tmp_path: Path):
     target = ws / ".codex" / "config.toml"
     assert target.exists()
     content = target.read_text()
-    assert "[[mcp_servers]]" in content
-    assert 'name = "my-server"' in content
+    assert "[mcp_servers.my-server]" in content
     assert 'command = "npx"' in content
     assert '"-y"' in content
     assert '"@org/pkg"' in content
@@ -179,9 +178,8 @@ def test_install_mcp_merges(tmp_path: Path):
     adapter.install_mcp(workspace=ws, mcp=mcp2)
 
     content = (ws / ".codex" / "config.toml").read_text()
-    assert "server-one" in content
-    assert "server-two" in content
-    assert content.count("[[mcp_servers]]") == 2
+    assert "[mcp_servers.server-one]" in content
+    assert "[mcp_servers.server-two]" in content
 
 
 def test_install_mcp_env_expansion(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

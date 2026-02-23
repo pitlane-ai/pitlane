@@ -15,7 +15,7 @@ def test_cli_name():
 
 
 def test_agent_type():
-    assert GeminiAdapter().agent_type() == "gemini"
+    assert GeminiAdapter().agent_type() == "gemini-cli"
 
 
 # ── _build_command ────────────────────────────────────────────────────────────

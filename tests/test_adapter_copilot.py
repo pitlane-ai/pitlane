@@ -11,11 +11,11 @@ from pitlane.config import McpServerConfig
 
 
 def test_cli_name():
-    assert CopilotAdapter().cli_name() == "gh"
+    assert CopilotAdapter().cli_name() == "copilot"
 
 
 def test_agent_type():
-    assert CopilotAdapter().agent_type() == "copilot"
+    assert CopilotAdapter().agent_type() == "github-copilot"
 
 
 # ── _build_command ────────────────────────────────────────────────────────────
@@ -24,8 +24,7 @@ def test_agent_type():
 def test_build_command_defaults():
     adapter = CopilotAdapter()
     cmd = adapter._build_command("Write hello world", {})
-    assert cmd[0] == "gh"
-    assert "copilot" in cmd
+    assert cmd[0] == "copilot"
     assert "-p" in cmd
     assert "Write hello world" in cmd
     assert "--yolo" in cmd
@@ -42,7 +41,7 @@ def test_build_command_with_workdir(tmp_path):
     adapter = CopilotAdapter()
     cmd = adapter._build_command("test", {}, workdir=tmp_path)
     assert "--add-dir" in cmd
-    assert str(tmp_path) in cmd
+    assert str(tmp_path.resolve()) in cmd
 
 
 def test_build_command_with_mcp_file(tmp_path):
@@ -83,13 +82,13 @@ def test_get_cli_version_success(mocker):
 
     assert version == "GitHub Copilot CLI 0.0.414"
     mock_run.assert_called_once_with(
-        ["gh", "copilot", "--version"], capture_output=True, text=True, timeout=5
+        ["copilot", "--version"], capture_output=True, text=True, timeout=5
     )
 
 
 def test_get_cli_version_failure(mocker):
     adapter = CopilotAdapter()
-    mocker.patch("subprocess.run", side_effect=FileNotFoundError("gh not found"))
+    mocker.patch("subprocess.run", side_effect=FileNotFoundError("copilot not found"))
     assert adapter.get_cli_version() is None
 
 

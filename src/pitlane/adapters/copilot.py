@@ -18,17 +18,17 @@ class CopilotAdapter(BaseAdapter):
     MCP_FILENAME = ".pitlane_copilot_mcp.json"
 
     def cli_name(self) -> str:
-        return "gh"
+        return "copilot"
 
     def agent_type(self) -> str:
-        return "copilot"
+        return "github-copilot"
 
     def get_cli_version(self) -> str | None:
         try:
             import subprocess
 
             result = subprocess.run(
-                ["gh", "copilot", "--version"],
+                ["copilot", "--version"],
                 capture_output=True,
                 text=True,
                 timeout=5,
@@ -45,12 +45,12 @@ class CopilotAdapter(BaseAdapter):
         config: dict[str, Any],
         workdir: Path | None = None,
     ) -> list[str]:
-        cmd = ["gh", "copilot", "-p", prompt, "--yolo"]
+        cmd = ["copilot", "-p", prompt, "--yolo"]
         if workdir is not None:
-            cmd.extend(["--add-dir", str(workdir)])
+            cmd.extend(["--add-dir", str(workdir.resolve())])
             mcp_file = workdir / self.MCP_FILENAME
             if mcp_file.exists():
-                cmd.extend(["--additional-mcp-config", f"@{mcp_file}"])
+                cmd.extend(["--additional-mcp-config", f"@{mcp_file.resolve()}"])
         if model := config.get("model"):
             cmd.extend(["--model", model])
         return cmd
