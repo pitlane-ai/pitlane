@@ -1,6 +1,5 @@
 """Fixtures for E2E tests that invoke real AI assistants."""
 
-import logging
 import subprocess
 
 import pytest
@@ -61,23 +60,3 @@ def require_vibe_cli():
 @pytest.fixture(scope="session")
 def require_pitlane_cli():
     _assert_cli_installed("pitlane")
-
-
-@pytest.fixture
-def live_workspace(tmp_path):
-    """Empty temporary workspace directory for E2E tests."""
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    return workspace
-
-
-@pytest.fixture
-def live_logger():
-    """DEBUG-level logger for E2E test output."""
-    logger = logging.getLogger("pitlane_e2e")
-    logger.setLevel(logging.DEBUG)
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-        logger.addHandler(handler)
-    return logger

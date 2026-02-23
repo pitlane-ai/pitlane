@@ -102,7 +102,8 @@ class Runner:
 
         total_tasks = len(assistants) * len(tasks) * self.repeat
         print(
-            f"Running {total_tasks} task(s) with parallelism {self.parallel_tasks}..."
+            f"Running {total_tasks} task(s) with parallelism {self.parallel_tasks}...",
+            flush=True,
         )
 
         with ThreadPoolExecutor(max_workers=self.parallel_tasks) as executor:
@@ -153,7 +154,8 @@ class Runner:
                         if self.repeat > 1:
                             label += f" iter-{iteration}"
                         print(
-                            f"  [{completed_count}/{len(future_to_task)}] {label} ({n_passed}/{n_total} assertions{score_str}{dur})"
+                            f"  [{completed_count}/{len(future_to_task)}] {label} ({n_passed}/{n_total} assertions{score_str}{dur})",
+                            flush=True,
                         )
 
                         # Convert dict to IterationResult object
@@ -172,7 +174,8 @@ class Runner:
                         if self.repeat > 1:
                             label += f" iter-{iteration}"
                         print(
-                            f"  [{completed_count}/{len(future_to_task)}] ERROR  {label}: {e}"
+                            f"  [{completed_count}/{len(future_to_task)}] ERROR  {label}: {e}",
+                            flush=True,
                         )
                         logger.error(
                             f"Task '{task_name}' failed for assistant '{assistant_name}': {e}"

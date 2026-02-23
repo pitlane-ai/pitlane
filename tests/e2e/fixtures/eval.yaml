@@ -13,6 +13,43 @@ assistants:
           - "mcp"
           - "__MCP_SERVER_PATH__"
 
+  bob-default:
+    adapter: bob
+    args:
+      chat_mode: code
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
+  opencode-default:
+    adapter: opencode
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
+  vibe-default:
+    adapter: mistral-vibe
+    args:
+      max_turns: 5
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
 tasks:
   - name: hello-world
     prompt: >
@@ -27,3 +64,4 @@ tasks:
       - file_contains:
           path: ".mcp_marker"
           pattern: "PITLANE_MCP_MARKER_a9f3e7b2"
+      - file_exists: ".agents/skills/pitlane-test/SKILL.md"

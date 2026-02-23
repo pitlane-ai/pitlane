@@ -1,24 +1,74 @@
-"""E2E pipeline tests: full CLI invocation with a real LLM.
+"""E2E pipeline tests: full CLI invocation with all adapters.
 
-Runs `pitlane run` with claude-code/haiku against a real YAML config that
-includes an MCP server with a unique marker tool. All pipeline tests share
+Runs `pitlane run --parallel 4` with all 4 adapters against a shared YAML config
+that includes an MCP server with a unique marker tool. All pipeline tests share
 a single CLI invocation via the module-scoped `pipeline_run` fixture.
 
 Run with: uv run pytest -m e2e -v --tb=long
 """
 
-import json
+import os
 import subprocess
+import sys
+import threading
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
 from junitparser import JUnitXml
 
+ASSISTANTS = ("claude-haiku", "bob-default", "opencode-default", "vibe-default")
+
+
+def _run_with_tee(cmd, *, timeout):
+    """Run a subprocess, streaming output while capturing it for assertions."""
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=env,
+    )
+
+    stdout_lines, stderr_lines = [], []
+
+    def _reader(stream, buf, dest):
+        for line in stream:
+            buf.append(line)
+            dest.write(line)
+            dest.flush()
+
+    t_out = threading.Thread(
+        target=_reader, args=(proc.stdout, stdout_lines, sys.stdout)
+    )
+    t_err = threading.Thread(
+        target=_reader, args=(proc.stderr, stderr_lines, sys.stderr)
+    )
+    t_out.start()
+    t_err.start()
+    proc.wait(timeout=timeout)
+    t_out.join()
+    t_err.join()
+
+    return SimpleNamespace(
+        returncode=proc.returncode,
+        stdout="".join(stdout_lines),
+        stderr="".join(stderr_lines),
+    )
+
 
 @pytest.fixture(scope="module")
-def pipeline_run(tmp_path_factory, require_claude_cli, require_pitlane_cli):
-    """Run `pitlane run` once and share the result across all pipeline tests."""
+def pipeline_run(
+    tmp_path_factory,
+    require_claude_cli,
+    require_bob_cli,
+    require_opencode_cli,
+    require_vibe_cli,
+    require_pitlane_cli,
+):
+    """Run `pitlane run` once for all adapters and share the result across all tests."""
     output_dir = tmp_path_factory.mktemp("e2e_runs")
     config_dir = tmp_path_factory.mktemp("e2e_config")
 
@@ -32,18 +82,18 @@ def pipeline_run(tmp_path_factory, require_claude_cli, require_pitlane_cli):
     yaml_content = yaml_content.replace("./fixtures/empty", str(workdir_path))
     config_path.write_text(yaml_content)
 
-    result = subprocess.run(
+    result = _run_with_tee(
         [
             "pitlane",
             "run",
             str(config_path),
             "--output-dir",
             str(output_dir),
+            "--parallel",
+            "4",
             "--no-open",
         ],
-        capture_output=True,
-        text=True,
-        timeout=300,
+        timeout=600,
     )
 
     run_dirs = sorted(output_dir.iterdir())
@@ -55,8 +105,8 @@ def pipeline_run(tmp_path_factory, require_claude_cli, require_pitlane_cli):
     return result, run_dir
 
 
-def _workspace(run_dir: Path) -> Path:
-    return run_dir / "claude-haiku" / "hello-world" / "iter-0" / "workspace"
+def _workspace(run_dir: Path, assistant: str) -> Path:
+    return run_dir / assistant / "hello-world" / "iter-0" / "workspace"
 
 
 @pytest.mark.e2e
@@ -127,12 +177,13 @@ def test_meta_yaml_complete(pipeline_run):
 
 
 @pytest.mark.e2e
-def test_report_has_metric_groups(pipeline_run):
+def test_report_has_all_assistants(pipeline_run):
     _, run_dir = pipeline_run
     report = run_dir / "report.html"
     assert report.exists()
     html = report.read_text()
-    assert "claude-haiku" in html
+    for assistant in ASSISTANTS:
+        assert assistant in html, f"Assistant '{assistant}' not found in report.html"
     assert "Cost &amp; Tokens" in html
     assert "cost_usd" in html
     assert "token_usage_input" in html
@@ -141,19 +192,13 @@ def test_report_has_metric_groups(pipeline_run):
 
 
 @pytest.mark.e2e
-def test_mcp_config_in_workspace(pipeline_run):
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_mcp_marker_proves_tool_used(pipeline_run, assistant):
     _, run_dir = pipeline_run
-    mcp_file = _workspace(run_dir) / ".mcp.json"
-    assert mcp_file.exists()
-    data = json.loads(mcp_file.read_text())
-    assert "pitlane-test-mcp" in data["mcpServers"]
-
-
-@pytest.mark.e2e
-def test_mcp_marker_proves_tool_used(pipeline_run):
-    _, run_dir = pipeline_run
-    marker = _workspace(run_dir) / ".mcp_marker"
-    assert marker.exists(), "MCP marker file not found — MCP tool was not invoked"
+    marker = _workspace(run_dir, assistant) / ".mcp_marker"
+    assert marker.exists(), (
+        f"MCP marker file not found for '{assistant}' — MCP tool was not invoked"
+    )
     assert "PITLANE_MCP_MARKER_a9f3e7b2" in marker.read_text()
 
 
@@ -161,7 +206,11 @@ def test_mcp_marker_proves_tool_used(pipeline_run):
 def test_skill_present_in_workspace(pipeline_run):
     _, run_dir = pipeline_run
     skill_file = (
-        _workspace(run_dir) / ".agents" / "skills" / "pitlane-test" / "SKILL.md"
+        _workspace(run_dir, "claude-haiku")
+        / ".agents"
+        / "skills"
+        / "pitlane-test"
+        / "SKILL.md"
     )
     assert skill_file.exists(), "Skill file not copied to workspace"
 
@@ -169,7 +218,7 @@ def test_skill_present_in_workspace(pipeline_run):
 @pytest.mark.e2e
 def test_workspace_has_hello_py(pipeline_run):
     _, run_dir = pipeline_run
-    assert (_workspace(run_dir) / "hello.py").exists()
+    assert (_workspace(run_dir, "claude-haiku") / "hello.py").exists()
 
 
 @pytest.mark.e2e
