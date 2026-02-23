@@ -21,6 +21,7 @@ def run_streaming_sync(
     proc = subprocess.Popen(
         cmd,
         cwd=workdir,
+        stdin=subprocess.DEVNULL,  # may force detached mode (but note that we do not rely on this specifically - arguments should be passed to assistant CLIs)
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
