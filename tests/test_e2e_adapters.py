@@ -5,6 +5,7 @@ Run with: uv run pytest -m e2e -v --tb=long
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -49,6 +50,29 @@ class TestClaudeCodeAdapter:
         assert mcp_file.exists()
         data = json.loads(mcp_file.read_text())
         assert "test-server" in data["mcpServers"]
+
+    def test_run_with_mcp(self, live_workspace, live_logger):
+        mcp_server = Path(__file__).parent / "e2e_fixtures" / "mcp_test_server.py"
+        mcp = McpServerConfig(
+            name="pitlane-test-mcp",
+            command="uv",
+            args=["run", "--with", "mcp", str(mcp_server)],
+        )
+        adapter = ClaudeCodeAdapter()
+        adapter.install_mcp(live_workspace, mcp)
+        result = adapter.run(
+            prompt=(
+                "Use the write_marker tool from the pitlane-test-mcp server, "
+                "then create hello.txt containing 'done'"
+            ),
+            workdir=live_workspace,
+            config={"model": "haiku", "timeout": 120, "max_turns": 5},
+            logger=live_logger,
+        )
+        assert result.exit_code == 0
+        marker = live_workspace / ".mcp_marker"
+        assert marker.exists()
+        assert "PITLANE_MCP_MARKER_a9f3e7b2" in marker.read_text()
 
 
 @pytest.mark.e2e

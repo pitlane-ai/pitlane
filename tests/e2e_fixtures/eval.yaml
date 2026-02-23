@@ -1,0 +1,29 @@
+assistants:
+  claude-haiku:
+    adapter: claude-code
+    args:
+      model: haiku
+      max_turns: 5
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
+tasks:
+  - name: hello-world
+    prompt: >
+      First, use the write_marker tool from the pitlane-test-mcp server.
+      Then create a Python script called hello.py that prints 'Hello, World!'.
+    workdir: ./fixtures/empty
+    timeout: 120
+    assertions:
+      - file_exists: "hello.py"
+      - command_succeeds: "python3 hello.py"
+      - file_exists: ".mcp_marker"
+      - file_contains:
+          path: ".mcp_marker"
+          pattern: "PITLANE_MCP_MARKER_a9f3e7b2"

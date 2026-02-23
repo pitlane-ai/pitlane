@@ -80,6 +80,11 @@ def require_vibe_cli():
     _assert_cli_installed("vibe")
 
 
+@pytest.fixture(scope="session")
+def require_pitlane_cli():
+    _assert_cli_installed("pitlane")
+
+
 @pytest.fixture
 def live_workspace(tmp_path):
     """Empty temporary workspace directory for E2E tests."""
