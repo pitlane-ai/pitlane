@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
+from expandvars import expandvars
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
@@ -36,6 +37,29 @@ class McpServerConfig(BaseModel):
     args: list[str] = []
     url: str | None = None
     env: dict[str, str] = {}
+
+    @model_validator(mode="after")
+    def validate_env_variables(self) -> "McpServerConfig":
+        """Validate that all ${VAR} references without defaults are set.
+
+        Raises ValueError listing every missing variable so the user can fix them
+        all at once rather than hitting them one-by-one mid-run.
+        """
+        missing: list[str] = []
+        for key, value in self.env.items():
+            try:
+                expandvars(value, nounset=True)
+            except Exception:
+                # Variable is missing and has no default
+                missing.append(f"  {key}={value}")
+
+        if missing:
+            details = "\n".join(missing)
+            raise ValueError(
+                f"MCP server '{self.name}' has missing environment variables:\n{details}"
+            )
+
+        return self
 
 
 class AssistantConfig(BaseModel):

@@ -71,9 +71,11 @@ class Runner:
         )
         logger.debug("Starting evaluation run")
 
+        # Prep workspace
         workspace_mgr = WorkspaceManager(base_dir=run_dir)
         all_results: dict[str, dict[str, Any]] = {}
 
+        # Filtering tasks
         tasks = self.config.tasks
         if self.task_filter:
             tasks = [t for t in tasks if t.name == self.task_filter]
@@ -84,6 +86,7 @@ class Runner:
                 k: v for k, v in assistants.items() if k == self.assistant_filter
             }
 
+        # Prep CLI versions for report
         cli_versions = {}
         for assistant_name, assistant_config in assistants.items():
             adapter = get_adapter(assistant_config.adapter)

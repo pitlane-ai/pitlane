@@ -420,15 +420,14 @@ def test_install_mcp_env_expansion_with_default(
 def test_install_mcp_env_missing_var_raises(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    adapter = ClaudeCodeAdapter()
-    ws = tmp_path / "ws"
-    ws.mkdir()
+    """Test that MCP config validation catches missing env vars early."""
     monkeypatch.delenv("TOTALLY_MISSING", raising=False)
 
-    mcp = McpServerConfig(
-        name="bad-server",
-        command="cmd",
-        env={"KEY": "${TOTALLY_MISSING}"},
-    )
-    with pytest.raises(Exception, match="TOTALLY_MISSING"):
-        adapter.install_mcp(workspace=ws, mcp=mcp)
+    with pytest.raises(
+        ValueError, match="MCP server 'bad-server' has missing environment variables"
+    ):
+        McpServerConfig(
+            name="bad-server",
+            command="cmd",
+            env={"KEY": "${TOTALLY_MISSING}"},
+        )

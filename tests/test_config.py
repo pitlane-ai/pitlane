@@ -131,8 +131,14 @@ def test_task_default_timeout(tmp_yaml):
 
 
 @pytest.mark.parametrize("path", _example_configs())
-def test_example_configs_load(path: Path):
+def test_example_configs_load(path: Path, monkeypatch):
+    """Test that example configs load successfully.
+
+    Sets GITHUB_TOKEN for configs that require it.
+    """
     assert path.exists()
+    # Set GITHUB_TOKEN for terraform-module-eval.yaml which uses MCP servers
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token-for-validation")
     load_config(path)
 
 
@@ -339,5 +345,189 @@ def test_load_config_no_mcps_defaults_to_empty(tmp_yaml):
             assertions:
               - command_succeeds: "true"
     """)
+    load_config(path)
+
+
+def test_mcp_env_validation_missing_var_no_default(tmp_yaml, monkeypatch):
+    """MCP config validation should fail if ${VAR} without default is not set."""
+    monkeypatch.delenv("MISSING_TOKEN", raising=False)
+    path = tmp_yaml("""\
+        assistants:
+          bob:
+            adapter: bob
+            mcps:
+              - name: test-mcp
+                type: stdio
+                command: uvx
+                args: ["test-mcp"]
+                env:
+                  API_KEY: "${MISSING_TOKEN}"
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    with pytest.raises(
+        ValueError, match="MCP server 'test-mcp' has missing environment variables"
+    ):
+        load_config(path)
+
+
+def test_mcp_env_validation_missing_var_with_default(tmp_yaml, monkeypatch):
+    """MCP config validation should pass if ${VAR:-default} is used."""
+    monkeypatch.delenv("MISSING_TOKEN", raising=False)
+    path = tmp_yaml("""\
+        assistants:
+          bob:
+            adapter: bob
+            mcps:
+              - name: test-mcp
+                type: stdio
+                command: uvx
+                args: ["test-mcp"]
+                env:
+                  API_KEY: "${MISSING_TOKEN:-fallback}"
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
     cfg = load_config(path)
-    assert cfg.assistants["a"].mcps == []
+    assert cfg.assistants["bob"].mcps[0].env["API_KEY"] == "${MISSING_TOKEN:-fallback}"
+
+
+def test_mcp_env_validation_var_is_set(tmp_yaml, monkeypatch):
+    """MCP config validation should pass if ${VAR} is set in environment."""
+    monkeypatch.setenv("MY_TOKEN", "secret123")
+    path = tmp_yaml("""\
+        assistants:
+          bob:
+            adapter: bob
+            mcps:
+              - name: test-mcp
+                type: stdio
+                command: uvx
+                args: ["test-mcp"]
+                env:
+                  API_KEY: "${MY_TOKEN}"
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    assert cfg.assistants["bob"].mcps[0].env["API_KEY"] == "${MY_TOKEN}"
+
+
+def test_mcp_env_validation_multiple_missing_vars(tmp_yaml, monkeypatch):
+    """MCP config validation should report all missing variables at once."""
+    monkeypatch.delenv("TOKEN1", raising=False)
+    monkeypatch.delenv("TOKEN2", raising=False)
+    path = tmp_yaml("""\
+        assistants:
+          bob:
+            adapter: bob
+            mcps:
+              - name: test-mcp
+                type: stdio
+                command: uvx
+                args: ["test-mcp"]
+                env:
+                  API_KEY: "${TOKEN1}"
+                  SECRET: "${TOKEN2}"
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    with pytest.raises(ValueError) as exc_info:
+        load_config(path)
+    error_msg = str(exc_info.value)
+    assert "MCP server 'test-mcp' has missing environment variables" in error_msg
+    assert "API_KEY=${TOKEN1}" in error_msg
+    assert "SECRET=${TOKEN2}" in error_msg
+
+
+def test_mcp_env_validation_plain_text(tmp_yaml):
+    """MCP config validation should pass for plain text env values."""
+    path = tmp_yaml("""\
+        assistants:
+          bob:
+            adapter: bob
+            mcps:
+              - name: test-mcp
+                type: stdio
+                command: uvx
+                args: ["test-mcp"]
+                env:
+                  PLAIN_VALUE: "just-a-string"
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    assert cfg.assistants["bob"].mcps[0].env["PLAIN_VALUE"] == "just-a-string"
+
+
+def test_mcp_env_validation_mixed_vars(tmp_yaml, monkeypatch):
+    """MCP config validation should handle mix of set vars, defaults, and plain text."""
+    monkeypatch.setenv("SET_VAR", "value1")
+    monkeypatch.delenv("UNSET_VAR", raising=False)
+    path = tmp_yaml("""\
+        assistants:
+          bob:
+            adapter: bob
+            mcps:
+              - name: test-mcp
+                type: stdio
+                command: uvx
+                args: ["test-mcp"]
+                env:
+                  KEY1: "${SET_VAR}"
+                  KEY2: "${UNSET_VAR:-default}"
+                  KEY3: "plain-text"
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    mcp = cfg.assistants["bob"].mcps[0]
+    assert mcp.env["KEY1"] == "${SET_VAR}"
+    assert mcp.env["KEY2"] == "${UNSET_VAR:-default}"
+    assert mcp.env["KEY3"] == "plain-text"
+
+
+def test_mcp_env_validation_empty_env(tmp_yaml):
+    """MCP config validation should pass when env dict is empty."""
+    path = tmp_yaml("""\
+        assistants:
+          bob:
+            adapter: bob
+            mcps:
+              - name: test-mcp
+                type: stdio
+                command: uvx
+                args: ["test-mcp"]
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - command_succeeds: "true"
+    """)
+    cfg = load_config(path)
+    assert cfg.assistants["bob"].mcps[0].env == {}
