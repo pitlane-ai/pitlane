@@ -52,7 +52,7 @@ class TestClaudeCodeAdapter:
         assert "test-server" in data["mcpServers"]
 
     def test_run_with_mcp(self, live_workspace, live_logger):
-        mcp_server = Path(__file__).parent / "e2e_fixtures" / "mcp_test_server.py"
+        mcp_server = Path(__file__).parent / "fixtures" / "mcp_test_server.py"
         mcp = McpServerConfig(
             name="pitlane-test-mcp",
             command="uv",

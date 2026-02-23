@@ -22,7 +22,7 @@ def pipeline_run(tmp_path_factory, require_claude_cli, require_pitlane_cli):
     output_dir = tmp_path_factory.mktemp("e2e_runs")
     config_dir = tmp_path_factory.mktemp("e2e_config")
 
-    fixtures_src = Path(__file__).parent / "e2e_fixtures"
+    fixtures_src = Path(__file__).parent / "fixtures"
     config_path = config_dir / "eval.yaml"
     mcp_server_path = fixtures_src / "mcp_test_server.py"
     workdir_path = fixtures_src / "fixtures" / "empty"
