@@ -121,15 +121,16 @@ Any assertion can take a `weight` (default 1.0) to make it count more in the `we
 ### Running
 
 ```bash
-pitlane run eval.yaml                          # run everything
-pitlane run eval.yaml --task my-task           # one task only
-pitlane run eval.yaml --assistant baseline     # one assistant only
-pitlane run eval.yaml --parallel 4             # run tasks in parallel
-pitlane run eval.yaml --repeat 5              # repeat for statistical confidence
-pitlane run eval.yaml --verbose               # stream debug output
+pitlane run eval.yaml                                    # run everything
+pitlane run eval.yaml --task my-task                     # one task only
+pitlane run eval.yaml --only-assistants baseline          # run only these assistants (comma-separated)
+pitlane run eval.yaml --skip-assistants baseline          # skip these assistants (comma-separated)
+pitlane run eval.yaml --parallel 4                       # run tasks in parallel
+pitlane run eval.yaml --repeat 5                         # repeat for statistical confidence
+pitlane run eval.yaml --verbose                          # stream debug output
 ```
 
-These options can be combined, eg: `pitlane run eval.yaml --task my-task --assistant baseline --repeat 5 --parallel 4`
+These options can be combined, eg: `pitlane run eval.yaml --task my-task --only-assistants baseline --repeat 5 --parallel 4`
 
 Results go to `runs/<timestamp>/` with `report.html` (side-by-side comparison), `results.json`, and `debug.log`.
 

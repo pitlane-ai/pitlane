@@ -459,6 +459,135 @@ tasks:
     assert meta["interrupted"] is True
 
 
+@pytest.fixture
+def multi_assistant_config(tmp_path):
+    fixture_dir = tmp_path / "fixtures" / "empty"
+    fixture_dir.mkdir(parents=True)
+    (fixture_dir / ".gitkeep").write_text("")
+
+    config_file = tmp_path / "eval.yaml"
+    config_file.write_text(f"""
+assistants:
+  a:
+    adapter: claude-code
+    args:
+      model: sonnet
+  b:
+    adapter: claude-code
+    args:
+      model: sonnet
+  c:
+    adapter: claude-code
+    args:
+      model: sonnet
+
+tasks:
+  - name: simple-test
+    prompt: "Create hello.py"
+    workdir: {fixture_dir}
+    timeout: 10
+    assertions:
+      - file_exists: ".gitkeep"
+""")
+    return load_config(config_file)
+
+
+def test_assistant_filter_single(tmp_path, multi_assistant_config):
+    runner = Runner(
+        config=multi_assistant_config,
+        output_dir=tmp_path / "runs",
+        assistant_filter=["a"],
+    )
+    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    with patch(
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+    ):
+        run_dir = runner.execute()
+
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "a / simple-test" in suite_names
+    assert "b / simple-test" not in suite_names
+    assert "c / simple-test" not in suite_names
+
+
+def test_assistant_filter_multiple(tmp_path, multi_assistant_config):
+    runner = Runner(
+        config=multi_assistant_config,
+        output_dir=tmp_path / "runs",
+        assistant_filter=["a", "b"],
+    )
+    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    with patch(
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+    ):
+        run_dir = runner.execute()
+
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "a / simple-test" in suite_names
+    assert "b / simple-test" in suite_names
+    assert "c / simple-test" not in suite_names
+
+
+def test_skip_assistants_single(tmp_path, multi_assistant_config):
+    runner = Runner(
+        config=multi_assistant_config,
+        output_dir=tmp_path / "runs",
+        skip_assistants=["a"],
+    )
+    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    with patch(
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+    ):
+        run_dir = runner.execute()
+
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "a / simple-test" not in suite_names
+    assert "b / simple-test" in suite_names
+    assert "c / simple-test" in suite_names
+
+
+def test_skip_assistants_multiple(tmp_path, multi_assistant_config):
+    runner = Runner(
+        config=multi_assistant_config,
+        output_dir=tmp_path / "runs",
+        skip_assistants=["a", "b"],
+    )
+    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    with patch(
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+    ):
+        run_dir = runner.execute()
+
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "a / simple-test" not in suite_names
+    assert "b / simple-test" not in suite_names
+    assert "c / simple-test" in suite_names
+
+
+def test_only_and_skip_combined(tmp_path, multi_assistant_config):
+    runner = Runner(
+        config=multi_assistant_config,
+        output_dir=tmp_path / "runs",
+        assistant_filter=["a", "b"],
+        skip_assistants=["b"],
+    )
+    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    with patch(
+        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+    ):
+        run_dir = runner.execute()
+
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    suite_names = {s.name for s in xml}
+    assert "a / simple-test" in suite_names
+    assert "b / simple-test" not in suite_names
+    assert "c / simple-test" not in suite_names
+
+
 def test_runner_interrupt_report_generation(mocker, tmp_path):
     """Test that a report can be generated from partial results."""
     from pitlane.reporting.junit import generate_report

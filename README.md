@@ -138,16 +138,22 @@ Run a single task:
 pitlane run examples/simple-codegen-eval.yaml --task hello-world-python
 ```
 
-Run a single assistant:
+Run specific assistants (comma-separated):
 
 ```bash
-pitlane run examples/simple-codegen-eval.yaml --assistant claude-baseline
+pitlane run examples/simple-codegen-eval.yaml --only-assistants claude-baseline
+```
+
+Skip assistants:
+
+```bash
+pitlane run examples/simple-codegen-eval.yaml --skip-assistants claude-baseline
 ```
 
 Combine filters:
 
 ```bash
-pitlane run examples/simple-codegen-eval.yaml --task hello-world-python --assistant claude-baseline
+pitlane run examples/simple-codegen-eval.yaml --task hello-world-python --only-assistants claude-baseline
 ```
 
 ### Parallel execution

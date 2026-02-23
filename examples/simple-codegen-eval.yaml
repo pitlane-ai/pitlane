@@ -9,10 +9,12 @@ assistants:
   #   adapter: claude-code
   #   args:
   #     model: haiku
+
   # vibe-devstral-small:
   #   adapter: mistral-vibe
   #   args:
   #     model: devstral-small
+
   # bob-baseline:
   #   adapter: bob
   #   args:
