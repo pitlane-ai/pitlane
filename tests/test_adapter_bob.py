@@ -211,7 +211,9 @@ def test_bob_with_api_error_handling(tmp_path, monkeypatch):
     def mock_run_command(*args, **kwargs):
         raise Exception("API Error: Rate limit exceeded")
 
-    monkeypatch.setattr("pitlane.adapters.bob.run_streaming_sync", mock_run_command)
+    monkeypatch.setattr(
+        "pitlane.adapters.bob.run_command_with_live_logging", mock_run_command
+    )
 
     result = adapter.run("test", tmp_path, {}, logger)
     assert result.exit_code == -1
@@ -231,7 +233,9 @@ def test_bob_with_timeout_error(tmp_path, monkeypatch):
     def mock_run_command(*args, **kwargs):
         raise TimeoutError("Command timed out")
 
-    monkeypatch.setattr("pitlane.adapters.bob.run_streaming_sync", mock_run_command)
+    monkeypatch.setattr(
+        "pitlane.adapters.bob.run_command_with_live_logging", mock_run_command
+    )
 
     result = adapter.run("test", tmp_path, {"timeout": 10}, logger)
     assert result.exit_code == -1
@@ -366,7 +370,9 @@ def test_bob_run_with_debug_logging(tmp_path, monkeypatch):
     def mock_run_command(*args, **kwargs):
         return "test output", "", 0, False
 
-    monkeypatch.setattr("pitlane.adapters.bob.run_streaming_sync", mock_run_command)
+    monkeypatch.setattr(
+        "pitlane.adapters.bob.run_command_with_live_logging", mock_run_command
+    )
 
     result = adapter.run("test prompt", tmp_path, {"timeout": 60}, logger)
 

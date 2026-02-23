@@ -100,7 +100,7 @@ def test_claude_with_api_error_handling(tmp_path, monkeypatch):
         raise Exception("API Error: Authentication failed")
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_streaming_sync", mock_run_command
+        "pitlane.adapters.claude_code.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {"model": "sonnet"}, logger)
@@ -122,7 +122,7 @@ def test_claude_with_timeout_error(tmp_path, monkeypatch):
         raise TimeoutError("Command execution timed out")
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_streaming_sync", mock_run_command
+        "pitlane.adapters.claude_code.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {"model": "sonnet", "timeout": 30}, logger)
@@ -318,7 +318,7 @@ def test_claude_run_with_debug_logging(tmp_path, monkeypatch):
         return "test output", "", 0, False
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_streaming_sync", mock_run_command
+        "pitlane.adapters.claude_code.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run(

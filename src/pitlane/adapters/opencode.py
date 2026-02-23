@@ -9,8 +9,11 @@ from typing import Any, TYPE_CHECKING
 
 from expandvars import expandvars
 
-from pitlane.adapters.base import AdapterResult, BaseAdapter
-from pitlane.adapters.streaming import run_streaming_sync
+from pitlane.adapters.base import (
+    AdapterResult,
+    BaseAdapter,
+    run_command_with_live_logging,
+)
 
 if TYPE_CHECKING:
     import logging
@@ -172,7 +175,7 @@ class OpenCodeAdapter(BaseAdapter):
 
         start = time.monotonic()
         try:
-            stdout, stderr, exit_code, timed_out = run_streaming_sync(
+            stdout, stderr, exit_code, timed_out = run_command_with_live_logging(
                 cmd, workdir, timeout, logger
             )
         except Exception as e:
