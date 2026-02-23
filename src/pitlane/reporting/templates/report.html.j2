@@ -638,21 +638,29 @@
 {% endfor %}
 {% endmacro %}
 
-{# ── Score pill macro: red→amber→green continuous color ────────────────── #}
+{# ── Score pill macro: red→amber→green with power-curve emphasis ────────── #}
+{# A power curve (t²) compresses low scores into reds while spreading high   #}
+{# scores across more of the green range — making top-performer differences  #}
+{# visually distinct. Adjust emphasis_exponent to tune: >1 compresses lows,  #}
+{# <1 would compress highs.                                                  #}
 {% macro score_pill(score) %}
 {% if score is not none %}
-  {% set s = score|float %}
-  {% set t = [[s / 100, 1.0]|min, 0.0]|max %}
-  {% if t < 0.5 %}
+  {% set score_value = score|float %}
+  {% set emphasis_exponent = 2.0 %}
+  {% set normalized = [[score_value / 100, 1.0]|min, 0.0]|max %}
+  {% set color_position = normalized ** emphasis_exponent %}
+  {% if color_position < 0.5 %}
+    {% set blend = color_position * 2 %}
     {% set r = 239 %}
-    {% set g = (68 + (t * 2) * (158 - 68))|int %}
-    {% set b = (68 + (t * 2) * (11 - 68))|int %}
+    {% set g = (68 + blend * (158 - 68))|int %}
+    {% set b = (68 + blend * (11 - 68))|int %}
   {% else %}
-    {% set r = (239 + ((t - 0.5) * 2) * (34 - 239))|int %}
-    {% set g = (158 + ((t - 0.5) * 2) * (197 - 158))|int %}
-    {% set b = (11 + ((t - 0.5) * 2) * (94 - 11))|int %}
+    {% set blend = (color_position - 0.5) * 2 %}
+    {% set r = (239 + blend * (34 - 239))|int %}
+    {% set g = (158 + blend * (197 - 158))|int %}
+    {% set b = (11 + blend * (94 - 11))|int %}
   {% endif %}
-  <span class="score-pill" style="background:rgba({{ r }},{{ g }},{{ b }},0.25); color:rgb({{ r }},{{ g }},{{ b }});">{{ s }}</span>
+  <span class="score-pill" style="background:rgba({{ r }},{{ g }},{{ b }},0.25); color:rgb({{ r }},{{ g }},{{ b }});">{{ score_value }}</span>
 {% endif %}
 {% endmacro %}
 
@@ -1082,14 +1090,22 @@ function closeCompare(button) {
 }
 
 
-/* ── Score color helper (red→amber→green) ────────────────────────────────── */
+/* ── Score color helper (red→amber→green with power-curve emphasis) ─────── */
+/* A power curve (t²) compresses low scores into reds while spreading high   */
+/* scores across more of the green range — making top-performer differences  */
+/* visually distinct. Adjust EMPHASIS_EXPONENT to tune: >1 compresses lows,  */
+/* <1 would compress highs.                                                  */
 function scoreColor(score) {
-  var t = Math.min(Math.max(score / 100, 0), 1);
+  var EMPHASIS_EXPONENT = 2.0;
+  var normalized = Math.min(Math.max(score / 100, 0), 1);
+  var colorPosition = Math.pow(normalized, EMPHASIS_EXPONENT);
   var r, g, b;
-  if (t < 0.5) {
-    r = 239; g = Math.round(68 + t * 2 * (158 - 68)); b = Math.round(68 + t * 2 * (11 - 68));
+  if (colorPosition < 0.5) {
+    var blend = colorPosition * 2;
+    r = 239; g = Math.round(68 + blend * (158 - 68)); b = Math.round(68 + blend * (11 - 68));
   } else {
-    r = Math.round(239 + (t - 0.5) * 2 * (34 - 239)); g = Math.round(158 + (t - 0.5) * 2 * (197 - 158)); b = Math.round(11 + (t - 0.5) * 2 * (94 - 11));
+    var blend = (colorPosition - 0.5) * 2;
+    r = Math.round(239 + blend * (34 - 239)); g = Math.round(158 + blend * (197 - 158)); b = Math.round(11 + blend * (94 - 11));
   }
   return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
