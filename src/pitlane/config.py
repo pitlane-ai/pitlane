@@ -43,7 +43,6 @@ class AssistantConfig(BaseModel):
     args: dict[str, Any] = {}
     skills: list[SkillRef] = []
     mcps: list[McpServerConfig] = []
-    enabled: bool = True
 
     @field_validator("skills", mode="before")
     @classmethod
@@ -154,7 +153,6 @@ class TaskConfig(BaseModel):
     prompt: str
     workdir: str
     timeout: int = 300
-    enabled: bool = True
     assertions: list[Assertion]
 
     @field_validator("assertions")
