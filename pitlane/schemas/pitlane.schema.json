@@ -2,6 +2,7 @@
   "$defs": {
     "AdapterType": {
       "enum": [
+        "bob",
         "claude-code",
         "mistral-vibe",
         "opencode"
@@ -245,6 +246,25 @@
       "title": "FileContainsSpec",
       "type": "object"
     },
+    "FileExistsAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "file_exists": {
+          "title": "File Exists",
+          "type": "string"
+        },
+        "weight": {
+          "default": 1.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "file_exists"
+      ],
+      "title": "FileExistsAssertion",
+      "type": "object"
+    },
     "McpServerConfig": {
       "additionalProperties": false,
       "properties": {
@@ -307,25 +327,6 @@
         "name"
       ],
       "title": "McpServerConfig",
-      "type": "object"
-    },
-    "FileExistsAssertion": {
-      "additionalProperties": false,
-      "properties": {
-        "file_exists": {
-          "title": "File Exists",
-          "type": "string"
-        },
-        "weight": {
-          "default": 1.0,
-          "title": "Weight",
-          "type": "number"
-        }
-      },
-      "required": [
-        "file_exists"
-      ],
-      "title": "FileExistsAssertion",
       "type": "object"
     },
     "RougeAssertion": {
