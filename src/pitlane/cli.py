@@ -3,7 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
+import yaml
 import typer
+from pydantic import ValidationError
 
 app = typer.Typer(name="pitlane", help="Evaluate AI coding assistants")
 schema_app = typer.Typer(name="schema", help="Generate and install schema tooling")
@@ -50,9 +52,6 @@ def run(
     if not config_path.exists():
         typer.echo(f"Error: config file not found: {config}", err=True)
         raise typer.Exit(1)
-
-    import yaml
-    from pydantic import ValidationError
 
     try:
         eval_config = load_config(config_path)
@@ -114,6 +113,8 @@ def run(
     xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
     has_errors = any(suite.errors > 0 for suite in xml)
     has_timeouts = any(
+        # > 0 catches any run where at least one iteration timed out; in repeat mode
+        # timed_out is an average across iterations (e.g. 0.33 = 1 of 3 timed out)
         any(p.name == "timed_out" and float(p.value) > 0 for p in suite.properties())
         for suite in xml
     )
