@@ -115,6 +115,9 @@ class ClaudeCodeAdapter(BaseAdapter):
 
         return conversation, token_usage, cost, tool_calls_count
 
+    def supported_features(self) -> frozenset[str]:
+        return frozenset({"mcps", "skills"})
+
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
         env = {k: expandvars(v, nounset=True) for k, v in mcp.env.items()}

@@ -58,13 +58,19 @@ tasks:
     prompt: >
       First, use the write_marker tool from the pitlane-test-mcp server.
       Then create a Python script called hello.py that prints 'Hello, World!'.
+      Finally, create a script called fail.py that exits with code 1.
     workdir: ./fixtures/empty
-    timeout: 120
+    timeout: 180
     assertions:
       - file_exists: "hello.py"
+        weight: 2.0
       - command_succeeds: "python3 hello.py"
       - file_exists: ".mcp_marker"
       - file_contains:
           path: ".mcp_marker"
           pattern: "PITLANE_MCP_MARKER_a9f3e7b2"
-      - file_exists: ".agents/skills/pitlane-test/SKILL.md"
+      - file_exists: "fail.py"
+      - command_fails: "python3 fail.py"
+      - custom_script:
+          interpreter: python3
+          script: __VALIDATE_SCRIPT_PATH__

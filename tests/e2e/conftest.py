@@ -1,8 +1,50 @@
 """Fixtures for E2E tests that invoke real AI assistants."""
 
+import os
 import subprocess
+import sys
+import threading
+from types import SimpleNamespace
 
 import pytest
+
+
+def run_with_tee(cmd, *, timeout):
+    """Run a subprocess, streaming output while capturing it for assertions."""
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=env,
+    )
+
+    stdout_lines, stderr_lines = [], []
+
+    def _reader(stream, buf, dest):
+        for line in stream:
+            buf.append(line)
+            dest.write(line)
+            dest.flush()
+
+    t_out = threading.Thread(
+        target=_reader, args=(proc.stdout, stdout_lines, sys.stdout)
+    )
+    t_err = threading.Thread(
+        target=_reader, args=(proc.stderr, stderr_lines, sys.stderr)
+    )
+    t_out.start()
+    t_err.start()
+    proc.wait(timeout=timeout)
+    t_out.join()
+    t_err.join()
+
+    return SimpleNamespace(
+        returncode=proc.returncode,
+        stdout="".join(stdout_lines),
+        stderr="".join(stderr_lines),
+    )
 
 
 def _assert_cli_installed(cli_name: str) -> None:

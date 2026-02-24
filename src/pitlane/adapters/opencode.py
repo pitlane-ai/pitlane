@@ -39,6 +39,9 @@ class OpenCodeAdapter(BaseAdapter):
             pass
         return None
 
+    def supported_features(self) -> frozenset[str]:
+        return frozenset({"mcps", "skills"})
+
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
         env = {k: expandvars(v, nounset=True) for k, v in mcp.env.items()}
@@ -125,17 +128,28 @@ class OpenCodeAdapter(BaseAdapter):
                     )
 
             if msg_type == "tool_use":
-                tool_calls_count += 1
-                conversation.append(
-                    {
-                        "role": "assistant",
-                        "content": "",
-                        "tool_use": {
-                            "name": msg.get("name", ""),
-                            "input": msg.get("input", {}),
-                        },
-                    }
-                )
+                # Real opencode format: name in part.tool
+                # Fallback: legacy format with top-level name
+                part = msg.get("part", {})
+                tool_name = msg.get("name") or part.get("tool", "")
+                tool_input = msg.get("input") or part.get("state", {}).get("input", {})
+                if tool_name:
+                    tool_calls_count += 1
+                    conversation.append(
+                        {
+                            "role": "assistant",
+                            "content": "",
+                            "tool_use": {
+                                "name": tool_name,
+                                "input": tool_input,
+                            },
+                        }
+                    )
+
+            if msg_type == "text":
+                content = msg.get("part", {}).get("text", "")
+                if content:
+                    conversation.append({"role": "assistant", "content": content})
 
             # OpenCode provides tokens in step_finish events
             if msg_type == "step_finish":

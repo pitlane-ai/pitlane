@@ -325,15 +325,17 @@ class Runner:
         else:
             task_logger.debug(f"Could not detect {adapter.cli_name()} CLI version")
 
-        for skill in assistant_config.skills:
-            workspace_mgr.install_skill(
-                workspace=workspace,
-                skill=skill,
-                agent_type=adapter.agent_type(),
-            )
+        if "skills" in adapter.supported_features():
+            for skill in assistant_config.skills:
+                workspace_mgr.install_skill(
+                    workspace=workspace,
+                    skill=skill,
+                    agent_type=adapter.agent_type(),
+                )
 
-        for mcp in assistant_config.mcps:
-            adapter.install_mcp(workspace=workspace, mcp=mcp)
+        if "mcps" in adapter.supported_features():
+            for mcp in assistant_config.mcps:
+                adapter.install_mcp(workspace=workspace, mcp=mcp)
 
         config = {**assistant_config.args, "timeout": task.timeout}
         adapter_result = adapter.run(

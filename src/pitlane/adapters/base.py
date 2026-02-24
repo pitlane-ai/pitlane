@@ -57,6 +57,11 @@ class BaseAdapter(ABC):
         """Write MCP server config into the workspace for this agent."""
         ...
 
+    @abstractmethod
+    def supported_features(self) -> frozenset[str]:
+        """Features this adapter supports (e.g. 'mcps', 'skills')."""
+        ...
+
 
 def run_command_with_live_logging(
     cmd: list[str],

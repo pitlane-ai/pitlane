@@ -40,6 +40,9 @@ class BobAdapter(BaseAdapter):
             pass
         return None
 
+    def supported_features(self) -> frozenset[str]:
+        return frozenset({"mcps"})
+
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
         env = {k: expandvars(v, nounset=True) for k, v in mcp.env.items()}
@@ -109,9 +112,12 @@ class BobAdapter(BaseAdapter):
                     tool_calls_count += 1
                     conversation.append(
                         {
-                            "role": "tool_use",
-                            "tool_name": tool_name,
-                            "parameters": event.get("parameters", {}),
+                            "role": "assistant",
+                            "content": "",
+                            "tool_use": {
+                                "name": tool_name,
+                                "input": event.get("parameters", {}),
+                            },
                         }
                     )
 

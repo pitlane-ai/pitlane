@@ -112,6 +112,13 @@ def test_parse_json_with_tool_calls():
     assert token_usage["input"] == 50
     assert token_usage["output"] == 20
     assert cost == 0.15
+    # Tool entries must use canonical format (not old role:tool_use format)
+    tool_entries = [e for e in conversation if "tool_use" in e]
+    assert len(tool_entries) == 3
+    for entry in tool_entries:
+        assert entry["role"] == "assistant"
+        assert entry["tool_use"]["name"] == "bash"
+        assert entry["tool_use"]["input"] == {"command": "ls"}
 
 
 def test_parse_json_no_response_text():

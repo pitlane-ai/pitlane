@@ -7,56 +7,27 @@ a single CLI invocation via the module-scoped `pipeline_run` fixture.
 Run with: uv run pytest -m e2e -v --tb=long
 """
 
-import os
+import json
 import subprocess
-import sys
-import threading
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 import yaml
 from junitparser import JUnitXml
 
+from pitlane.adapters import get_adapter
+from tests.e2e.conftest import run_with_tee
+
 ASSISTANTS = ("claude-haiku", "bob-default", "opencode-default", "vibe-default")
 
-
-def _run_with_tee(cmd, *, timeout):
-    """Run a subprocess, streaming output while capturing it for assertions."""
-    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
-    proc = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        env=env,
-    )
-
-    stdout_lines, stderr_lines = [], []
-
-    def _reader(stream, buf, dest):
-        for line in stream:
-            buf.append(line)
-            dest.write(line)
-            dest.flush()
-
-    t_out = threading.Thread(
-        target=_reader, args=(proc.stdout, stdout_lines, sys.stdout)
-    )
-    t_err = threading.Thread(
-        target=_reader, args=(proc.stderr, stderr_lines, sys.stderr)
-    )
-    t_out.start()
-    t_err.start()
-    proc.wait(timeout=timeout)
-    t_out.join()
-    t_err.join()
-
-    return SimpleNamespace(
-        returncode=proc.returncode,
-        stdout="".join(stdout_lines),
-        stderr="".join(stderr_lines),
-    )
+_eval_cfg = yaml.safe_load(
+    (Path(__file__).parent / "fixtures" / "eval.yaml").read_text()
+)
+SKILL_ASSISTANTS = tuple(
+    name
+    for name, cfg in _eval_cfg["assistants"].items()
+    if "skills" in get_adapter(cfg["adapter"]).supported_features()
+)
 
 
 @pytest.fixture(scope="module")
@@ -75,14 +46,18 @@ def pipeline_run(
     fixtures_src = Path(__file__).parent / "fixtures"
     config_path = config_dir / "eval.yaml"
     mcp_server_path = fixtures_src / "mcp_test_server.py"
+    validate_script_path = fixtures_src / "validate_hello.py"
     workdir_path = fixtures_src / "fixtures" / "empty"
 
     yaml_content = (fixtures_src / "eval.yaml").read_text()
     yaml_content = yaml_content.replace("__MCP_SERVER_PATH__", str(mcp_server_path))
+    yaml_content = yaml_content.replace(
+        "__VALIDATE_SCRIPT_PATH__", str(validate_script_path)
+    )
     yaml_content = yaml_content.replace("./fixtures/empty", str(workdir_path))
     config_path.write_text(yaml_content)
 
-    result = _run_with_tee(
+    result = run_with_tee(
         [
             "pitlane",
             "run",
@@ -105,8 +80,8 @@ def pipeline_run(
     return result, run_dir
 
 
-def _workspace(run_dir: Path, assistant: str) -> Path:
-    return run_dir / assistant / "hello-world" / "iter-0" / "workspace"
+def _workspace(run_dir: Path, assistant: str, task: str = "hello-world") -> Path:
+    return run_dir / assistant / task / "iter-0" / "workspace"
 
 
 @pytest.mark.e2e
@@ -202,23 +177,80 @@ def test_mcp_marker_proves_tool_used(pipeline_run, assistant):
     assert "PITLANE_MCP_MARKER_a9f3e7b2" in marker.read_text()
 
 
+def _has_tool_call(conversation: list[dict], tool_name: str) -> bool:
+    """Check if a tool call with the given name exists in the conversation.
+
+    Handles both formats:
+    - {"tool_use": {"name": ...}} (claude, opencode, vibe)
+    - {"tool_name": ...} (bob)
+
+    Uses substring match to handle adapter-specific prefixes:
+    - claude: mcp__pitlane-test-mcp__write_marker
+    - vibe: pitlane-test-mcp_write_marker
+    - bob: write_marker (bare)
+    """
+    for entry in conversation:
+        name = entry.get("tool_use", {}).get("name", "")
+        if tool_name in name:
+            return True
+        if tool_name in entry.get("tool_name", ""):
+            return True
+    return False
+
+
 @pytest.mark.e2e
-def test_skill_present_in_workspace(pipeline_run):
+@pytest.mark.parametrize("assistant", SKILL_ASSISTANTS)
+def test_skill_present_in_workspace(pipeline_run, assistant):
     _, run_dir = pipeline_run
     skill_file = (
-        _workspace(run_dir, "claude-haiku")
+        _workspace(run_dir, assistant)
         / ".agents"
         / "skills"
         / "pitlane-test"
         / "SKILL.md"
     )
-    assert skill_file.exists(), "Skill file not copied to workspace"
+    assert skill_file.exists(), f"Skill file not copied to workspace for '{assistant}'"
 
 
 @pytest.mark.e2e
-def test_workspace_has_hello_py(pipeline_run):
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_mcp_tool_call_in_conversation(pipeline_run, assistant):
     _, run_dir = pipeline_run
-    assert (_workspace(run_dir, "claude-haiku") / "hello.py").exists()
+    conv_file = run_dir / assistant / "hello-world" / "iter-0" / "conversation.json"
+    assert conv_file.exists(), f"conversation.json not found for '{assistant}'"
+    conversation = json.loads(conv_file.read_text())
+    assert _has_tool_call(conversation, "write_marker"), (
+        f"No 'write_marker' tool call found in conversation for '{assistant}'"
+    )
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_workspace_has_hello_py(pipeline_run, assistant):
+    _, run_dir = pipeline_run
+    assert (_workspace(run_dir, assistant) / "hello.py").exists()
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_workspace_has_fail_py(pipeline_run, assistant):
+    _, run_dir = pipeline_run
+    assert (_workspace(run_dir, assistant) / "fail.py").exists()
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_conversation_json_exists(pipeline_run, assistant):
+    _, run_dir = pipeline_run
+    conv_file = run_dir / assistant / "hello-world" / "iter-0" / "conversation.json"
+    assert conv_file.exists(), f"conversation.json not found for '{assistant}'"
+    json.loads(conv_file.read_text())
+
+
+@pytest.mark.e2e
+def test_debug_log_exists(pipeline_run):
+    _, run_dir = pipeline_run
+    assert (run_dir / "debug.log").exists()
 
 
 @pytest.mark.e2e
@@ -244,3 +276,73 @@ def test_cli_report_regenerates(pipeline_run):
     )
     assert result.returncode == 0
     assert "Report generated:" in result.stdout
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_conversation_has_content(pipeline_run, assistant):
+    """Conversation must have at least 2 entries (tool calls + text)."""
+    _, run_dir = pipeline_run
+    conv_file = run_dir / assistant / "hello-world" / "iter-0" / "conversation.json"
+    conversation = json.loads(conv_file.read_text())
+    assert len(conversation) >= 2, (
+        f"Conversation for '{assistant}' has only {len(conversation)} entries, expected ≥2"
+    )
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_conversation_tool_calls_have_names(pipeline_run, assistant):
+    """Every tool_use entry must have a non-empty tool name."""
+    _, run_dir = pipeline_run
+    conv_file = run_dir / assistant / "hello-world" / "iter-0" / "conversation.json"
+    conversation = json.loads(conv_file.read_text())
+    for i, entry in enumerate(conversation):
+        if "tool_use" in entry:
+            name = entry["tool_use"].get("name", "")
+            assert name, f"Entry {i} for '{assistant}' has empty tool_use.name: {entry}"
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_conversation_has_assistant_text(pipeline_run, assistant):
+    """At least one entry must have non-empty text content from the assistant."""
+    _, run_dir = pipeline_run
+    conv_file = run_dir / assistant / "hello-world" / "iter-0" / "conversation.json"
+    conversation = json.loads(conv_file.read_text())
+    has_text = any(entry.get("content") for entry in conversation)
+    assert has_text, f"No assistant text content in conversation for '{assistant}'"
+
+
+@pytest.mark.e2e
+@pytest.mark.parametrize("assistant", ASSISTANTS)
+def test_conversation_tool_count_matches_junit(pipeline_run, assistant):
+    """tool_calls_count in JUnit must match number of tool_use entries in conversation."""
+    _, run_dir = pipeline_run
+    xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
+    junit_count = None
+    for suite in xml:
+        if assistant in suite.name:
+            for p in suite.properties():
+                if p.name == "tool_calls_count":
+                    junit_count = int(float(p.value))
+            break
+    assert junit_count is not None, f"No tool_calls_count in JUnit for '{assistant}'"
+
+    conv_file = run_dir / assistant / "hello-world" / "iter-0" / "conversation.json"
+    conversation = json.loads(conv_file.read_text())
+    conv_count = sum(1 for e in conversation if "tool_use" in e)
+
+    assert conv_count == junit_count, (
+        f"Mismatch for '{assistant}': {conv_count} tool_use entries in conversation "
+        f"vs {junit_count} tool_calls_count in JUnit"
+    )
+
+
+@pytest.mark.e2e
+def test_report_shows_tool_calls(pipeline_run):
+    """Report HTML must render TOOL badges and tool names in transcripts."""
+    _, run_dir = pipeline_run
+    html = (run_dir / "report.html").read_text()
+    assert "badge-role-tool" in html, "No TOOL badges found in report"
+    assert "write_marker" in html, "Tool name 'write_marker' not found in report"
