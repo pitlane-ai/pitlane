@@ -3,7 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
+import yaml
 import typer
+from pydantic import ValidationError
 
 app = typer.Typer(name="pitlane", help="Evaluate AI coding assistants")
 schema_app = typer.Typer(name="schema", help="Generate and install schema tooling")
@@ -51,7 +53,14 @@ def run(
         typer.echo(f"Error: config file not found: {config}", err=True)
         raise typer.Exit(1)
 
-    eval_config = load_config(config_path)
+    try:
+        eval_config = load_config(config_path)
+    except yaml.YAMLError as e:
+        typer.echo(f"Error: invalid YAML in {config}: {e}", err=True)
+        raise typer.Exit(1)
+    except ValidationError as e:
+        typer.echo(f"Error: invalid config in {config}:\n{e}", err=True)
+        raise typer.Exit(1)
 
     include_filter = (
         [a.strip() for a in only_assistants.split(",")] if only_assistants else None
@@ -92,21 +101,28 @@ def run(
 
         webbrowser.open(report_path.resolve().as_uri())
 
-    # Exit with non-zero if any assertion failed or run was interrupted
+    # Exit with non-zero on hard errors (execution errors, crashes, timeouts)
+    # Assertion failures are expected data, not errors — exit 0 for those
     if runner.interrupted:
         raise typer.Exit(1)
 
     xml = JUnitXml.fromfile(str(run_dir / "junit.xml"))
-    has_failures = any(suite.failures > 0 for suite in xml)
-    if has_failures:
+    has_errors = any(suite.errors > 0 for suite in xml)
+    has_timeouts = any(
+        # > 0 catches any run where at least one iteration timed out; in repeat mode
+        # timed_out is an average across iterations (e.g. 0.33 = 1 of 3 timed out)
+        any(p.name == "timed_out" and float(p.value) > 0 for p in suite.properties())
+        for suite in xml
+    )
+    if has_errors or has_timeouts:
         raise typer.Exit(1)
 
 
 @app.command()
 def report(
     run_dir: str = typer.Argument(help="Path to run output directory"),
-    open_report: bool = typer.Option(
-        False, "--open", help="Open report.html in browser after generating"
+    no_open: bool = typer.Option(
+        False, "--no-open", help="Do not open report.html in browser after generating"
     ),
 ):
     """Regenerate HTML report from a previous run."""
@@ -120,7 +136,7 @@ def report(
     report_path = generate_report(run_path)
     typer.echo(f"Report generated: {report_path}")
 
-    if open_report:
+    if not no_open:
         import webbrowser
 
         webbrowser.open(report_path.resolve().as_uri())

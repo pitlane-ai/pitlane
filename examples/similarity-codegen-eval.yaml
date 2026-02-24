@@ -47,7 +47,7 @@ tasks:
       - file_exists: "fib.py"
       - file_exists: "test_fib.py"
       - file_exists: "README.md"
-      - command_succeeds: "python -m pytest test_fib.py -v"
+      - command_succeeds: "python3 -m pytest test_fib.py -v"
       - file_contains: { path: "fib.py", pattern: "def fibonacci" }
       - file_contains: { path: "fib.py", pattern: "ValueError" }
 

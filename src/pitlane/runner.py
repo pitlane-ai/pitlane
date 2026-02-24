@@ -141,18 +141,19 @@ class Runner:
                         result_dict = future.result()
 
                         completed_count += 1
-                        status = "PASS" if result_dict["all_passed"] else "FAIL"
                         n_passed = sum(
                             1 for a in result_dict["assertions"] if a["passed"]
                         )
                         n_total = len(result_dict["assertions"])
                         duration = result_dict["metrics"].get("wall_clock_seconds")
                         dur = f", {duration:.0f}s" if duration is not None else ""
+                        score = result_dict["metrics"].get("weighted_score")
+                        score_str = f", score {score}" if score is not None else ""
                         label = f"{assistant_name} / {task_name}"
                         if self.repeat > 1:
                             label += f" iter-{iteration}"
                         print(
-                            f"  [{completed_count}/{len(future_to_task)}] {status}  {label} ({n_passed}/{n_total} assertions{dur})"
+                            f"  [{completed_count}/{len(future_to_task)}] {label} ({n_passed}/{n_total} assertions{score_str}{dur})"
                         )
 
                         # Convert dict to IterationResult object
