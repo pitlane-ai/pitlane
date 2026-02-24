@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitlane Report</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chroma-js@2.4.2/chroma.min.js" integrity="sha384-VRhlkYEqoAXsWzoORIQL0gHdX0BvQoQG89GxEj7I4xlffttgMvoMsQr7E/IWGK9T" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -638,29 +639,11 @@
 {% endfor %}
 {% endmacro %}
 
-{# ── Score pill macro: red→amber→green with power-curve emphasis ────────── #}
-{# A power curve (t²) compresses low scores into reds while spreading high   #}
-{# scores across more of the green range — making top-performer differences  #}
-{# visually distinct. Adjust emphasis_exponent to tune: >1 compresses lows,  #}
-{# <1 would compress highs.                                                  #}
+{# ── Score pill macro: color applied client-side via chroma.js ─────────── #}
 {% macro score_pill(score) %}
 {% if score is not none %}
   {% set score_value = score|float %}
-  {% set emphasis_exponent = 2.0 %}
-  {% set normalized = [[score_value / 100, 1.0]|min, 0.0]|max %}
-  {% set color_position = normalized ** emphasis_exponent %}
-  {% if color_position < 0.5 %}
-    {% set blend = color_position * 2 %}
-    {% set r = 239 %}
-    {% set g = (68 + blend * (158 - 68))|int %}
-    {% set b = (68 + blend * (11 - 68))|int %}
-  {% else %}
-    {% set blend = (color_position - 0.5) * 2 %}
-    {% set r = (239 + blend * (34 - 239))|int %}
-    {% set g = (158 + blend * (197 - 158))|int %}
-    {% set b = (11 + blend * (94 - 11))|int %}
-  {% endif %}
-  <span class="score-pill" style="background:rgba({{ r }},{{ g }},{{ b }},0.25); color:rgb({{ r }},{{ g }},{{ b }});">{{ score_value }}</span>
+  <span class="score-pill" data-score="{{ score_value }}">{{ score_value }}</span>
 {% endif %}
 {% endmacro %}
 
@@ -1090,25 +1073,21 @@ function closeCompare(button) {
 }
 
 
-/* ── Score color helper (red→amber→green with power-curve emphasis) ─────── */
-/* A power curve (t²) compresses low scores into reds while spreading high   */
-/* scores across more of the green range — making top-performer differences  */
-/* visually distinct. Adjust EMPHASIS_EXPONENT to tune: >1 compresses lows,  */
-/* <1 would compress highs.                                                  */
+/* ── Score color helper (red→amber→green, gamma=2 power curve) ──────────── */
+var scoreScale = chroma.scale(['#ef4444', '#ef9e0b', '#22c55e']).domain([0, 50, 100]).gamma(2);
+
 function scoreColor(score) {
-  var EMPHASIS_EXPONENT = 2.0;
-  var normalized = Math.min(Math.max(score / 100, 0), 1);
-  var colorPosition = Math.pow(normalized, EMPHASIS_EXPONENT);
-  var r, g, b;
-  if (colorPosition < 0.5) {
-    var blend = colorPosition * 2;
-    r = 239; g = Math.round(68 + blend * (158 - 68)); b = Math.round(68 + blend * (11 - 68));
-  } else {
-    var blend = (colorPosition - 0.5) * 2;
-    r = Math.round(239 + blend * (34 - 239)); g = Math.round(158 + blend * (197 - 158)); b = Math.round(11 + blend * (94 - 11));
-  }
-  return 'rgb(' + r + ',' + g + ',' + b + ')';
+  return scoreScale(score).css();
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.score-pill[data-score]').forEach(function(el) {
+    var score = parseFloat(el.getAttribute('data-score'));
+    if (isNaN(score)) return;
+    el.style.color = scoreScale(score).css();
+    el.style.background = scoreScale(score).alpha(0.25).css();
+  });
+});
 
 /* ── Charts ──────────────────────────────────────────────────────────────── */
 /* Metric display names */

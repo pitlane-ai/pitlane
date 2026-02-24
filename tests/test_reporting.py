@@ -359,12 +359,11 @@ def test_report_task_header_shows_avg_score(sample_run_dir):
 
 
 def test_report_agent_summary_has_score_pill(sample_run_dir):
-    """Agent summary should show score pills with numeric values."""
+    """Agent summary should show score pills with data-score attributes for client-side coloring."""
     html = generate_report(sample_run_dir).read_text()
     assert "score-pill" in html
-    # Both scores should appear in the report
-    assert "100.0" in html
-    assert "66.67" in html
+    assert 'data-score="100.0"' in html
+    assert 'data-score="66.67"' in html
 
 
 def test_report_preserves_per_assertion_pass_fail(sample_run_dir):
