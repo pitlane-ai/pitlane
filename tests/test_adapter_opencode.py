@@ -382,7 +382,7 @@ def test_opencode_with_api_error_handling(mocker, tmp_path):
     logger = mocker.Mock()
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_streaming_sync",
+        "pitlane.adapters.opencode.run_command_with_live_logging",
         return_value=("", "API Error: Rate limit exceeded", 1, False),
     )
 
@@ -399,7 +399,7 @@ def test_opencode_with_timeout_error(mocker, tmp_path):
     logger = mocker.Mock()
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_streaming_sync",
+        "pitlane.adapters.opencode.run_command_with_live_logging",
         side_effect=TimeoutError("Command timed out"),
     )
     result = adapter.run("test prompt", tmp_path, {"timeout": 10}, logger)
@@ -415,7 +415,7 @@ def test_opencode_with_command_exception(mocker, tmp_path):
     logger = mocker.Mock()
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_streaming_sync",
+        "pitlane.adapters.opencode.run_command_with_live_logging",
         side_effect=Exception("Unexpected error"),
     )
 
@@ -478,7 +478,7 @@ def test_opencode_with_all_options_combined(mocker, tmp_path):
     )
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_streaming_sync",
+        "pitlane.adapters.opencode.run_command_with_live_logging",
         return_value=(mock_output, "", 0, False),
     )
     result = adapter.run("Complex test prompt", tmp_path, config, logger)
@@ -528,7 +528,7 @@ def test_opencode_run_with_debug_logging(mocker, tmp_path):
     )
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_streaming_sync",
+        "pitlane.adapters.opencode.run_command_with_live_logging",
         return_value=(mock_output, "", 0, False),
     )
 

@@ -10,28 +10,26 @@ from typing import Any
 from pitlane.assertions.base import AssertionResult
 
 
-_NOISY_LOGGERS = (
-    "huggingface_hub",
-    "transformers",
-    "sentence_transformers",
-    "evaluate",
-    "filelock",
-)
+def _suppress_library_logs(logger: logging.Logger) -> None:
+    """Suppress verbose logs from ML libraries unless verbose mode is enabled."""
+    # Only suppress if not in verbose/debug mode
+    if logger.getEffectiveLevel() > logging.DEBUG:
+        os.environ.update(
+            {
+                "TRANSFORMERS_VERBOSITY": "error",
+                "HF_HUB_VERBOSITY": "error",
+            }
+        )
 
-
-def _silence_third_party() -> None:
-    for name in _NOISY_LOGGERS:
-        logging.getLogger(name).setLevel(logging.ERROR)
-    os.environ.setdefault("TQDM_DISABLE", "1")
-
-
-def _require_similarity_deps() -> None:
-    try:
-        pass
-    except Exception as exc:
-        raise ValueError(
-            "Similarity assertions require installed deps. Run: uv sync"
-        ) from exc
+        for _lib in (
+            "huggingface_hub",
+            "transformers",
+            "sentence_transformers",
+            "evaluate",
+            "filelock",
+        ):
+            logging.getLogger(_lib).setLevel(logging.ERROR)
+            logging.getLogger(_lib).propagate = False
 
 
 def _read_text(workdir: str | Path, relpath: str) -> str:
@@ -87,8 +85,8 @@ def evaluate_similarity_assertion(
     source_dir: str | Path | None = None,
     logger: logging.Logger,
 ) -> AssertionResult:
-    _require_similarity_deps()
-    _silence_third_party()
+    # Suppress library logs unless verbose mode is enabled
+    _suppress_library_logs(logger)
 
     logger.info(
         f"Evaluating {kind} similarity: {spec.get('actual')} vs {spec.get('expected')}"

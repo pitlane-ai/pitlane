@@ -469,9 +469,9 @@ def test_run_command_exception(mocker, adapter, mock_logger, tmp_path, monkeypat
 
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
-    # Mock run_streaming_sync to raise exception
+    # Mock run_command_with_live_logging to raise exception
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
         side_effect=Exception("Command failed"),
     )
 
@@ -493,7 +493,7 @@ def test_run_with_timeout(mocker, adapter, mock_logger, tmp_path, monkeypatch):
 
     # Mock successful command execution
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
         return_value=("output", "", 0, False),
     )
 
@@ -542,7 +542,7 @@ def test_run_success_with_session_stats(
     # Mock successful command with JSON output
     output = json.dumps([{"role": "assistant", "content": "Done"}])
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
         return_value=(output, "", 0, False),
     )
 
@@ -565,7 +565,7 @@ def test_run_with_custom_model(mocker, adapter, mock_logger, tmp_path, monkeypat
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
         return_value=("[]", "", 0, False),
     )
 
@@ -588,7 +588,7 @@ def test_run_with_empty_response(mocker, adapter, mock_logger, tmp_path, monkeyp
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
         return_value=("", "", 0, False),
     )
 
@@ -610,7 +610,7 @@ def test_run_with_invalid_response_format(
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
         return_value=("invalid json {[", "", 0, False),
     )
 
@@ -632,7 +632,7 @@ def test_run_with_all_options_combined(
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_streaming_sync",
+        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
         return_value=("[]", "", 0, False),
     )
 

@@ -19,7 +19,7 @@ from pitlane.metrics import (
     aggregate_results,
 )
 from pitlane.verbose import setup_logger
-from pitlane.workspace import WorkspaceManager, validate_mcp_env
+from pitlane.workspace import WorkspaceManager
 
 AssistantName = str
 TaskName = str
@@ -73,9 +73,11 @@ class Runner:
         )
         logger.debug("Starting evaluation run")
 
+        # Prep workspace
         workspace_mgr = WorkspaceManager(base_dir=run_dir)
         all_results: dict[str, dict[str, Any]] = {}
 
+        # Filtering tasks
         tasks = self.config.tasks
         if self.task_filter:
             tasks = [t for t in tasks if t.name == self.task_filter]
@@ -90,8 +92,7 @@ class Runner:
                 k: v for k, v in assistants.items() if k not in self.skip_assistants
             }
 
-        validate_mcp_env(assistants)
-
+        # Prep CLI versions for report
         cli_versions = {}
         for assistant_name, assistant_config in assistants.items():
             adapter = get_adapter(assistant_config.adapter)

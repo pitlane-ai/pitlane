@@ -7,8 +7,13 @@ import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
-from pitlane.adapters.base import AdapterResult, BaseAdapter
-from pitlane.adapters.streaming import run_streaming_sync
+from expandvars import expandvars
+
+from pitlane.adapters.base import (
+    AdapterResult,
+    BaseAdapter,
+    run_command_with_live_logging,
+)
 
 if TYPE_CHECKING:
     import logging
@@ -35,9 +40,8 @@ class OpenCodeAdapter(BaseAdapter):
         return None
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
-        from pitlane.workspace import _expand_env
-
-        expanded_env = {k: _expand_env(v) for k, v in mcp.env.items()}
+        # Resolve ${VAR} references from the user's YAML config
+        env = {k: expandvars(v, nounset=True) for k, v in mcp.env.items()}
         target = workspace / "opencode.json"
         data: dict = {}
         if target.exists():
@@ -50,7 +54,7 @@ class OpenCodeAdapter(BaseAdapter):
         entry: dict = {
             "type": "local",
             "command": full_command,
-            "environment": expanded_env,
+            "environment": env,
             "enabled": True,
         }
         if mcp.url is not None:
@@ -171,7 +175,7 @@ class OpenCodeAdapter(BaseAdapter):
 
         start = time.monotonic()
         try:
-            stdout, stderr, exit_code, timed_out = run_streaming_sync(
+            stdout, stderr, exit_code, timed_out = run_command_with_live_logging(
                 cmd, workdir, timeout, logger
             )
         except Exception as e:
