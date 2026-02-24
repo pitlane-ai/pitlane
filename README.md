@@ -113,6 +113,11 @@ Your AI assistant can then help you create effective eval benchmarks. See [Writi
 |-----------|--------------|--------|
 | [Bob](https://www.ibm.com/products/bob) | `bob` | ✅ Tested |
 | [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
+| [Cline](https://cline.bot) | `cline` | ✅ Tested |
+| [Codex](https://github.com/openai/codex) | `codex` | ✅ Tested |
+| [GitHub Copilot](https://github.com/features/copilot) | `copilot` | ✅ Tested |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `gemini` | ✅ Tested |
+| [Kilo](https://kilocode.ai) | `kilo` | ✅ Tested |
 | [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
 | [OpenCode](https://opencode.ai) | `opencode` | ✅ Tested |
 

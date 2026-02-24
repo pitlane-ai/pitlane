@@ -37,14 +37,19 @@ pitlane pitlane_command
 uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane pitlane_command
 ```
 
-The user also needs at least one AI coding assistant CLI installed. Pitlane supports three adapters:
+The user also needs at least one AI coding assistant CLI installed. Pitlane supports these adapters:
 
 | Adapter | CLI | Cheap model for iteration |
 |---------|-----|--------------------------|
+| `bob` | `bob` | N/A |
 | `claude-code` | `claude` | `haiku` |
+| `cline` | `cline` | `deepseek-chat` |
+| `codex` | `codex` | `codex-mini-latest` |
+| `copilot` | `copilot` | N/A (uses default model) |
+| `gemini` | `gemini` | `gemini-2.5-pro` |
+| `kilo` | `kilo` | `minimax-m2.5` |
 | `mistral-vibe` | `vibe` | `devstral-small` |
 | `opencode` | `opencode` | `minimax-m2.5-free` (free) |
-| `bob` | `bob` | N/A |
 
 Scaffold a new eval project with `pitlane init`. This creates an `eval.yaml` and a `fixtures/empty/` directory to get started.
 
