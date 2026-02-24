@@ -41,7 +41,7 @@ tasks:
     assertions:
       # ── Core functionality (high weight) ─────────────────────────
       # Tests passing is the most important signal
-      - command_succeeds: "python -m pytest test_fib.py -v"
+      - command_succeeds: "python3 -m pytest test_fib.py -v"
         weight: 3.0
 
       # ── File structure (default weight) ──────────────────────────

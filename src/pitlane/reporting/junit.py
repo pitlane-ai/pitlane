@@ -190,11 +190,101 @@ def generate_report(run_dir: Path) -> Path:
         task = parts_s[1] if len(parts_s) == 2 else s["name"]
         task_groups.setdefault(task, []).append(s)
 
+    # Sort each task group by weighted_score descending (highest first)
+    for agents in task_groups.values():
+        agents.sort(
+            key=lambda s: float(s["properties"].get("weighted_score", -1)),
+            reverse=True,
+        )
+
     tasks = list(task_groups.items())  # [(task_name, [suite, ...]), ...]
 
     total_tests = sum(s["tests"] for s in suites)
     total_failures = sum(s["failures"] for s in suites)
     total_errors = sum(s["errors"] for s in suites)
+    total_configurations = len(suites)
+
+    # Compute average weighted score across all configurations
+    scores = []
+    for s in suites:
+        ws = s["properties"].get("weighted_score")
+        if ws is not None:
+            try:
+                scores.append(float(ws))
+            except (ValueError, TypeError):
+                pass
+    avg_score = round(sum(scores) / len(scores), 1) if scores else None
+
+    # Build chart data for scatter plots and distribution charts
+    chart_data = []
+    for s in suites:
+        props = s["properties"]
+        ws = props.get("weighted_score")
+        if ws is None:
+            continue
+        try:
+            score_val = float(ws)
+        except (ValueError, TypeError):
+            continue
+
+        cost = None
+        cost_raw = props.get("cost_usd")
+        if cost_raw is not None:
+            try:
+                cost = float(cost_raw)
+            except (ValueError, TypeError):
+                pass
+
+        latency = None
+        if s.get("time") is not None:
+            try:
+                latency = float(s["time"])
+            except (ValueError, TypeError):
+                pass
+
+        score_stddev = None
+        stddev_raw = props.get("weighted_score_stddev")
+        if stddev_raw is not None:
+            try:
+                score_stddev = float(stddev_raw)
+            except (ValueError, TypeError):
+                pass
+
+        def _float_prop(key: str) -> float | None:
+            raw = props.get(key)
+            if raw is None:
+                return None
+            try:
+                return float(raw)
+            except (ValueError, TypeError):
+                return None
+
+        inp = _float_prop("token_usage_input")
+        out = _float_prop("token_usage_output")
+        total_tokens = (
+            (inp or 0) + (out or 0) if (inp is not None or out is not None) else None
+        )
+
+        chart_data.append(
+            {
+                "label": s["name"],
+                "assistant": s.get("assistant_name", s["name"]),
+                "score": score_val,
+                "cost": cost,
+                "latency": latency,
+                "score_stddev": score_stddev,
+                "tool_calls_count": _float_prop("tool_calls_count"),
+                "token_usage_input": inp,
+                "token_usage_output": out,
+                "total_tokens": total_tokens,
+                "files_created": _float_prop("files_created"),
+                "files_modified": _float_prop("files_modified"),
+                "total_lines_generated": _float_prop("total_lines_generated"),
+                "assertion_pass_rate": _float_prop("assertion_pass_rate"),
+            }
+        )
+
+    chart_data_json = json.dumps(chart_data)
 
     tmpl_dir = Path(__file__).parent / "templates"
     env = Environment(loader=FileSystemLoader(str(tmpl_dir)), autoescape=True)
@@ -206,6 +296,9 @@ def generate_report(run_dir: Path) -> Path:
         total_tests=total_tests,
         total_failures=total_failures,
         total_errors=total_errors,
+        total_configurations=total_configurations,
+        avg_score=avg_score,
+        chart_data_json=chart_data_json,
         run_dir=str(run_dir),
         meta=meta,
     )
