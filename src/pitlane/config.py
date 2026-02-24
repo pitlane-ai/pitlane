@@ -193,6 +193,14 @@ class EvalConfig(BaseModel):
     assistants: dict[str, AssistantConfig]
     tasks: list[TaskConfig]
 
+    @field_validator("assistants")
+    @classmethod
+    def no_commas_in_assistant_names(cls, v: dict) -> dict:
+        for name in v:
+            if "," in name:
+                raise ValueError(f"Assistant name '{name}' must not contain a comma")
+        return v
+
     @model_validator(mode="after")
     def collections_must_not_be_empty(self) -> EvalConfig:
         if not self.assistants:

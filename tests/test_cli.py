@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 from typer.testing import CliRunner
 from pitlane.cli import app
 
@@ -541,7 +542,7 @@ tasks:
             "3",
             "--task",
             "test-task",
-            "--assistant",
+            "--only-assistants",
             "test-assistant",
             "--output-dir",
             "custom-runs",
@@ -554,7 +555,7 @@ tasks:
     assert call_kwargs["parallel_tasks"] == 2
     assert call_kwargs["repeat"] == 3
     assert call_kwargs["task_filter"] == "test-task"
-    assert call_kwargs["assistant_filter"] == "test-assistant"
+    assert call_kwargs["assistant_filter"] == ["test-assistant"]
     assert call_kwargs["output_dir"] == Path("custom-runs")
     assert result.exit_code == 0
 
@@ -814,3 +815,125 @@ def test_schema_generate_with_custom_paths(tmp_path, monkeypatch):
     assert doc_out.exists()
     assert "Wrote schema" in result.output
     assert "Wrote docs" in result.output
+
+
+# ============================================================================
+# Only/Skip Assistants CLI Tests
+# ============================================================================
+
+
+def _make_run_config(tmp_path):
+    fixture_dir = tmp_path / "fixtures" / "empty"
+    fixture_dir.mkdir(parents=True)
+    (fixture_dir / ".gitkeep").write_text("")
+    config_file = tmp_path / "eval.yaml"
+    config_file.write_text(f"""
+assistants:
+  a:
+    adapter: claude-code
+    args:
+      model: sonnet
+  b:
+    adapter: claude-code
+    args:
+      model: sonnet
+
+tasks:
+  - name: t
+    prompt: "do it"
+    workdir: {fixture_dir}
+    timeout: 10
+    assertions:
+      - file_exists: ".gitkeep"
+""")
+    return config_file
+
+
+def test_only_assistants_flag_passes_list_to_runner(tmp_path):
+    config_file = _make_run_config(tmp_path)
+    captured = {}
+
+    original_init = __import__("pitlane.runner", fromlist=["Runner"]).Runner.__init__
+
+    def mock_init(self, **kwargs):
+        captured.update(kwargs)
+        original_init(self, **kwargs)
+
+    with patch("pitlane.runner.Runner.__init__", mock_init):
+        with patch("pitlane.runner.Runner.execute") as mock_exec:
+            mock_exec.return_value = MagicMock()
+            mock_exec.return_value.__truediv__ = lambda s, o: MagicMock(
+                exists=lambda: False
+            )
+            runner.invoke(
+                app,
+                ["run", str(config_file), "--only-assistants", "a,b", "--no-open"],
+            )
+
+    assert captured.get("assistant_filter") == ["a", "b"]
+
+
+def test_only_assistants_short_flag(tmp_path):
+    config_file = _make_run_config(tmp_path)
+    captured = {}
+
+    original_init = __import__("pitlane.runner", fromlist=["Runner"]).Runner.__init__
+
+    def mock_init(self, **kwargs):
+        captured.update(kwargs)
+        original_init(self, **kwargs)
+
+    with patch("pitlane.runner.Runner.__init__", mock_init):
+        with patch("pitlane.runner.Runner.execute") as mock_exec:
+            mock_exec.return_value = MagicMock()
+            mock_exec.return_value.__truediv__ = lambda s, o: MagicMock(
+                exists=lambda: False
+            )
+            runner.invoke(app, ["run", str(config_file), "-o", "a", "--no-open"])
+
+    assert captured.get("assistant_filter") == ["a"]
+
+
+def test_skip_assistants_flag_passes_list_to_runner(tmp_path):
+    config_file = _make_run_config(tmp_path)
+    captured = {}
+
+    original_init = __import__("pitlane.runner", fromlist=["Runner"]).Runner.__init__
+
+    def mock_init(self, **kwargs):
+        captured.update(kwargs)
+        original_init(self, **kwargs)
+
+    with patch("pitlane.runner.Runner.__init__", mock_init):
+        with patch("pitlane.runner.Runner.execute") as mock_exec:
+            mock_exec.return_value = MagicMock()
+            mock_exec.return_value.__truediv__ = lambda s, o: MagicMock(
+                exists=lambda: False
+            )
+            runner.invoke(
+                app,
+                ["run", str(config_file), "--skip-assistants", "a,b", "--no-open"],
+            )
+
+    assert captured.get("skip_assistants") == ["a", "b"]
+
+
+def test_skip_assistants_short_flag(tmp_path):
+    config_file = _make_run_config(tmp_path)
+    captured = {}
+
+    original_init = __import__("pitlane.runner", fromlist=["Runner"]).Runner.__init__
+
+    def mock_init(self, **kwargs):
+        captured.update(kwargs)
+        original_init(self, **kwargs)
+
+    with patch("pitlane.runner.Runner.__init__", mock_init):
+        with patch("pitlane.runner.Runner.execute") as mock_exec:
+            mock_exec.return_value = MagicMock()
+            mock_exec.return_value.__truediv__ = lambda s, o: MagicMock(
+                exists=lambda: False
+            )
+            runner.invoke(app, ["run", str(config_file), "-s", "b", "--no-open"])
+
+    assert captured.get("skip_assistants") == ["b"]

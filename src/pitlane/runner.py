@@ -44,7 +44,8 @@ class Runner:
         config: EvalConfig,
         output_dir: Path,
         task_filter: str | None = None,
-        assistant_filter: str | None = None,
+        assistant_filter: list[str] | None = None,
+        skip_assistants: list[str] | None = None,
         verbose: bool = False,
         parallel_tasks: int = 1,
         repeat: int = 1,
@@ -53,6 +54,7 @@ class Runner:
         self.output_dir = output_dir
         self.task_filter = task_filter
         self.assistant_filter = assistant_filter
+        self.skip_assistants = skip_assistants
         self.verbose = verbose
         self.parallel_tasks = parallel_tasks
         self.repeat = repeat
@@ -83,7 +85,11 @@ class Runner:
         assistants = self.config.assistants
         if self.assistant_filter:
             assistants = {
-                k: v for k, v in assistants.items() if k == self.assistant_filter
+                k: v for k, v in assistants.items() if k in self.assistant_filter
+            }
+        if self.skip_assistants:
+            assistants = {
+                k: v for k, v in assistants.items() if k not in self.skip_assistants
             }
 
         # Prep CLI versions for report

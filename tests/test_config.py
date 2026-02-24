@@ -4,6 +4,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from pitlane.config import SkillRef, load_config
 
@@ -531,3 +532,19 @@ def test_mcp_env_validation_empty_env(tmp_yaml):
     """)
     cfg = load_config(path)
     assert cfg.assistants["bob"].mcps[0].env == {}
+
+
+def test_assistant_name_with_comma_raises(tmp_yaml):
+    path = tmp_yaml("""\
+        assistants:
+          foo,bar:
+            adapter: claude-code
+        tasks:
+          - name: t
+            prompt: p
+            workdir: /tmp
+            assertions:
+              - file_exists: "x"
+    """)
+    with pytest.raises(ValidationError, match="must not contain a comma"):
+        load_config(path)
