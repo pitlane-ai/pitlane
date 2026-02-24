@@ -6,6 +6,7 @@
   <title>Pitlane Report</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/chroma-js@2.4.2/chroma.min.js" integrity="sha384-VRhlkYEqoAXsWzoORIQL0gHdX0BvQoQG89GxEj7I4xlffttgMvoMsQr7E/IWGK9T" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js" integrity="sha384-9Ax3MmS9AClxJyd5/zafcXXjxmwFhZCdsT6HJoJjarvCaAkJlk5QDzjLJm+Wdx5F" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -714,18 +715,18 @@
 {# ── Charts ──────────────────────────────────────────────────────────────── #}
 {# ══════════════════════════════════════════════════════════════════════════ #}
 <div class="charts-section">
-  <div class="chart-card">
+  <div class="chart-card" x-data="{ tab: 'overview' }">
     <div class="chart-tabs">
-      <button class="chart-tab-btn active" onclick="switchChart(event,'chart-panel-overview')">Cost vs Time</button>
-      <button class="chart-tab-btn" onclick="switchChart(event,'chart-panel-explore')">Explore</button>
+      <button class="chart-tab-btn" :class="{ active: tab === 'overview' }" @click="tab = 'overview'">Cost vs Time</button>
+      <button class="chart-tab-btn" :class="{ active: tab === 'explore' }" @click="tab = 'explore'">Explore</button>
     </div>
-    <div id="chart-panel-overview" class="chart-panel active">
+    <div id="chart-panel-overview" class="chart-panel" :class="{ active: tab === 'overview' }">
       <div class="chart-container">
         <canvas id="chart-cost-time"></canvas>
         <div class="chart-fallback hidden" id="fallback-cost-time">Chart.js could not be loaded.</div>
       </div>
     </div>
-    <div id="chart-panel-explore" class="chart-panel">
+    <div id="chart-panel-explore" class="chart-panel" :class="{ active: tab === 'explore' }">
       <div class="chart-controls">
         <label for="explore-x">X axis</label>
         <select id="explore-x" onchange="renderExploreChart()"></select>
@@ -753,7 +754,7 @@
     {% endif %}
   {% endfor %}
   {% set task_avg = (ns_task.score_sum / ns_task.score_count)|round(1) if ns_task.score_count > 0 else none %}
-  <div class="task-section">
+  <div class="task-section" x-data="{ selected: [], agentCount: {{ agents|length }}, comparing: false }">
     <div class="task-header">
       <span class="task-name">{{ task_name }}</span>
       {% if task_avg is not none %}
@@ -762,15 +763,15 @@
       {% endif %}
     </div>
 
-    <div class="agent-list-view">
+    <div class="agent-list-view" x-show="!comparing">
       {% for suite in agents %}
       {% set props = suite.properties %}
       {% set score_val = props.get('weighted_score') %}
       <div class="agent-card" data-agent-idx="{{ loop.index0 }}">
         <details {% if agents | length == 1 %}open{% endif %}>
           <summary class="agent-summary">
-            <input type="checkbox" class="agent-select"
-                   onclick="event.stopPropagation(); updateCompareBtn(this)">
+            <input type="checkbox" class="agent-select" :value="'{{ loop.index0 }}'"
+                   x-model="selected" @click.stop>
             <span class="agent-name">{{ suite.assistant_name }}</span>
             {{ score_pill(score_val) }}
             {% if props.get('weighted_score_stddev') is not none %}<span style="color:#9ca3af; font-size:11px;">&plusmn;{{ props.weighted_score_stddev }}</span>{% endif %}
@@ -969,17 +970,21 @@
       <div class="task-actions">
         <label class="select-all-label">
           <input type="checkbox" class="select-all"
-                 onchange="toggleSelectAll(this)"> Select all
+                 :checked="selected.length === agentCount && agentCount > 0"
+                 @change="selected = $event.target.checked ? Array.from({length: agentCount}, (_, i) => String(i)) : []">
+          Select all
         </label>
-        <button class="compare-btn" disabled
-                onclick="openCompare(this)">Compare (0 selected)</button>
+        <button class="compare-btn" :disabled="selected.length < 2"
+                @click="comparing = true; $nextTick(() => buildCompareGrid($el.closest('.task-section')))"
+                x-text="'Compare (' + selected.length + ' selected)'">
+        </button>
       </div>
     </div>{# agent-list-view #}
 
-    {# ── Compare view (hidden) ─────────────────────────────────────── #}
-    <div class="compare-view hidden">
+    {# ── Compare view ──────────────────────────────────────────────── #}
+    <div class="compare-view" x-show="comparing">
       <div class="compare-bar">
-        <button class="back-btn" onclick="closeCompare(this)">&larr; Back to list</button>
+        <button class="back-btn" @click="comparing = false">&larr; Back to list</button>
       </div>
       <div class="compare-grid"></div>
     </div>
@@ -991,64 +996,25 @@
 /* ── Chart data ──────────────────────────────────────────────────────────── */
 var chartData = {{ chart_data_json|safe }};
 
-/* ── Chart tab switching ─────────────────────────────────────────────────── */
-function switchChart(event, panelId) {
-  var btns = document.querySelectorAll('.chart-tab-btn');
-  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
-  event.currentTarget.classList.add('active');
-  var panels = document.querySelectorAll('.chart-panel');
-  for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
-  document.getElementById(panelId).classList.add('active');
-}
-
-/* ── Compare functions ────────────────────────────────────────────────────── */
-function updateCompareBtn(checkbox) {
-  var section = checkbox.closest('.task-section');
-  var checks = section.querySelectorAll('.agent-select:checked');
-  var btn = section.querySelector('.compare-btn');
-  var n = checks.length;
-  btn.textContent = 'Compare (' + n + ' selected)';
-  btn.disabled = n < 2;
-  var allChecks = section.querySelectorAll('.agent-select');
-  var selectAll = section.querySelector('.select-all');
-  if (selectAll) selectAll.checked = checks.length === allChecks.length;
-}
-
-function toggleSelectAll(checkbox) {
-  var section = checkbox.closest('.task-section');
-  var checks = section.querySelectorAll('.agent-select');
-  for (var i = 0; i < checks.length; i++) checks[i].checked = checkbox.checked;
-  var btn = section.querySelector('.compare-btn');
-  var n = checkbox.checked ? checks.length : 0;
-  btn.textContent = 'Compare (' + n + ' selected)';
-  btn.disabled = n < 2;
-}
-
-function openCompare(button) {
-  var section = button.closest('.task-section');
-  var listView = section.querySelector('.agent-list-view');
-  var compareView = section.querySelector('.compare-view');
-  var grid = compareView.querySelector('.compare-grid');
+/* ── Compare grid builder ─────────────────────────────────────────────────── */
+function buildCompareGrid(section) {
+  var grid = section.querySelector('.compare-grid');
   grid.innerHTML = '';
-
   var cards = section.querySelectorAll('.agent-card');
   var n = 0;
-  for (var i = 0; i < cards.length; i++) {
-    var cb = cards[i].querySelector('.agent-select');
-    if (!cb || !cb.checked) continue;
+  cards.forEach(function(card) {
+    var cb = card.querySelector('.agent-select');
+    if (!cb || !cb.checked) return;
     n++;
     var col = document.createElement('div');
     col.className = 'compare-col';
     var header = document.createElement('div');
     header.className = 'compare-col-header';
-    var summary = cards[i].querySelector('.agent-summary');
-    var children = summary.children;
-    for (var j = 0; j < children.length; j++) {
-      if (children[j].classList.contains('agent-select')) continue;
-      header.appendChild(children[j].cloneNode(true));
-    }
+    card.querySelector('.agent-summary').querySelectorAll(':not(.agent-select)').forEach(function(child) {
+      header.appendChild(child.cloneNode(true));
+    });
     col.appendChild(header);
-    var detail = cards[i].querySelector('.agent-detail');
+    var detail = card.querySelector('.agent-detail');
     if (detail) {
       var body = document.createElement('div');
       body.className = 'compare-col-body';
@@ -1056,20 +1022,8 @@ function openCompare(button) {
       col.appendChild(body);
     }
     grid.appendChild(col);
-  }
-
+  });
   grid.style.gridTemplateColumns = 'repeat(' + n + ', minmax(320px, 1fr))';
-  listView.classList.add('hidden');
-  compareView.classList.remove('hidden');
-}
-
-function closeCompare(button) {
-  var section = button.closest('.task-section');
-  var listView = section.querySelector('.agent-list-view');
-  var compareView = section.querySelector('.compare-view');
-  compareView.classList.add('hidden');
-  compareView.querySelector('.compare-grid').innerHTML = '';
-  listView.classList.remove('hidden');
 }
 
 

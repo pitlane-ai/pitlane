@@ -287,7 +287,6 @@ def test_report_has_charts(sample_run_dir):
     assert "chart-cost-time" in html
     assert "chart-explore" in html
     assert "chart-tabs" in html
-    assert "switchChart" in html
     assert "renderExploreChart" in html
     # No top-level tab navigation
     assert '<nav class="tab-bar">' not in html
