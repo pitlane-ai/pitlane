@@ -28,6 +28,8 @@ assistants:
 
   opencode-default:
     adapter: opencode
+    args:
+      model: opencode/minimax-m2.5-free
     mcps:
       - name: pitlane-test-mcp
         command: uv
@@ -41,6 +43,7 @@ assistants:
     adapter: mistral-vibe
     args:
       max_turns: 5
+      model: devstral-small
     mcps:
       - name: pitlane-test-mcp
         command: uv

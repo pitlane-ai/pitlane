@@ -21,7 +21,7 @@ coverage:
 	uv run pytest -m "not e2e" --cov=src/pitlane --cov-report=term-missing --cov-report=html
 
 e2e:
-	uv run pytest -m e2e -v --tb=long
+	uv run pytest -m e2e -v -s --tb=long
 
 e2e-%:
 	uv run pytest -m e2e -v --tb=long -k $*

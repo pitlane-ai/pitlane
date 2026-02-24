@@ -575,6 +575,20 @@ def test_build_command_with_port_as_int():
 # ── install_mcp tests ─────────────────────────────────────────────────────────
 
 
+def test_parse_output_step_finish_cost_without_tokens():
+    """Cost must be extracted even when tokens dict is empty or absent."""
+    adapter = OpenCodeAdapter()
+    lines = [
+        json.dumps({"type": "step_finish", "part": {"cost": 0.003}}),
+        json.dumps({"type": "step_finish", "part": {"tokens": {}, "cost": 0.002}}),
+    ]
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(
+        "\n".join(lines)
+    )
+    assert cost == 0.005
+    assert token_usage is None
+
+
 def test_install_mcp_creates_opencode_json(tmp_path):
     adapter = OpenCodeAdapter()
     ws = tmp_path / "ws"

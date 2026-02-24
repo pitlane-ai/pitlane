@@ -144,7 +144,7 @@ def test_junit_has_all_properties(pipeline_run):
         props = {p.name: p.value for p in suite.properties()}
         for key in required_keys:
             assert key in props, f"Missing property '{key}' in suite '{suite.name}'"
-        assert float(props["cost_usd"]) > 0
+        assert float(props["cost_usd"]) >= 0
         assert float(props["token_usage_input"]) > 0
         assert float(props["assertion_pass_rate"]) > 0
         assert suite.time > 0

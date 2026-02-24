@@ -144,9 +144,9 @@ class OpenCodeAdapter(BaseAdapter):
                 if tokens:
                     total_input_tokens += tokens.get("input", 0)
                     total_output_tokens += tokens.get("output", 0)
-                    step_cost = part.get("cost", 0)
-                    if step_cost:
-                        total_cost += step_cost
+                step_cost = part.get("cost", 0)
+                if step_cost:
+                    total_cost += step_cost
 
         token_usage = None
         if total_input_tokens > 0 or total_output_tokens > 0:

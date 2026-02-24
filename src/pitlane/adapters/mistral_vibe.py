@@ -243,6 +243,10 @@ class MistralVibeAdapter(BaseAdapter):
             )
         env = {**os.environ, "VIBE_HOME": vibe_home}
 
+        # Trust the workspace so vibe reads workdir/.vibe/config.toml
+        trusted_toml = Path(vibe_home) / "trusted_folders.toml"
+        trusted_toml.write_text(f'trusted = ["{workdir.resolve()}"]\nuntrusted = []\n')
+
         start = time.monotonic()
         try:
             stdout, stderr, exit_code, timed_out = run_command_with_live_logging(

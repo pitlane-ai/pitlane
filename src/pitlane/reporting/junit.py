@@ -58,8 +58,7 @@ def write_junit(run_dir: Path, all_results: dict[str, dict[str, Any]]) -> Path:
             ]
             for key in prop_keys:
                 val = metrics.get(key)
-                if val is not None:
-                    suite.add_property(key, str(val))
+                suite.add_property(key, str(val if val is not None else 0))
 
             # Repeat-mode stats: emit as {metric}_{stat} properties
             if metrics_stats:
