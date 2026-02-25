@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
@@ -107,8 +108,12 @@ class ClaudeCodeAdapter(BaseAdapter):
             elif msg_type == "result":
                 usage = msg.get("usage", {})
                 if usage:
+                    # Include cache_read_input_tokens so the reported figure reflects
+                    # total tokens consumed (not just the non-cached portion).
                     token_usage = {
-                        "input": usage.get("input_tokens", 0),
+                        "input": usage.get("input_tokens", 0)
+                        + usage.get("cache_read_input_tokens", 0)
+                        + usage.get("cache_creation_input_tokens", 0),
                         "output": usage.get("output_tokens", 0),
                     }
                 cost = msg.get("total_cost_usd")
@@ -117,6 +122,9 @@ class ClaudeCodeAdapter(BaseAdapter):
 
     def supported_features(self) -> frozenset[str]:
         return frozenset({"mcps", "skills"})
+
+    def skills_dir(self) -> str | None:
+        return ".claude/skills"
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
@@ -156,9 +164,13 @@ class ClaudeCodeAdapter(BaseAdapter):
 
         start = time.monotonic()
 
+        # Claude refuses to run inside another Claude Code session (CLAUDECODE env var).
+        # Strip it so pitlane can launch claude as a subprocess regardless of the host env.
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+
         try:
             stdout, stderr, exit_code, timed_out = run_command_with_live_logging(
-                cmd, workdir, timeout, logger
+                cmd, workdir, timeout, logger, env=env
             )
         except Exception as e:
             duration = time.monotonic() - start
