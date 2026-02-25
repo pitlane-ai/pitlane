@@ -3,7 +3,6 @@ assistants:
     adapter: claude-code
     args:
       model: haiku
-      max_turns: 5
 
   bob-baseline:
     adapter: bob
@@ -18,7 +17,6 @@ assistants:
   vibe-baseline:
     adapter: mistral-vibe
     args:
-      max_turns: 5
       model: devstral-small
 
 tasks:

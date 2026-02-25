@@ -3,7 +3,6 @@ assistants:
     adapter: claude-code
     args:
       model: haiku
-      max_turns: 5
     skills:
       - source: __SKILL_SOURCE_PATH__
 
@@ -17,7 +16,6 @@ assistants:
   vibe-skill:
     adapter: mistral-vibe
     args:
-      max_turns: 5
       model: devstral-small
     skills:
       - source: __SKILL_SOURCE_PATH__

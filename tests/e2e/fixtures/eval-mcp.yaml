@@ -3,7 +3,6 @@ assistants:
     adapter: claude-code
     args:
       model: haiku
-      max_turns: 5
     mcps:
       - name: pitlane-test-mcp
         command: uv
@@ -42,7 +41,6 @@ assistants:
   vibe-mcp:
     adapter: mistral-vibe
     args:
-      max_turns: 5
       model: devstral-small
     mcps:
       - name: pitlane-test-mcp
