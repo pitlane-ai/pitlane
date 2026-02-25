@@ -108,13 +108,14 @@ class ClaudeCodeAdapter(BaseAdapter):
             elif msg_type == "result":
                 usage = msg.get("usage", {})
                 if usage:
-                    # Include cache_read_input_tokens so the reported figure reflects
-                    # total tokens consumed (not just the non-cached portion).
+                    cache_read = usage.get("cache_read_input_tokens", 0)
+                    cache_creation = usage.get("cache_creation_input_tokens", 0)
                     token_usage = {
                         "input": usage.get("input_tokens", 0)
-                        + usage.get("cache_read_input_tokens", 0)
-                        + usage.get("cache_creation_input_tokens", 0),
+                        + cache_read
+                        + cache_creation,
                         "output": usage.get("output_tokens", 0),
+                        "input_cached": cache_read,
                     }
                 cost = msg.get("total_cost_usd")
 

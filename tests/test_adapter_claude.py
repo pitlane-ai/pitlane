@@ -70,8 +70,36 @@ def test_parse_stream_json_result():
     assert len(conversation) >= 1
     assert token_usage["input"] == 100
     assert token_usage["output"] == 50
+    assert token_usage["input_cached"] == 0
     assert cost == 0.02
     assert tool_calls_count == 0
+
+
+def test_parse_stream_json_result_with_cache():
+    """input_cached tracks only cache_read tokens; cache_creation adds to input total."""
+    adapter = ClaudeCodeAdapter()
+    lines = [
+        json.dumps(
+            {
+                "type": "result",
+                "subtype": "success",
+                "duration_ms": 2000,
+                "total_cost_usd": 0.05,
+                "usage": {
+                    "input_tokens": 200,
+                    "output_tokens": 80,
+                    "cache_read_input_tokens": 1000,
+                    "cache_creation_input_tokens": 500,
+                },
+            }
+        ),
+    ]
+    stdout = "\n".join(lines)
+    _, token_usage, cost, _ = adapter._parse_output(stdout)
+    assert token_usage["input"] == 200 + 1000 + 500
+    assert token_usage["input_cached"] == 1000
+    assert token_usage["output"] == 80
+    assert cost == 0.05
 
 
 def test_claude_with_custom_model():

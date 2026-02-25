@@ -389,6 +389,11 @@
       color: #111827;
       margin-top: 1px;
     }
+    .cached-hint {
+      font-size: 11px;
+      color: #6b7280;
+      margin-left: 4px;
+    }
 
     /* Repeat-stat props grid */
     .props-grid {
@@ -830,7 +835,12 @@
                 {% for k, v in cost_items %}
                 <div class="prop-item">
                   <div class="prop-key">{{ k }}</div>
-                  <div class="prop-val">{{ v }}</div>
+                  <div class="prop-val">
+                    {{ v }}
+                    {% if k == 'token_usage_input' and props.get('token_usage_input_cached') and props['token_usage_input_cached'] | float > 0 %}
+                    <span class="cached-hint">({{ props['token_usage_input_cached'] }} cached)</span>
+                    {% endif %}
+                  </div>
                 </div>
                 {% endfor %}
               </div>
@@ -1052,6 +1062,7 @@ var metricLabels = {
   tool_calls_count: 'Tool Calls',
   token_usage_input: 'Input Tokens',
   token_usage_output: 'Output Tokens',
+  token_usage_input_cached: 'Cached Input Tokens',
   total_tokens: 'Total Tokens',
   files_created: 'Files Created',
   files_modified: 'Files Modified',
