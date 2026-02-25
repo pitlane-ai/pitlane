@@ -42,6 +42,9 @@ class OpenCodeAdapter(BaseAdapter):
     def supported_features(self) -> frozenset[str]:
         return frozenset({"mcps", "skills"})
 
+    def skills_dir(self) -> str | None:
+        return ".agents/skills"
+
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
         env = {k: expandvars(v, nounset=True) for k, v in mcp.env.items()}

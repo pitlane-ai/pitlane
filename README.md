@@ -284,8 +284,11 @@ assistants:
     args:
       model: haiku
     skills:
+      # Remote: GitHub reference (installed via npx skills add)
       - source: org/repo
         skill: my-skill-name
+      # Local: directory path (for development/testing)
+      - source: ./path/to/my-skill
   ```
 
 ### Tasks

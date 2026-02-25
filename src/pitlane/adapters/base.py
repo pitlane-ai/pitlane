@@ -62,6 +62,10 @@ class BaseAdapter(ABC):
         """Features this adapter supports (e.g. 'mcps', 'skills')."""
         ...
 
+    def skills_dir(self) -> str | None:
+        """Relative path where this agent discovers skills, or None if unsupported."""
+        return None
+
 
 def run_command_with_live_logging(
     cmd: list[str],
