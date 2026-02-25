@@ -1,0 +1,41 @@
+assistants:
+  claude-skill:
+    adapter: claude-code
+    args:
+      model: haiku
+      max_turns: 5
+    skills:
+      - source: __SKILL_SOURCE_PATH__
+
+  opencode-skill:
+    adapter: opencode
+    args:
+      model: opencode/minimax-m2.5-free
+    skills:
+      - source: __SKILL_SOURCE_PATH__
+
+  vibe-skill:
+    adapter: mistral-vibe
+    args:
+      max_turns: 5
+      model: devstral-small
+    skills:
+      - source: __SKILL_SOURCE_PATH__
+
+tasks:
+  - name: hello-world
+    prompt: >
+      Create a Python script called hello.py that prints 'Hello, World!'.
+      Follow the pitlane-test skill instructions when creating files.
+    workdir: __WORKDIR_PATH__
+    timeout: 600
+    assertions:
+      - file_exists: "hello.py"
+        weight: 2.0
+      - command_succeeds: "python3 hello.py"
+      - file_contains:
+          path: "hello.py"
+          pattern: "Generated with pitlane-test skill"
+      - custom_script:
+          interpreter: python3
+          script: __VALIDATE_SCRIPT_PATH__

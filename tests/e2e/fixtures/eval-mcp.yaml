@@ -1,5 +1,5 @@
 assistants:
-  claude-haiku:
+  claude-mcp:
     adapter: claude-code
     args:
       model: haiku
@@ -13,7 +13,7 @@ assistants:
           - "mcp"
           - "__MCP_SERVER_PATH__"
 
-  bob-default:
+  bob-mcp:
     adapter: bob
     args:
       chat_mode: code
@@ -26,7 +26,7 @@ assistants:
           - "mcp"
           - "__MCP_SERVER_PATH__"
 
-  opencode-default:
+  opencode-mcp:
     adapter: opencode
     args:
       model: opencode/minimax-m2.5-free
@@ -39,7 +39,7 @@ assistants:
           - "mcp"
           - "__MCP_SERVER_PATH__"
 
-  vibe-default:
+  vibe-mcp:
     adapter: mistral-vibe
     args:
       max_turns: 5
@@ -58,9 +58,8 @@ tasks:
     prompt: >
       First, use the write_marker tool from the pitlane-test-mcp server.
       Then create a Python script called hello.py that prints 'Hello, World!'.
-      Finally, create a script called fail.py that exits with code 1.
-    workdir: ./fixtures/empty
-    timeout: 180
+    workdir: __WORKDIR_PATH__
+    timeout: 600
     assertions:
       - file_exists: "hello.py"
         weight: 2.0
@@ -69,8 +68,6 @@ tasks:
       - file_contains:
           path: ".mcp_marker"
           pattern: "PITLANE_MCP_MARKER_a9f3e7b2"
-      - file_exists: "fail.py"
-      - command_fails: "python3 fail.py"
       - custom_script:
           interpreter: python3
           script: __VALIDATE_SCRIPT_PATH__

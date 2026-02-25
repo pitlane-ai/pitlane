@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -102,3 +103,57 @@ def require_vibe_cli():
 @pytest.fixture(scope="session")
 def require_pitlane_cli():
     _assert_cli_installed("pitlane")
+
+
+def run_pipeline(
+    tmp_path_factory,
+    eval_yaml_name,
+    replacements=None,
+    parallelism=4,
+    extra_args=None,
+    timeout=600,
+):
+    """Read eval YAML from fixtures, apply replacements, run pitlane run.
+
+    Returns (result, run_dir) where result has .returncode/.stdout/.stderr
+    and run_dir is the Path to the single output directory created.
+    """
+    output_dir = tmp_path_factory.mktemp("e2e_runs")
+    config_dir = tmp_path_factory.mktemp("e2e_config")
+
+    fixtures_src = Path(__file__).parent / "fixtures"
+    config_path = config_dir / eval_yaml_name
+
+    yaml_content = (fixtures_src / eval_yaml_name).read_text()
+    if replacements:
+        for placeholder, value in replacements.items():
+            yaml_content = yaml_content.replace(placeholder, value)
+    config_path.write_text(yaml_content)
+
+    cmd = [
+        "pitlane",
+        "run",
+        str(config_path),
+        "--output-dir",
+        str(output_dir),
+        "--parallel",
+        str(parallelism),
+        "--no-open",
+    ]
+    if extra_args:
+        cmd.extend(extra_args)
+
+    result = run_with_tee(cmd, timeout=timeout)
+
+    run_dirs = sorted(output_dir.iterdir())
+    assert len(run_dirs) == 1, (
+        f"Expected 1 run dir, got: {[str(d) for d in output_dir.iterdir()]}"
+    )
+    run_dir = run_dirs[0]
+
+    return result, run_dir
+
+
+def workspace(run_dir, assistant, task="hello-world"):
+    """Return the workspace path for a given assistant and task."""
+    return run_dir / assistant / task / "iter-0" / "workspace"
