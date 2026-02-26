@@ -109,14 +109,14 @@ Your AI assistant can then help you create effective eval benchmarks. See [Writi
 
 ## Supported assistants
 
-| Assistant | Adapter Name | Status |
-|-----------|--------------|--------|
+| Assistant | Type | Status |
+|-----------|------|--------|
 | [Bob](https://www.ibm.com/products/bob) | `bob` | ✅ Tested |
 | [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
 | [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
 | [OpenCode](https://opencode.ai) | `opencode` | ✅ Tested |
 
-**Want to add support for another assistant?** See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-adapter) for instructions on implementing new adapters.
+**Want to add support for another assistant?** See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-assistant) for instructions on implementing new assistants.
 
 ## Usage
 
@@ -251,7 +251,7 @@ Your AI assistant can help you design eval benchmarks that actually measure whet
 ```yaml
 assistants:
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
 
@@ -274,13 +274,13 @@ Each assistant defines how to run a model:
 assistants:
   # Baseline configuration
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
 
   # With skills/MCP
   claude-with-skill:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
     skills:

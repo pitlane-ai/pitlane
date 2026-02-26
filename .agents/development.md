@@ -22,7 +22,7 @@ make        # installs deps, pitlane CLI, and pre-commit hooks
 | `make test-all` | Unit + integration — the CI gate |
 | `make coverage` | Unit + integration with HTML coverage report |
 | `make e2e` | E2E against real AI assistants (requires CLIs installed) |
-| `make e2e-claude_code` | E2E for a single adapter |
+| `make e2e-claude_code` | E2E for a single assistant |
 
 Test markers:
 
@@ -33,7 +33,7 @@ Test markers:
 
 - Use type hints (Python 3.11+ syntax)
 - Leverage Pydantic for configuration validation
-- Document adapter-specific behavior and limitations
+- Document assistant-specific behavior and limitations
 - **Testing**: Favour `pytest-mock` over `unittest.mock` for consistency
 
 ## Benchmark Design

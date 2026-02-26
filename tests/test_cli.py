@@ -157,8 +157,8 @@ def test_run_command_with_invalid_schema(tmp_path):
     assert "invalid config" in result.output
 
 
-def test_run_command_with_missing_adapter(tmp_path, monkeypatch):
-    """Test run command when adapter is not found."""
+def test_run_command_with_missing_assistant(tmp_path, monkeypatch):
+    """Test run command when assistant type is not found."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
     config_file.write_text("""
@@ -183,8 +183,8 @@ tasks:
     assert result.exit_code != 0
 
 
-def test_run_command_with_adapter_error(tmp_path, monkeypatch, mocker):
-    """Test run command when adapter execution fails (hard error)."""
+def test_run_command_with_assistant_error(tmp_path, monkeypatch, mocker):
+    """Test run command when assistant execution fails (hard error)."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
     config_file.write_text("""
@@ -206,7 +206,7 @@ tasks:
     fixtures = tmp_path / "fixtures/empty"
     fixtures.mkdir(parents=True, exist_ok=True)
 
-    # Mock the Runner to simulate an adapter error
+    # Mock the Runner to simulate an assistant error
     mock_runner_class = mocker.patch("pitlane.runner.Runner")
     mock_runner = mocker.Mock()
     mock_runner.interrupted = False

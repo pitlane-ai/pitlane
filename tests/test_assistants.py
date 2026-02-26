@@ -8,7 +8,7 @@ from pitlane.assistants.opencode import OpenCodeAssistant
 
 
 class TestAssistantResultCreation:
-    def test_adapter_result_creation(self):
+    def test_assistant_result_creation(self):
         result = AssistantResult(
             stdout="hello",
             stderr="err",
@@ -26,7 +26,7 @@ class TestAssistantResultCreation:
         assert result.token_usage == {"input": 10, "output": 20}
         assert result.cost_usd == 0.01
 
-    def test_adapter_result_defaults(self):
+    def test_assistant_result_defaults(self):
         result = AssistantResult(
             stdout="out",
             stderr="",

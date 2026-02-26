@@ -1,6 +1,6 @@
-"""E2E tests for --repeat: verify all iterations run cleanly for every adapter.
+"""E2E tests for --repeat: verify all iterations run cleanly for every assistant.
 
-Runs `pitlane run --repeat 3 --parallel 4` with all 4 adapters against the
+Runs `pitlane run --repeat 3 --parallel 4` with all 4 assistants against the
 shared eval fixture. All tests in this module share a single CLI invocation
 via the module-scoped `pipeline_run_repeat` fixture.
 
@@ -23,7 +23,7 @@ _REPEAT_COUNT = 3
 
 @pytest.fixture(scope="module")
 def pipeline_run_repeat(tmp_path_factory):
-    """Run `pitlane run --repeat 3` for all adapters and share the result."""
+    """Run `pitlane run --repeat 3` for all assistants and share the result."""
     fixtures_src = Path(__file__).parent / "fixtures"
     return run_pipeline(
         tmp_path_factory,

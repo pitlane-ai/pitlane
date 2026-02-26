@@ -1,0 +1,71 @@
+# Bob-only eval: GitHub MCP vs no-MCP for PR/issue analysis
+#
+# Compares Bob's ability to answer "does PR X complete issue Y?" with and without
+# access to GitHub via MCP. The MCP-enabled variant can fetch real PR/issue data;
+# the baseline must reason without any tools.
+#
+# Prerequisites:
+#   - Bob installed and on PATH
+#   - GITHUB_PERSONAL_ACCESS_TOKEN env var set (read-only scope is sufficient)
+#   - @modelcontextprotocol/server-github available via npx
+#
+# Run: pitlane run examples/bob-github-mcp-eval.yaml
+
+assistants:
+  bob-github-mcp:
+    type: bob
+    args:
+      chat_mode: code
+    mcps:
+      - name: github
+        command: npx
+        args:
+          - "-y"
+          - "@modelcontextprotocol/server-github"
+        env:
+          GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_TOKEN}"
+
+  bob-no-mcp:
+    type: bob
+    args:
+      chat_mode: code
+
+tasks:
+  - name: pr-completes-issue
+    prompt: >
+      Does PR #2 complete issue #1 in the repository daniel-test-bed/release-testing?
+      Use any available tools to look up the PR and issue. Then write a single file
+      called pr_check.txt containing exactly two lines: the first line must be either
+      "yes" or "no" (your verdict), and the second line must be a one-sentence
+      explanation of your reasoning.
+    workdir: ./fixtures/empty
+    timeout: 320
+    assertions:
+      # Output file was created
+      - file_exists: "pr_check.txt"
+
+      # Line 1 is a clear yes/no verdict — core deliverable, weighted highest
+      # (?im): case-insensitive + multiline so ^ and $ anchor per-line
+      - file_contains:
+          path: "pr_check.txt"
+          pattern: "(?im)^(yes|no)$"
+        weight: 2.0
+
+      # File has at least two non-empty lines (verdict + explanation both present)
+      - command_succeeds: 'python3 -c "lines=[l for l in open(''pr_check.txt'').read().splitlines() if l.strip()]; exit(0 if len(lines)>=2 else 1)"'
+
+      # Explanation on line 2 has at least 5 words (not a trivial one-word filler)
+      - command_succeeds: 'python3 -c "lines=[l for l in open(''pr_check.txt'').read().splitlines() if l.strip()]; exit(0 if len(lines)>1 and len(lines[1].split())>=5 else 1)"'
+        weight: 1.5
+
+      # PR number appears in the output — proves the answer is grounded, not generic
+      - file_contains:
+          path: "pr_check.txt"
+          pattern: "#2|PR.*2|pull.*2"
+        weight: 1.5
+
+      # Issue number appears in the output — same grounding signal
+      - file_contains:
+          path: "pr_check.txt"
+          pattern: "#1|issue.*1"
+        weight: 1.5

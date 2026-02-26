@@ -686,7 +686,7 @@ tasks:
 
 
 def test_runner_calls_install_mcp_for_each_mcp(tmp_path):
-    """Runner calls adapter.install_mcp for each MCP in assistant_config.mcps."""
+    """Runner calls assistant.install_mcp for each MCP in assistant_config.mcps."""
     fixture_dir = tmp_path / "fixtures" / "empty"
     fixture_dir.mkdir(parents=True)
     (fixture_dir / ".gitkeep").write_text("")

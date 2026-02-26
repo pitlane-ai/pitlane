@@ -118,7 +118,7 @@ def test_skill_installation_non_interactive(tmp_path):
 
 
 def test_simple_codegen_eval_example(mocker, tmp_path):
-    """Unit test: Verify runner works with example config using mocked adapters."""
+    """Unit test: Verify runner works with example config using mocked assistants."""
     from pathlib import Path
 
     # Load the actual example config
@@ -126,7 +126,7 @@ def test_simple_codegen_eval_example(mocker, tmp_path):
     config = load_config(example_config)
 
     def mock_run(self, prompt, workdir, config, logger):
-        """Mock adapter that creates the expected hello.py file."""
+        """Mock assistant that creates the expected hello.py file."""
         (workdir / "hello.py").write_text('print("Hello, World!")')
         return AssistantResult(
             stdout='{"type":"result","result":"Created hello.py"}',
@@ -138,7 +138,7 @@ def test_simple_codegen_eval_example(mocker, tmp_path):
             cost_usd=0.01,
         )
 
-    # Mock all adapters in the example
+    # Mock all assistants in the example
     mocker.patch("pitlane.assistants.bob.BobAssistant.run", mock_run)
     mocker.patch("pitlane.assistants.claude_code.ClaudeCodeAssistant.run", mock_run)
     mocker.patch("pitlane.assistants.mistral_vibe.MistralVibeAssistant.run", mock_run)
