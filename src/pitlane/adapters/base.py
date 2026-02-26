@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 import subprocess
@@ -10,6 +11,11 @@ import threading
 if TYPE_CHECKING:
     import logging
     from pitlane.config import McpServerConfig
+
+
+class AdapterFeature(str, Enum):
+    MCPS = "mcps"
+    SKILLS = "skills"
 
 
 @dataclass
@@ -58,8 +64,8 @@ class BaseAdapter(ABC):
         ...
 
     @abstractmethod
-    def supported_features(self) -> frozenset[str]:
-        """Features this adapter supports (e.g. 'mcps', 'skills')."""
+    def supported_features(self) -> frozenset[AdapterFeature]:
+        """Features this adapter supports."""
         ...
 
     def skills_dir(self) -> str | None:

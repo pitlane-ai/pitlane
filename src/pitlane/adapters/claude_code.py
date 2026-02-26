@@ -11,6 +11,7 @@ from typing import Any, TYPE_CHECKING
 from expandvars import expandvars
 
 from pitlane.adapters.base import (
+    AdapterFeature,
     AdapterResult,
     BaseAdapter,
     run_command_with_live_logging,
@@ -121,8 +122,8 @@ class ClaudeCodeAdapter(BaseAdapter):
 
         return conversation, token_usage, cost, tool_calls_count
 
-    def supported_features(self) -> frozenset[str]:
-        return frozenset({"mcps", "skills"})
+    def supported_features(self) -> frozenset[AdapterFeature]:
+        return frozenset({AdapterFeature.MCPS, AdapterFeature.SKILLS})
 
     def skills_dir(self) -> str | None:
         return ".claude/skills"

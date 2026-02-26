@@ -10,6 +10,7 @@ from typing import Any, TYPE_CHECKING
 from expandvars import expandvars
 
 from pitlane.adapters.base import (
+    AdapterFeature,
     AdapterResult,
     BaseAdapter,
     run_command_with_live_logging,
@@ -39,8 +40,8 @@ class OpenCodeAdapter(BaseAdapter):
             pass
         return None
 
-    def supported_features(self) -> frozenset[str]:
-        return frozenset({"mcps", "skills"})
+    def supported_features(self) -> frozenset[AdapterFeature]:
+        return frozenset({AdapterFeature.MCPS, AdapterFeature.SKILLS})
 
     def skills_dir(self) -> str | None:
         return ".agents/skills"

@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from pitlane.adapters import get_adapter
-from pitlane.adapters.base import BaseAdapter
+from pitlane.adapters.base import AdapterFeature, BaseAdapter
 from pitlane.assertions.deterministic import evaluate_assertion
 from pitlane.config import EvalConfig, AssistantConfig, TaskConfig
 from pitlane.metrics import (
@@ -325,7 +325,7 @@ class Runner:
         else:
             task_logger.debug(f"Could not detect {adapter.cli_name()} CLI version")
 
-        if "skills" in adapter.supported_features():
+        if AdapterFeature.SKILLS in adapter.supported_features():
             for skill in assistant_config.skills:
                 workspace_mgr.install_skill(
                     workspace=workspace,
@@ -333,7 +333,7 @@ class Runner:
                     agent_type=adapter.agent_type(),
                 )
 
-        if "mcps" in adapter.supported_features():
+        if AdapterFeature.MCPS in adapter.supported_features():
             for mcp in assistant_config.mcps:
                 adapter.install_mcp(workspace=workspace, mcp=mcp)
 
