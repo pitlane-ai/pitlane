@@ -225,4 +225,11 @@ def load_config(path: Path) -> EvalConfig:
         if not workdir_path.is_absolute():
             task.workdir = str((config_dir / workdir_path).resolve())
 
+    # Resolve relative skill source paths relative to config file location
+    for assistant in config.assistants.values():
+        for skill in assistant.skills:
+            source_path = Path(skill.source)
+            if not source_path.is_absolute() and skill.source.startswith("."):
+                skill.source = str((config_dir / source_path).resolve())
+
     return config

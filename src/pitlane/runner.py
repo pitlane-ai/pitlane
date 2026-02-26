@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from pitlane.adapters import get_adapter
-from pitlane.adapters.base import BaseAdapter
+from pitlane.adapters.base import AdapterFeature, BaseAdapter
 from pitlane.assertions.deterministic import evaluate_assertion
 from pitlane.config import EvalConfig, AssistantConfig, TaskConfig
 from pitlane.metrics import (
@@ -102,7 +102,8 @@ class Runner:
 
         total_tasks = len(assistants) * len(tasks) * self.repeat
         print(
-            f"Running {total_tasks} task(s) with parallelism {self.parallel_tasks}..."
+            f"Running {total_tasks} task(s) with parallelism {self.parallel_tasks}...",
+            flush=True,
         )
 
         with ThreadPoolExecutor(max_workers=self.parallel_tasks) as executor:
@@ -153,7 +154,8 @@ class Runner:
                         if self.repeat > 1:
                             label += f" iter-{iteration}"
                         print(
-                            f"  [{completed_count}/{len(future_to_task)}] {label} ({n_passed}/{n_total} assertions{score_str}{dur})"
+                            f"  [{completed_count}/{len(future_to_task)}] {label} ({n_passed}/{n_total} assertions{score_str}{dur})",
+                            flush=True,
                         )
 
                         # Convert dict to IterationResult object
@@ -172,7 +174,8 @@ class Runner:
                         if self.repeat > 1:
                             label += f" iter-{iteration}"
                         print(
-                            f"  [{completed_count}/{len(future_to_task)}] ERROR  {label}: {e}"
+                            f"  [{completed_count}/{len(future_to_task)}] ERROR  {label}: {e}",
+                            flush=True,
                         )
                         logger.error(
                             f"Task '{task_name}' failed for assistant '{assistant_name}': {e}"
@@ -322,15 +325,17 @@ class Runner:
         else:
             task_logger.debug(f"Could not detect {adapter.cli_name()} CLI version")
 
-        for skill in assistant_config.skills:
-            workspace_mgr.install_skill(
-                workspace=workspace,
-                skill=skill,
-                agent_type=adapter.agent_type(),
-            )
+        if AdapterFeature.SKILLS in adapter.supported_features():
+            for skill in assistant_config.skills:
+                workspace_mgr.install_skill(
+                    workspace=workspace,
+                    skill=skill,
+                    agent_type=adapter.agent_type(),
+                )
 
-        for mcp in assistant_config.mcps:
-            adapter.install_mcp(workspace=workspace, mcp=mcp)
+        if AdapterFeature.MCPS in adapter.supported_features():
+            for mcp in assistant_config.mcps:
+                adapter.install_mcp(workspace=workspace, mcp=mcp)
 
         config = {**assistant_config.args, "timeout": task.timeout}
         adapter_result = adapter.run(

@@ -1,0 +1,37 @@
+assistants:
+  claude-baseline:
+    adapter: claude-code
+    args:
+      model: haiku
+
+  bob-baseline:
+    adapter: bob
+    args:
+      chat_mode: code
+
+  opencode-baseline:
+    adapter: opencode
+    args:
+      model: opencode/minimax-m2.5-free
+
+  vibe-baseline:
+    adapter: mistral-vibe
+    args:
+      model: devstral-small
+
+tasks:
+  - name: hello-world
+    prompt: >
+      Create a Python script called hello.py that prints 'Hello, World!'.
+      Also create a script called fail.py that exits with code 1.
+    workdir: __WORKDIR_PATH__
+    timeout: 600
+    assertions:
+      - file_exists: "hello.py"
+        weight: 2.0
+      - command_succeeds: "python3 hello.py"
+      - file_exists: "fail.py"
+      - command_fails: "python3 fail.py"
+      - custom_script:
+          interpreter: python3
+          script: __VALIDATE_SCRIPT_PATH__

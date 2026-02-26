@@ -11,6 +11,7 @@ from typing import Any, TYPE_CHECKING
 from expandvars import expandvars
 
 from pitlane.adapters.base import (
+    AdapterFeature,
     AdapterResult,
     BaseAdapter,
     run_command_with_live_logging,
@@ -47,6 +48,12 @@ class MistralVibeAdapter(BaseAdapter):
         if max_price := config.get("max_price"):
             cmd.extend(["--max-price", str(max_price)])
         return cmd
+
+    def supported_features(self) -> frozenset[AdapterFeature]:
+        return frozenset({AdapterFeature.MCPS, AdapterFeature.SKILLS})
+
+    def skills_dir(self) -> str | None:
+        return ".vibe/skills"
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
@@ -242,6 +249,10 @@ class MistralVibeAdapter(BaseAdapter):
                 "No ~/.vibe/.env found. Run 'vibe --setup' to configure your API key."
             )
         env = {**os.environ, "VIBE_HOME": vibe_home}
+
+        # Trust the workspace so vibe reads workdir/.vibe/config.toml
+        trusted_toml = Path(vibe_home) / "trusted_folders.toml"
+        trusted_toml.write_text(f'trusted = ["{workdir.resolve()}"]\nuntrusted = []\n')
 
         start = time.monotonic()
         try:

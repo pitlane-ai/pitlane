@@ -11,6 +11,7 @@ from typing import Any, TYPE_CHECKING
 from expandvars import expandvars
 
 from pitlane.adapters.base import (
+    AdapterFeature,
     AdapterResult,
     BaseAdapter,
     run_command_with_live_logging,
@@ -39,6 +40,9 @@ class BobAdapter(BaseAdapter):
         except Exception:
             pass
         return None
+
+    def supported_features(self) -> frozenset[AdapterFeature]:
+        return frozenset({AdapterFeature.MCPS})
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
@@ -109,9 +113,12 @@ class BobAdapter(BaseAdapter):
                     tool_calls_count += 1
                     conversation.append(
                         {
-                            "role": "tool_use",
-                            "tool_name": tool_name,
-                            "parameters": event.get("parameters", {}),
+                            "role": "assistant",
+                            "content": "",
+                            "tool_use": {
+                                "name": tool_name,
+                                "input": event.get("parameters", {}),
+                            },
                         }
                     )
 

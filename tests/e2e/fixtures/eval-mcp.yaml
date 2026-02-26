@@ -1,0 +1,71 @@
+assistants:
+  claude-mcp:
+    adapter: claude-code
+    args:
+      model: haiku
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
+  bob-mcp:
+    adapter: bob
+    args:
+      chat_mode: code
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
+  opencode-mcp:
+    adapter: opencode
+    args:
+      model: opencode/minimax-m2.5-free
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
+  vibe-mcp:
+    adapter: mistral-vibe
+    args:
+      model: devstral-small
+    mcps:
+      - name: pitlane-test-mcp
+        command: uv
+        args:
+          - "run"
+          - "--with"
+          - "mcp"
+          - "__MCP_SERVER_PATH__"
+
+tasks:
+  - name: hello-world
+    prompt: >
+      First, use the write_marker tool from the pitlane-test-mcp server.
+      Then create a Python script called hello.py that prints 'Hello, World!'.
+    workdir: __WORKDIR_PATH__
+    timeout: 600
+    assertions:
+      - file_exists: "hello.py"
+        weight: 2.0
+      - command_succeeds: "python3 hello.py"
+      - file_exists: ".mcp_marker"
+      - file_contains:
+          path: ".mcp_marker"
+          pattern: "PITLANE_MCP_MARKER_a9f3e7b2"
+      - custom_script:
+          interpreter: python3
+          script: __VALIDATE_SCRIPT_PATH__

@@ -198,6 +198,7 @@ def collect_metrics(
         "total_lines_generated": total_lines,
         "token_usage_input": tu.get("input"),
         "token_usage_output": tu.get("output"),
+        "token_usage_input_cached": tu.get("input_cached"),
         "cost_usd": adapter_result.cost_usd,
         "tool_calls_count": adapter_result.tool_calls_count,
         "timed_out": adapter_result.timed_out,

@@ -33,7 +33,7 @@ repos:
     hooks:
       - id: pytest-fast
         name: pytest (fast tests only)
-        entry: uv run pytest -m "not integration" --tb=short --cov=src --cov-report=term-missing tests/
+        entry: uv run pytest -m "not integration and not e2e" --tb=short --cov=src --cov-report=term-missing tests/
         language: system
         types: [python]
         pass_filenames: false

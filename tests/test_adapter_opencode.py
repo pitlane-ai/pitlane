@@ -43,7 +43,10 @@ def test_parse_json_output():
     lines = [
         json.dumps({"type": "assistant", "content": "Created the module"}),
         json.dumps(
-            {"type": "tool_use", "name": "edit_file", "input": {"path": "main.tf"}}
+            {
+                "type": "tool_use",
+                "part": {"tool": "edit_file", "state": {"input": {"path": "main.tf"}}},
+            }
         ),
     ]
     stdout = "\n".join(lines)
@@ -59,7 +62,10 @@ def test_parse_step_finish_tokens():
     adapter = OpenCodeAdapter()
     lines = [
         json.dumps(
-            {"type": "tool_use", "name": "write", "input": {"path": "hello.py"}}
+            {
+                "type": "tool_use",
+                "part": {"tool": "write", "state": {"input": {"path": "hello.py"}}},
+            }
         ),
         json.dumps(
             {
@@ -285,7 +291,9 @@ def test_parse_output_with_empty_lines():
         "",
         json.dumps({"type": "assistant", "content": "Hello"}),
         "",
-        json.dumps({"type": "tool_use", "name": "edit", "input": {}}),
+        json.dumps(
+            {"type": "tool_use", "part": {"tool": "edit", "state": {"input": {}}}}
+        ),
         "",
     ]
     stdout = "\n".join(lines)
@@ -302,7 +310,9 @@ def test_parse_output_json_decode_error():
         json.dumps({"type": "assistant", "content": "Valid"}),
         "This is not valid JSON",
         "{incomplete json",
-        json.dumps({"type": "tool_use", "name": "write", "input": {}}),
+        json.dumps(
+            {"type": "tool_use", "part": {"tool": "write", "state": {"input": {}}}}
+        ),
     ]
     stdout = "\n".join(lines)
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
@@ -319,20 +329,24 @@ def test_parse_output_alternative_message_types():
         json.dumps({"type": "assistant_message", "content": "Using assistant_message"}),
         json.dumps({"type": "message", "text": "Using message with text field"}),
         json.dumps({"type": "assistant", "content": "Standard assistant"}),
+        json.dumps({"type": "text", "part": {"text": "Using text type"}}),
     ]
     stdout = "\n".join(lines)
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
-    assert len(conversation) == 3
+    assert len(conversation) == 4
     assert conversation[0]["content"] == "Using assistant_message"
     assert conversation[1]["content"] == "Using message with text field"
     assert conversation[2]["content"] == "Standard assistant"
+    assert conversation[3]["content"] == "Using text type"
 
 
 def test_parse_output_step_finish_without_tokens():
     """Test parsing step_finish events without token information."""
     adapter = OpenCodeAdapter()
     lines = [
-        json.dumps({"type": "tool_use", "name": "edit", "input": {}}),
+        json.dumps(
+            {"type": "tool_use", "part": {"tool": "edit", "state": {"input": {}}}}
+        ),
         json.dumps({"type": "step_finish", "part": {}}),  # No tokens
         json.dumps({"type": "step_finish", "part": {"cost": 0}}),  # No tokens, has cost
         json.dumps(
@@ -436,7 +450,9 @@ def test_parse_output_with_invalid_response_format():
     lines = [
         json.dumps({"type": "unknown_type", "data": "something"}),
         json.dumps({"type": "assistant"}),  # Missing content
-        json.dumps({"type": "tool_use"}),  # Missing name and input
+        json.dumps(
+            {"type": "tool_use"}
+        ),  # Missing part/tool — should not crash or emit entry
         json.dumps({"no_type_field": "value"}),
     ]
     stdout = "\n".join(lines)
@@ -553,6 +569,7 @@ def test_parse_output_message_with_empty_content():
     lines = [
         json.dumps({"type": "assistant", "content": ""}),  # Empty content
         json.dumps({"type": "message", "text": ""}),  # Empty text
+        json.dumps({"type": "text", "part": {"text": ""}}),  # Empty text type
         json.dumps({"type": "assistant", "content": "Valid content"}),
     ]
     stdout = "\n".join(lines)
@@ -573,6 +590,20 @@ def test_build_command_with_port_as_int():
 
 
 # ── install_mcp tests ─────────────────────────────────────────────────────────
+
+
+def test_parse_output_step_finish_cost_without_tokens():
+    """Cost must be extracted even when tokens dict is empty or absent."""
+    adapter = OpenCodeAdapter()
+    lines = [
+        json.dumps({"type": "step_finish", "part": {"cost": 0.003}}),
+        json.dumps({"type": "step_finish", "part": {"tokens": {}, "cost": 0.002}}),
+    ]
+    conversation, token_usage, cost, tool_calls_count = adapter._parse_output(
+        "\n".join(lines)
+    )
+    assert cost == 0.005
+    assert token_usage is None
 
 
 def test_install_mcp_creates_opencode_json(tmp_path):
