@@ -22,14 +22,7 @@ _REPEAT_COUNT = 3
 
 
 @pytest.fixture(scope="module")
-def pipeline_run_repeat(
-    tmp_path_factory,
-    require_claude_cli,
-    require_bob_cli,
-    require_opencode_cli,
-    require_vibe_cli,
-    require_pitlane_cli,
-):
+def pipeline_run_repeat(tmp_path_factory):
     """Run `pitlane run --repeat 3` for all adapters and share the result."""
     fixtures_src = Path(__file__).parent / "fixtures"
     return run_pipeline(

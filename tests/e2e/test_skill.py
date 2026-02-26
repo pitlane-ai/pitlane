@@ -14,13 +14,7 @@ ASSISTANTS = ("claude-skill", "opencode-skill", "vibe-skill")
 
 
 @pytest.fixture(scope="module")
-def skill_run(
-    tmp_path_factory,
-    require_claude_cli,
-    require_opencode_cli,
-    require_vibe_cli,
-    require_pitlane_cli,
-):
+def skill_run(tmp_path_factory):
     fixtures_src = Path(__file__).parent / "fixtures"
     return run_pipeline(
         tmp_path_factory,

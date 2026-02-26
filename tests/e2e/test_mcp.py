@@ -15,14 +15,7 @@ ASSISTANTS = ("claude-mcp", "bob-mcp", "opencode-mcp", "vibe-mcp")
 
 
 @pytest.fixture(scope="module")
-def mcp_run(
-    tmp_path_factory,
-    require_claude_cli,
-    require_bob_cli,
-    require_opencode_cli,
-    require_vibe_cli,
-    require_pitlane_cli,
-):
+def mcp_run(tmp_path_factory):
     fixtures_src = Path(__file__).parent / "fixtures"
     return run_pipeline(
         tmp_path_factory,

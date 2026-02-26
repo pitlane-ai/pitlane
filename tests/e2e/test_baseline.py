@@ -17,14 +17,7 @@ ASSISTANTS = ("claude-baseline", "bob-baseline", "opencode-baseline", "vibe-base
 
 
 @pytest.fixture(scope="module")
-def baseline_run(
-    tmp_path_factory,
-    require_claude_cli,
-    require_bob_cli,
-    require_opencode_cli,
-    require_vibe_cli,
-    require_pitlane_cli,
-):
+def baseline_run(tmp_path_factory):
     fixtures_src = Path(__file__).parent / "fixtures"
     return run_pipeline(
         tmp_path_factory,
@@ -171,7 +164,7 @@ def test_conversation_has_assistant_text(baseline_run, assistant):
 
 
 @pytest.mark.e2e
-def test_cli_run_invalid_config(require_pitlane_cli):
+def test_cli_run_invalid_config():
     result = subprocess.run(
         ["pitlane", "run", "nonexistent.yaml"],
         capture_output=True,
