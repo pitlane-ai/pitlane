@@ -2,12 +2,12 @@ import json
 
 import pytest
 
-from pitlane.adapters.opencode import OpenCodeAdapter
+from pitlane.assistants.opencode import OpenCodeAssistant
 from pitlane.config import McpServerConfig
 
 
 def test_build_command_minimal():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command("Write code", {})
     assert cmd[0] == "opencode"
     assert "run" in cmd
@@ -17,7 +17,7 @@ def test_build_command_minimal():
 
 
 def test_build_command_with_model():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command(
         "test", {"model": "anthropic/claude-sonnet-4-5-20250929"}
     )
@@ -26,7 +26,7 @@ def test_build_command_with_model():
 
 
 def test_build_command_with_agent_and_files():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command(
         "test", {"agent": "coder", "files": ["main.py", "test.py"]}
     )
@@ -39,7 +39,7 @@ def test_build_command_with_agent_and_files():
 
 def test_parse_json_output():
     """Test parsing basic message types."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps({"type": "assistant", "content": "Created the module"}),
         json.dumps(
@@ -59,7 +59,7 @@ def test_parse_json_output():
 
 def test_parse_step_finish_tokens():
     """Test parsing tokens from step_finish events (OpenCode format)."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps(
             {
@@ -96,7 +96,7 @@ def test_parse_step_finish_tokens():
 
 
 def test_parse_empty_output():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output("")
     assert conversation == []
     assert token_usage is None
@@ -105,7 +105,7 @@ def test_parse_empty_output():
 
 def test_get_cli_version_success(mocker):
     """Test getting CLI version when opencode is available."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     mock_run = mocker.patch("subprocess.run")
     mock_result = mocker.Mock()
     mock_result.returncode = 0
@@ -122,7 +122,7 @@ def test_get_cli_version_success(mocker):
 
 def test_get_cli_version_not_found(mocker):
     """Test getting CLI version when opencode is not installed."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     mock_run = mocker.patch("subprocess.run")
     mock_run.side_effect = FileNotFoundError("opencode not found")
 
@@ -133,7 +133,7 @@ def test_get_cli_version_not_found(mocker):
 
 def test_get_cli_version_error(mocker):
     """Test getting CLI version when command fails."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     mock_run = mocker.patch("subprocess.run")
     mock_result = mocker.Mock()
     mock_result.returncode = 1
@@ -147,7 +147,7 @@ def test_get_cli_version_error(mocker):
 
 def test_get_cli_version_empty_output(mocker):
     """Test getting CLI version when output is empty."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     mock_run = mocker.patch("subprocess.run")
     mock_result = mocker.Mock()
     mock_result.returncode = 0
@@ -160,13 +160,13 @@ def test_get_cli_version_empty_output(mocker):
 
 
 def test_cli_name():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     assert adapter.cli_name() == "opencode"
     assert adapter.agent_type() == "opencode"
 
 
 def test_build_command_with_session_management():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command(
         "test",
         {
@@ -182,7 +182,7 @@ def test_build_command_with_session_management():
 
 
 def test_build_command_with_session_metadata():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command(
         "test",
         {
@@ -196,7 +196,7 @@ def test_build_command_with_session_metadata():
 
 
 def test_build_command_with_server_attachment():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command(
         "test",
         {
@@ -211,7 +211,7 @@ def test_build_command_with_server_attachment():
 
 
 def test_build_command_all_options():
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command(
         "Write a function",
         {
@@ -246,7 +246,7 @@ def test_build_command_all_options():
 
 def test_opencode_with_custom_model():
     """Test OpenCode adapter with custom model configuration."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command(
         "Write a function", {"model": "anthropic/claude-opus-4-20250514"}
     )
@@ -256,7 +256,7 @@ def test_opencode_with_custom_model():
 
 def test_opencode_with_temperature_settings():
     """Test that temperature settings are passed through config."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     # OpenCode doesn't have explicit temperature flag, but config should be accepted
     cmd = adapter._build_command("test", {"temperature": 0.7})
     # Temperature is not a command-line option in OpenCode, but should not error
@@ -266,7 +266,7 @@ def test_opencode_with_temperature_settings():
 
 def test_opencode_with_max_tokens():
     """Test that max_tokens settings are passed through config."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     # OpenCode doesn't have explicit max_tokens flag, but config should be accepted
     cmd = adapter._build_command("test", {"max_tokens": 4096})
     # max_tokens is not a command-line option in OpenCode, but should not error
@@ -276,7 +276,7 @@ def test_opencode_with_max_tokens():
 
 def test_opencode_with_thinking_budget():
     """Test that thinking_budget settings are passed through config."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     # OpenCode doesn't have explicit thinking_budget flag, but config should be accepted
     cmd = adapter._build_command("test", {"thinking_budget": 10000})
     # thinking_budget is not a command-line option in OpenCode, but should not error
@@ -286,7 +286,7 @@ def test_opencode_with_thinking_budget():
 
 def test_parse_output_with_empty_lines():
     """Test parsing output with empty lines."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         "",
         json.dumps({"type": "assistant", "content": "Hello"}),
@@ -305,7 +305,7 @@ def test_parse_output_with_empty_lines():
 
 def test_parse_output_json_decode_error():
     """Test parsing output with invalid JSON lines."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps({"type": "assistant", "content": "Valid"}),
         "This is not valid JSON",
@@ -324,7 +324,7 @@ def test_parse_output_json_decode_error():
 
 def test_parse_output_alternative_message_types():
     """Test parsing output with alternative message type names."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps({"type": "assistant_message", "content": "Using assistant_message"}),
         json.dumps({"type": "message", "text": "Using message with text field"}),
@@ -342,7 +342,7 @@ def test_parse_output_alternative_message_types():
 
 def test_parse_output_step_finish_without_tokens():
     """Test parsing step_finish events without token information."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps(
             {"type": "tool_use", "part": {"tool": "edit", "state": {"input": {}}}}
@@ -362,7 +362,7 @@ def test_parse_output_step_finish_without_tokens():
 
 def test_parse_output_step_finish_with_cost():
     """Test parsing step_finish events with cost information."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps(
             {
@@ -392,11 +392,11 @@ def test_parse_output_step_finish_with_cost():
 
 def test_opencode_with_api_error_handling(mocker, tmp_path):
     """Test OpenCode adapter handling API errors."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     logger = mocker.Mock()
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_command_with_live_logging",
+        "pitlane.assistants.opencode.run_command_with_live_logging",
         return_value=("", "API Error: Rate limit exceeded", 1, False),
     )
 
@@ -409,11 +409,11 @@ def test_opencode_with_api_error_handling(mocker, tmp_path):
 
 def test_opencode_with_timeout_error(mocker, tmp_path):
     """Test OpenCode adapter handling timeout errors."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     logger = mocker.Mock()
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_command_with_live_logging",
+        "pitlane.assistants.opencode.run_command_with_live_logging",
         side_effect=TimeoutError("Command timed out"),
     )
     result = adapter.run("test prompt", tmp_path, {"timeout": 10}, logger)
@@ -425,11 +425,11 @@ def test_opencode_with_timeout_error(mocker, tmp_path):
 
 def test_opencode_with_command_exception(mocker, tmp_path):
     """Test OpenCode adapter handling general command exceptions."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     logger = mocker.Mock()
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_command_with_live_logging",
+        "pitlane.assistants.opencode.run_command_with_live_logging",
         side_effect=Exception("Unexpected error"),
     )
 
@@ -446,7 +446,7 @@ def test_opencode_with_command_exception(mocker, tmp_path):
 )  # Suppress mock introspection warnings for async functions
 def test_parse_output_with_invalid_response_format():
     """Test parsing output with unexpected response formats."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps({"type": "unknown_type", "data": "something"}),
         json.dumps({"type": "assistant"}),  # Missing content
@@ -464,7 +464,7 @@ def test_parse_output_with_invalid_response_format():
 
 def test_opencode_with_all_options_combined(mocker, tmp_path):
     """Test OpenCode adapter with all configuration options combined."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     logger = mocker.Mock()
 
     config = {
@@ -494,7 +494,7 @@ def test_opencode_with_all_options_combined(mocker, tmp_path):
     )
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_command_with_live_logging",
+        "pitlane.assistants.opencode.run_command_with_live_logging",
         return_value=(mock_output, "", 0, False),
     )
     result = adapter.run("Complex test prompt", tmp_path, config, logger)
@@ -530,7 +530,7 @@ def test_opencode_with_all_options_combined(mocker, tmp_path):
 
 def test_opencode_run_with_debug_logging(mocker, tmp_path):
     """Test that debug logging is called during run."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     logger = mocker.Mock()
 
     mock_output = json.dumps(
@@ -544,7 +544,7 @@ def test_opencode_run_with_debug_logging(mocker, tmp_path):
     )
 
     mocker.patch(
-        "pitlane.adapters.opencode.run_command_with_live_logging",
+        "pitlane.assistants.opencode.run_command_with_live_logging",
         return_value=(mock_output, "", 0, False),
     )
 
@@ -565,7 +565,7 @@ def test_opencode_run_with_debug_logging(mocker, tmp_path):
 
 def test_parse_output_message_with_empty_content():
     """Test parsing messages with empty content fields."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps({"type": "assistant", "content": ""}),  # Empty content
         json.dumps({"type": "message", "text": ""}),  # Empty text
@@ -581,7 +581,7 @@ def test_parse_output_message_with_empty_content():
 
 def test_build_command_with_port_as_int():
     """Test that port is correctly converted to string in command."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     cmd = adapter._build_command("test", {"port": 8080})
     assert "--port" in cmd
     port_idx = cmd.index("--port")
@@ -594,7 +594,7 @@ def test_build_command_with_port_as_int():
 
 def test_parse_output_step_finish_cost_without_tokens():
     """Cost must be extracted even when tokens dict is empty or absent."""
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     lines = [
         json.dumps({"type": "step_finish", "part": {"cost": 0.003}}),
         json.dumps({"type": "step_finish", "part": {"tokens": {}, "cost": 0.002}}),
@@ -607,7 +607,7 @@ def test_parse_output_step_finish_cost_without_tokens():
 
 
 def test_install_mcp_creates_opencode_json(tmp_path):
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 
@@ -631,7 +631,7 @@ def test_install_mcp_creates_opencode_json(tmp_path):
 
 
 def test_install_mcp_merges_existing(tmp_path):
-    adapter = OpenCodeAdapter()
+    adapter = OpenCodeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 

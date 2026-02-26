@@ -1,21 +1,21 @@
 assistants:
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
 
   bob-baseline:
-    adapter: bob
+    type: bob
     args:
       chat_mode: code
 
   opencode-baseline:
-    adapter: opencode
+    type: opencode
     args:
       model: opencode/minimax-m2.5-free
 
   vibe-baseline:
-    adapter: mistral-vibe
+    type: mistral-vibe
     args:
       model: devstral-small
 

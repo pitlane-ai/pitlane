@@ -1,6 +1,6 @@
 assistants:
   opencode-baseline:
-    adapter: opencode
+    type: opencode
     args:
       model: opencode/minimax-m2.5-free
 

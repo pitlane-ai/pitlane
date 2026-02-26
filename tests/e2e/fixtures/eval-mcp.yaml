@@ -1,6 +1,6 @@
 assistants:
   claude-mcp:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
     mcps:
@@ -13,7 +13,7 @@ assistants:
           - "__MCP_SERVER_PATH__"
 
   bob-mcp:
-    adapter: bob
+    type: bob
     args:
       chat_mode: code
     mcps:
@@ -26,7 +26,7 @@ assistants:
           - "__MCP_SERVER_PATH__"
 
   opencode-mcp:
-    adapter: opencode
+    type: opencode
     args:
       model: opencode/minimax-m2.5-free
     mcps:
@@ -39,7 +39,7 @@ assistants:
           - "__MCP_SERVER_PATH__"
 
   vibe-mcp:
-    adapter: mistral-vibe
+    type: mistral-vibe
     args:
       model: devstral-small
     mcps:

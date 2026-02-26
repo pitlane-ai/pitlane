@@ -6,7 +6,7 @@ from unittest.mock import patch
 from junitparser import JUnitXml
 from pitlane.runner import Runner, IterationResult
 from pitlane.metrics import compute_stats, aggregate_results
-from pitlane.adapters.base import AdapterResult
+from pitlane.assistants.base import AssistantResult
 from pitlane.config import load_config
 
 
@@ -20,7 +20,7 @@ def eval_config(tmp_path):
     config_file.write_text(f"""
 assistants:
   mock-claude:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -38,14 +38,14 @@ tasks:
 def test_runner_creates_run_directory(mocker, tmp_path, eval_config):
     runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
 
-    mock_result = AdapterResult(
+    mock_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
         duration_seconds=1.0,
     )
     mocker.patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
         return_value=mock_result,
     )
     run_dir = runner.execute()
@@ -60,7 +60,7 @@ def test_runner_creates_run_directory(mocker, tmp_path, eval_config):
 def test_runner_captures_results(mocker, tmp_path, eval_config):
     runner = Runner(config=eval_config, output_dir=tmp_path / "runs", verbose=False)
 
-    mock_result = AdapterResult(
+    mock_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
@@ -69,7 +69,7 @@ def test_runner_captures_results(mocker, tmp_path, eval_config):
         cost_usd=0.01,
     )
     mocker.patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
         return_value=mock_result,
     )
     run_dir = runner.execute()
@@ -95,7 +95,7 @@ def test_runner_parallel_execution(mocker, tmp_path, eval_config):
     config_file.write_text(f"""
 assistants:
   mock-claude:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -128,14 +128,14 @@ tasks:
         parallel_tasks=2,
     )
 
-    mock_result = AdapterResult(
+    mock_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
         duration_seconds=0.1,
     )
     mocker.patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
         return_value=mock_result,
     )
     run_dir = runner.execute()
@@ -164,14 +164,14 @@ def test_runner_sequential_execution(mocker, tmp_path, eval_config):
         parallel_tasks=1,
     )
 
-    mock_result = AdapterResult(
+    mock_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
         duration_seconds=1.0,
     )
     mocker.patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
         return_value=mock_result,
     )
     run_dir = runner.execute()
@@ -204,7 +204,7 @@ def test_runner_repeat_execution(mocker, tmp_path, eval_config):
     def mock_run(*args, **kwargs):
         nonlocal call_count
         call_count += 1
-        return AdapterResult(
+        return AssistantResult(
             stdout="",
             stderr="",
             exit_code=0,
@@ -214,7 +214,7 @@ def test_runner_repeat_execution(mocker, tmp_path, eval_config):
         )
 
     mocker.patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", side_effect=mock_run
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run", side_effect=mock_run
     )
     run_dir = runner.execute()
 
@@ -242,14 +242,14 @@ def test_runner_repeat_meta_includes_repeat_count(mocker, tmp_path, eval_config)
         config=eval_config, output_dir=tmp_path / "runs", verbose=False, repeat=5
     )
 
-    mock_result = AdapterResult(
+    mock_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
         duration_seconds=1.0,
     )
     mocker.patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
         return_value=mock_result,
     )
     run_dir = runner.execute()
@@ -366,7 +366,7 @@ def test_runner_interrupt_saves_partial_results(mocker, tmp_path):
     config_file.write_text(f"""
 assistants:
   mock-claude:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -469,15 +469,15 @@ def multi_assistant_config(tmp_path):
     config_file.write_text(f"""
 assistants:
   a:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
   b:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
   c:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -498,9 +498,12 @@ def test_assistant_filter_single(tmp_path, multi_assistant_config):
         output_dir=tmp_path / "runs",
         assistant_filter=["a"],
     )
-    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    mock_result = AssistantResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0
+    )
     with patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
+        return_value=mock_result,
     ):
         run_dir = runner.execute()
 
@@ -517,9 +520,12 @@ def test_assistant_filter_multiple(tmp_path, multi_assistant_config):
         output_dir=tmp_path / "runs",
         assistant_filter=["a", "b"],
     )
-    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    mock_result = AssistantResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0
+    )
     with patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
+        return_value=mock_result,
     ):
         run_dir = runner.execute()
 
@@ -536,9 +542,12 @@ def test_skip_assistants_single(tmp_path, multi_assistant_config):
         output_dir=tmp_path / "runs",
         skip_assistants=["a"],
     )
-    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    mock_result = AssistantResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0
+    )
     with patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
+        return_value=mock_result,
     ):
         run_dir = runner.execute()
 
@@ -555,9 +564,12 @@ def test_skip_assistants_multiple(tmp_path, multi_assistant_config):
         output_dir=tmp_path / "runs",
         skip_assistants=["a", "b"],
     )
-    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    mock_result = AssistantResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0
+    )
     with patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
+        return_value=mock_result,
     ):
         run_dir = runner.execute()
 
@@ -575,9 +587,12 @@ def test_only_and_skip_combined(tmp_path, multi_assistant_config):
         assistant_filter=["a", "b"],
         skip_assistants=["b"],
     )
-    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    mock_result = AssistantResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0
+    )
     with patch(
-        "pitlane.adapters.claude_code.ClaudeCodeAdapter.run", return_value=mock_result
+        "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
+        return_value=mock_result,
     ):
         run_dir = runner.execute()
 
@@ -600,7 +615,7 @@ def test_runner_interrupt_report_generation(mocker, tmp_path):
     config_file.write_text(f"""
 assistants:
   mock-claude:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -681,7 +696,7 @@ def test_runner_calls_install_mcp_for_each_mcp(tmp_path):
         textwrap.dedent(f"""\
         assistants:
           mcp-assistant:
-            adapter: claude-code
+            type: claude-code
             args:
               model: haiku
             mcps:
@@ -703,7 +718,9 @@ def test_runner_calls_install_mcp_for_each_mcp(tmp_path):
     )
     config = load_config(config_file)
 
-    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    mock_result = AssistantResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0
+    )
 
     install_mcp_calls = []
 
@@ -712,11 +729,11 @@ def test_runner_calls_install_mcp_for_each_mcp(tmp_path):
 
     with (
         patch(
-            "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+            "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
             return_value=mock_result,
         ),
         patch(
-            "pitlane.adapters.claude_code.ClaudeCodeAdapter.install_mcp",
+            "pitlane.assistants.claude_code.ClaudeCodeAssistant.install_mcp",
             side_effect=fake_install_mcp,
         ),
     ):
@@ -739,7 +756,7 @@ def test_runner_no_mcps_does_not_call_install_mcp(tmp_path):
         textwrap.dedent(f"""\
         assistants:
           baseline:
-            adapter: claude-code
+            type: claude-code
             args:
               model: haiku
 
@@ -754,15 +771,17 @@ def test_runner_no_mcps_does_not_call_install_mcp(tmp_path):
     )
     config = load_config(config_file)
 
-    mock_result = AdapterResult(stdout="", stderr="", exit_code=0, duration_seconds=1.0)
+    mock_result = AssistantResult(
+        stdout="", stderr="", exit_code=0, duration_seconds=1.0
+    )
 
     with (
         patch(
-            "pitlane.adapters.claude_code.ClaudeCodeAdapter.run",
+            "pitlane.assistants.claude_code.ClaudeCodeAssistant.run",
             return_value=mock_result,
         ),
         patch(
-            "pitlane.adapters.claude_code.ClaudeCodeAdapter.install_mcp"
+            "pitlane.assistants.claude_code.ClaudeCodeAssistant.install_mcp"
         ) as mock_install_mcp,
     ):
         runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)

@@ -150,7 +150,7 @@ def test_run_command_with_invalid_yaml(tmp_path):
 def test_run_command_with_invalid_schema(tmp_path):
     """Test run command with valid YAML but wrong schema (missing required keys)."""
     config_file = tmp_path / "wrong.yaml"
-    config_file.write_text("assistants:\n  bob:\n    adapter: claude-code\n")
+    config_file.write_text("assistants:\n  bob:\n    type: claude-code\n")
 
     result = runner.invoke(app, ["run", str(config_file)])
     assert result.exit_code == 1
@@ -164,7 +164,7 @@ def test_run_command_with_missing_adapter(tmp_path, monkeypatch):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: nonexistent-adapter
+    type: nonexistent-adapter
     args: {}
 
 tasks:
@@ -190,7 +190,7 @@ def test_run_command_with_adapter_error(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -240,7 +240,7 @@ def test_run_command_with_assertion_error(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -290,7 +290,7 @@ def test_run_command_with_workspace_error(tmp_path, monkeypatch):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -314,7 +314,7 @@ def test_run_command_with_keyboard_interrupt(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -366,7 +366,7 @@ def test_run_command_with_verbose_flag(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -416,7 +416,7 @@ def test_run_command_with_no_open_flag(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -465,7 +465,7 @@ def test_run_command_opens_browser_by_default(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -514,7 +514,7 @@ def test_run_command_with_all_options_combined(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -841,7 +841,7 @@ def test_run_command_exit_nonzero_on_timeout(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -923,11 +923,11 @@ def _make_run_config(tmp_path):
     config_file.write_text(f"""
 assistants:
   a:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
   b:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 

@@ -1,19 +1,19 @@
 {
   "$defs": {
-    "AdapterType": {
+    "AssistantType": {
       "enum": [
         "bob",
         "claude-code",
         "mistral-vibe",
         "opencode"
       ],
-      "title": "AdapterType",
+      "title": "AssistantType",
       "type": "string"
     },
     "AssistantConfig": {
       "properties": {
-        "adapter": {
-          "$ref": "#/$defs/AdapterType"
+        "type": {
+          "$ref": "#/$defs/AssistantType"
         },
         "args": {
           "additionalProperties": true,
@@ -39,7 +39,7 @@
         }
       },
       "required": [
-        "adapter"
+        "type"
       ],
       "title": "AssistantConfig",
       "type": "object"

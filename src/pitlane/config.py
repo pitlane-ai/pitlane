@@ -9,7 +9,7 @@ from expandvars import expandvars
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
-class AdapterType(str, Enum):
+class AssistantType(str, Enum):
     BOB = "bob"
     CLAUDE_CODE = "claude-code"
     MISTRAL_VIBE = "mistral-vibe"
@@ -63,7 +63,7 @@ class McpServerConfig(BaseModel):
 
 
 class AssistantConfig(BaseModel):
-    adapter: AdapterType
+    type: AssistantType
     args: dict[str, Any] = {}
     skills: list[SkillRef] = []
     mcps: list[McpServerConfig] = []

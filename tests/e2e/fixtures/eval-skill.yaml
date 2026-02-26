@@ -1,20 +1,20 @@
 assistants:
   claude-skill:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
     skills:
       - source: __SKILL_SOURCE_PATH__
 
   opencode-skill:
-    adapter: opencode
+    type: opencode
     args:
       model: opencode/minimax-m2.5-free
     skills:
       - source: __SKILL_SOURCE_PATH__
 
   vibe-skill:
-    adapter: mistral-vibe
+    type: mistral-vibe
     args:
       model: devstral-small
     skills:

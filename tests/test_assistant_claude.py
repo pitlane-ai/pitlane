@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from pitlane.adapters.claude_code import ClaudeCodeAdapter
+from pitlane.assistants.claude_code import ClaudeCodeAssistant
 from pitlane.config import McpServerConfig
 
 
 def test_build_command_minimal():
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     cmd = adapter._build_command("Write hello world", {"model": "sonnet"})
     assert cmd[0] == "claude"
     assert "-p" in cmd
@@ -22,7 +22,7 @@ def test_build_command_minimal():
 
 
 def test_build_command_with_mcp():
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     cmd = adapter._build_command(
         "test", {"model": "sonnet", "mcp_config": "./mcp.json"}
     )
@@ -31,7 +31,7 @@ def test_build_command_with_mcp():
 
 
 def test_build_command_with_system_prompt():
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     cmd = adapter._build_command(
         "test", {"model": "sonnet", "system_prompt": "Be helpful"}
     )
@@ -40,7 +40,7 @@ def test_build_command_with_system_prompt():
 
 
 def test_parse_stream_json_result():
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     lines = [
         json.dumps({"type": "system", "subtype": "init", "session_id": "abc"}),
         json.dumps(
@@ -77,7 +77,7 @@ def test_parse_stream_json_result():
 
 def test_parse_stream_json_result_with_cache():
     """input_cached tracks only cache_read tokens; cache_creation adds to input total."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     lines = [
         json.dumps(
             {
@@ -104,7 +104,7 @@ def test_parse_stream_json_result_with_cache():
 
 def test_claude_with_custom_model():
     """Test claude adapter with custom model configuration."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     config = {"model": "claude-3-5-sonnet-20241022"}
     cmd = adapter._build_command("test prompt", config)
     assert cmd[0] == "claude"
@@ -121,14 +121,14 @@ def test_claude_with_api_error_handling(tmp_path, monkeypatch):
     """Test claude adapter handles API errors gracefully."""
     import logging
 
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     logger = logging.getLogger("test")
 
     def mock_run_command(*args, **kwargs):
         raise Exception("API Error: Authentication failed")
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_command_with_live_logging", mock_run_command
+        "pitlane.assistants.claude_code.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {"model": "sonnet"}, logger)
@@ -143,14 +143,14 @@ def test_claude_with_timeout_error(tmp_path, monkeypatch):
     """Test claude adapter handles timeout errors."""
     import logging
 
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     logger = logging.getLogger("test")
 
     def mock_run_command(*args, **kwargs):
         raise TimeoutError("Command execution timed out")
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_command_with_live_logging", mock_run_command
+        "pitlane.assistants.claude_code.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {"model": "sonnet", "timeout": 30}, logger)
@@ -161,7 +161,7 @@ def test_claude_with_timeout_error(tmp_path, monkeypatch):
 
 def test_claude_with_invalid_response_format():
     """Test claude adapter handles invalid JSON response format."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     # Mix of invalid JSON and valid events
     lines = [
         "Invalid JSON line",
@@ -194,7 +194,7 @@ def test_claude_with_invalid_response_format():
 
 def test_claude_with_empty_response():
     """Test claude adapter handles empty or whitespace-only response."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     # Response with empty lines and minimal content
     lines = [
         "",
@@ -221,7 +221,7 @@ def test_claude_with_empty_response():
 
 def test_claude_with_all_options_combined():
     """Test claude adapter with all configuration options combined."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     config = {
         "model": "claude-3-5-sonnet-20241022",
         "mcp_config": "./config/mcp.json",
@@ -251,19 +251,19 @@ def test_claude_with_all_options_combined():
 
 def test_claude_cli_name():
     """Test claude adapter returns correct CLI name."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     assert adapter.cli_name() == "claude"
 
 
 def test_claude_agent_type():
     """Test claude adapter returns correct agent type."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     assert adapter.agent_type() == "claude-code"
 
 
 def test_claude_get_cli_version_success(mocker, monkeypatch):
     """Test claude adapter gets CLI version successfully."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
 
     def mock_run(*args, **kwargs):
         result = mocker.Mock()
@@ -278,7 +278,7 @@ def test_claude_get_cli_version_success(mocker, monkeypatch):
 
 def test_claude_get_cli_version_failure(monkeypatch):
     """Test claude adapter handles CLI version check failure."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
 
     def mock_run(*args, **kwargs):
         raise Exception("Command not found")
@@ -290,7 +290,7 @@ def test_claude_get_cli_version_failure(monkeypatch):
 
 def test_claude_parse_output_with_tool_use():
     """Test claude adapter parses tool_use blocks correctly."""
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     lines = [
         json.dumps(
             {
@@ -328,7 +328,7 @@ def test_claude_run_with_debug_logging(tmp_path, monkeypatch):
     """Test claude adapter logs debug information during run."""
     import logging
 
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     logger = logging.getLogger("test")
     logger.setLevel(logging.DEBUG)
 
@@ -346,7 +346,7 @@ def test_claude_run_with_debug_logging(tmp_path, monkeypatch):
         return "test output", "", 0, False
 
     monkeypatch.setattr(
-        "pitlane.adapters.claude_code.run_command_with_live_logging", mock_run_command
+        "pitlane.assistants.claude_code.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run(
@@ -366,7 +366,7 @@ def test_claude_run_with_debug_logging(tmp_path, monkeypatch):
 
 
 def test_install_mcp_creates_mcp_json(tmp_path: Path):
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 
@@ -391,7 +391,7 @@ def test_install_mcp_creates_mcp_json(tmp_path: Path):
 
 
 def test_install_mcp_merges_existing(tmp_path: Path):
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 
@@ -407,7 +407,7 @@ def test_install_mcp_merges_existing(tmp_path: Path):
 
 
 def test_install_mcp_env_expansion(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
     monkeypatch.setenv("TEST_SECRET", "my-secret-value")
@@ -421,14 +421,14 @@ def test_install_mcp_env_expansion(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
     data = json.loads((ws / ".mcp.json").read_text())
     entry_env = data["mcpServers"]["env-server"]["env"]
-    assert entry_env["SECRET"] == "my-secret-value"
+    assert entry_env["SECRET"] == "my-secret-value"  # pragma: allowlist secret
     assert entry_env["STATIC"] == "literal"
 
 
 def test_install_mcp_env_expansion_with_default(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    adapter = ClaudeCodeAdapter()
+    adapter = ClaudeCodeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
     monkeypatch.delenv("UNSET_VAR", raising=False)

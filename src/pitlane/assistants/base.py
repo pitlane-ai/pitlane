@@ -13,13 +13,13 @@ if TYPE_CHECKING:
     from pitlane.config import McpServerConfig
 
 
-class AdapterFeature(str, Enum):
+class AssistantFeature(str, Enum):
     MCPS = "mcps"
     SKILLS = "skills"
 
 
 @dataclass
-class AdapterResult:
+class AssistantResult:
     stdout: str
     stderr: str
     exit_code: int
@@ -31,7 +31,7 @@ class AdapterResult:
     timed_out: bool = False
 
 
-class BaseAdapter(ABC):
+class BaseAssistant(ABC):
     @abstractmethod
     def run(
         self,
@@ -39,7 +39,7 @@ class BaseAdapter(ABC):
         workdir: Path,
         config: dict[str, Any],
         logger: logging.Logger,
-    ) -> AdapterResult:
+    ) -> AssistantResult:
         """Execute the agent with the given prompt in workdir."""
         ...
 
@@ -55,7 +55,7 @@ class BaseAdapter(ABC):
 
     @abstractmethod
     def get_cli_version(self) -> str | None:
-        """Get the version of the CLI tool this adapter uses."""
+        """Get the version of the CLI tool this assistant uses."""
         ...
 
     @abstractmethod
@@ -64,8 +64,8 @@ class BaseAdapter(ABC):
         ...
 
     @abstractmethod
-    def supported_features(self) -> frozenset[AdapterFeature]:
-        """Features this adapter supports."""
+    def supported_features(self) -> frozenset[AssistantFeature]:
+        """Features this assistant supports."""
         ...
 
     def skills_dir(self) -> str | None:
