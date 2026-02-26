@@ -17,6 +17,7 @@ dependencies = [
     "sacrebleu>=2.6.0",
     "junitparser>=4.0",
     "expandvars>=0.12",
+    "pdfplumber>=0.11.9",
 ]
 
 [project.scripts]

@@ -1,0 +1,30 @@
+Quarter,Revenue ($),Expenses ($),Profit ($),Margin (%)
+Q1 2023,"$250,000","$180,000","$70,000",28.0%
+Q2 2023,"$280,000","$195,000","$85,000",30.4%
+Q3 2023,"$310,000","$210,000","$100,000",32.3%
+Q4 2023,"$340,000","$225,000","$115,000",33.8%
+FY 2023 Total,"$1,180,000","$810,000","$370,000",31.4%
+
+Department,Headcount,Budget ($),Utilization (%)
+Engineering,45,$1.2M,94%
+Sales & Marketing,32,$850K,87%
+Operations,28,$620K,91%
+Human Resources,22,$480K,89%
+Finance & Legal,20,$410K,92%
+
+Region,Territory,Sales ($),Growth (%),Top Product,Units Sold
+North America,US & Canada,"$450,000",+12%,Widget™ Pro,"1,250"
+South America,Brazil & LATAM,"$380,000",+8%,Gadget® Plus,980
+East Asia,China & Japan,"$520,000",+15%,Device™ Elite,"1,450"
+Western Europe,EU & UK,"$410,000",+10%,Tool® Max,"1,100"
+Eastern Europe,CIS & Balkans,"$185,000",-3%,Widget™ Pro,520
+Middle East,GCC & Levant,"$210,000",+5%,Gadget® Plus,630
+
+Category,Product Line,Units Sold,Revenue ($),Market Share (%)
+Hardware,Widget™ Pro,"1,770",$620K,28%
+Hardware,Device™ Elite,"1,450",$540K,24%
+Software,CloudSync™,"3,200",$380K,17%
+Software,DataFlow®,"2,800",$320K,14%
+Accessories,Gadget® Plus,"1,610",$210K,9%
+Accessories,Tool® Max,"1,100",$180K,8%
+Grand Total,,"11,930",$2.25M,100%

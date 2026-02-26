@@ -1,0 +1,87 @@
+assistants:
+  opencode-baseline:
+    adapter: opencode
+    args:
+      model: opencode/minimax-m2.5-free
+
+  opencode-with-pdf-skill:
+    adapter: opencode
+    args:
+      model: opencode/minimax-m2.5-free
+    skills:
+      - source: anthropics/skills
+        skill: pdf
+
+tasks:
+  - name: extract-tables-from-report
+    prompt: |
+      Extract all tables from sample-report.pdf into separate CSV files.
+
+      For each table found, create a separate CSV file named:
+      - table_1.csv for the first table (Quarterly Financial Performance)
+      - table_2.csv for the second table (Department Allocation)
+      - table_3.csv for the third table (Regional Performance)
+      - table_4.csv for the fourth table (Product Category Breakdown)
+
+      Requirements:
+      - Each CSV must have a proper header row as the first row
+      - Data rows must come after the header
+      - Do not include blank rows or separator rows
+      - Clean up any None or empty values
+      - Preserve the exact text content from the PDF cells
+
+      Also create extraction_summary.txt listing:
+      - Number of tables found
+      - For each table: the number of columns and data rows (excluding header)
+    workdir: ./fixtures/pdf-table-extraction
+    timeout: 90
+    assertions:
+      # File existence (5 checks)
+      - file_exists: "table_1.csv"
+      - file_exists: "table_2.csv"
+      - file_exists: "table_3.csv"
+      - file_exists: "table_4.csv"
+      - file_exists: "extraction_summary.txt"
+
+      # Table 1: Quarterly Financial Performance — 5 cols, >= 5 rows
+      - command_succeeds: "python3 -c \"import csv; r=list(csv.reader(open('table_1.csv'))); assert len(r[0])==5, f'got {len(r[0])} cols'\""
+      - command_succeeds: "python3 -c \"import csv; r=list(csv.reader(open('table_1.csv'))); assert len(r)>=5, f'got {len(r)} rows'\""
+      - file_contains:
+          path: "table_1.csv"
+          pattern: "Quarter"
+      - file_contains:
+          path: "table_1.csv"
+          pattern: "Q1 2023"
+
+      # Table 2: Department Allocation — 4 cols, >= 5 rows
+      - command_succeeds: "python3 -c \"import csv; r=list(csv.reader(open('table_2.csv'))); assert len(r[0])==4, f'got {len(r[0])} cols'\""
+      - file_contains:
+          path: "table_2.csv"
+          pattern: "Department"
+      - file_contains:
+          path: "table_2.csv"
+          pattern: "Engineering"
+
+      # Table 3: Regional Performance — 6 cols, has negative growth
+      - command_succeeds: "python3 -c \"import csv; r=list(csv.reader(open('table_3.csv'))); assert len(r[0])==6, f'got {len(r[0])} cols'\""
+      - file_contains:
+          path: "table_3.csv"
+          pattern: "North America"
+
+      # Table 4: Product Category Breakdown — hierarchical data
+      - file_contains:
+          path: "table_4.csv"
+          pattern: "Category"
+      - file_contains:
+          path: "table_4.csv"
+          pattern: "Grand Total"
+
+      # Summary mentions 4 tables
+      - file_contains:
+          path: "extraction_summary.txt"
+          pattern: "4"
+
+      # Comprehensive validation script
+      - custom_script:
+          script: "validate_extraction.py"
+          interpreter: "python3"

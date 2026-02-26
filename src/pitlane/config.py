@@ -157,6 +157,7 @@ class CustomScriptSpec(BaseModel):
 class CustomScriptAssertion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     custom_script: str | CustomScriptSpec
+    weight: float = 1.0
 
 
 Assertion = (
