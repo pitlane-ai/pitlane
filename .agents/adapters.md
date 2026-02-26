@@ -4,57 +4,14 @@
 
 ### Required Methods
 
-Inherit from `BaseAdapter` and implement all five methods:
+Inherit from `BaseAdapter` (`pitlane.adapters.base`) and implement all six abstract methods:
 
-```python
-from __future__ import annotations
-
-from pathlib import Path
-from typing import Any, TYPE_CHECKING
-
-from pitlane.adapters.base import AdapterResult, BaseAdapter
-
-if TYPE_CHECKING:
-    import logging
-    from pitlane.config import McpServerConfig
-
-
-class YourAdapter(BaseAdapter):
-    def cli_name(self) -> str:
-        """The CLI command name (e.g. 'claude', 'bob')."""
-        return "your-cli"
-
-    def agent_type(self) -> str:
-        """Adapter identifier used in YAML configs (e.g. 'claude-code')."""
-        return "your-adapter"
-
-    def get_cli_version(self) -> str | None:
-        """Return version string from CLI, or None if unavailable."""
-        import subprocess
-        try:
-            result = subprocess.run(
-                ["your-cli", "--version"], capture_output=True, text=True, timeout=5
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                return result.stdout.strip()
-        except Exception:
-            pass
-        return None
-
-    def install_mcp(self, workspace: Path, mcp: McpServerConfig) -> None:
-        """Write MCP server config into the workspace directory."""
-        pass
-
-    def run(
-        self,
-        prompt: str,
-        workdir: Path,
-        config: dict[str, Any],
-        logger: logging.Logger,
-    ) -> AdapterResult:
-        """Execute the assistant and return results."""
-        pass
-```
+- `cli_name() -> str` — The CLI command name (e.g. `"claude"`, `"bob"`)
+- `agent_type() -> str` — Adapter identifier used in YAML configs (e.g. `"claude-code"`)
+- `get_cli_version() -> str | None` — Return version string from CLI, or `None` if unavailable
+- `install_mcp(workspace: Path, mcp: McpServerConfig) -> None` — Write MCP server config into the workspace directory
+- `run(prompt, workdir, config, logger) -> AdapterResult` — Execute the assistant and return results
+- `supported_features() -> frozenset[AdapterFeature]` — Declare which optional features the adapter supports
 
 ### AdapterResult Structure
 
