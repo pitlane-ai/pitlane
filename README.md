@@ -81,6 +81,10 @@ Or run without installing:
 uvx --from git+https://github.com/pitlane-ai/pitlane.git pitlane run examples/simple-codegen-eval.yaml
 ```
 
+### Prerequisites for running evaluations
+
+Before running your first evaluation, ensure you have an AI coding assistant installed and authenticated on your machine. Choose from [supported assistants](#supported-assistants). Install the assistant's CLI tool following their official documentation, most assistants will prompt you to log in on first use.
+
 ### Running your first example
 
 The example below uses [OpenCode](https://opencode.ai) because it's free and requires no API key, but you can use any [supported assistant](#supported-assistants) by editing the YAML file.
