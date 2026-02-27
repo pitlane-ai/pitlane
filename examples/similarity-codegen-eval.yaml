@@ -14,17 +14,17 @@
 
 assistants:
   bob-baseline:
-    adapter: bob
+    type: bob
     args:
       chat_mode: code
 
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
 
   vibe-baseline:
-    adapter: mistral-vibe
+    type: mistral-vibe
     args:
       model: devstral-2
 

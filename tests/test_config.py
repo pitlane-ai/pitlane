@@ -31,7 +31,7 @@ def test_load_minimal_config(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           my-assistant:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: hello
             prompt: Say hello
@@ -42,7 +42,7 @@ def test_load_minimal_config(tmp_yaml):
     cfg = load_config(path)
     assert "my-assistant" in cfg.assistants
     assistant = cfg.assistants["my-assistant"]
-    assert assistant.adapter == "claude-code"
+    assert assistant.type == "claude-code"
     assert assistant.args == {}
     assert assistant.skills == []
     assert len(cfg.tasks) == 1
@@ -60,7 +60,7 @@ def test_load_config_with_skills(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           skilled:
-            adapter: claude-code
+            type: claude-code
             skills:
               - python
               - source: terraform-ibm-modules/terraform-ibm-modules-skills
@@ -101,7 +101,7 @@ def test_load_config_missing_required_fields(tmp_yaml):
     path2 = tmp_yaml("""\
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
         tasks: []
     """)
     with pytest.raises(Exception):
@@ -112,7 +112,7 @@ def test_task_default_timeout(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: default
             prompt: p
@@ -147,7 +147,7 @@ def test_assertion_validation_accepts_known(tmp_yaml):
     path = tmp_yaml("""
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: t
             prompt: p
@@ -169,7 +169,7 @@ def test_assertion_weight_accepted(tmp_yaml):
     path = tmp_yaml("""
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: t
             prompt: p
@@ -193,7 +193,7 @@ def test_assertion_weight_defaults_to_one(tmp_yaml):
     path = tmp_yaml("""
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: t
             prompt: p
@@ -209,7 +209,7 @@ def test_assertion_validation_rejects_unknown(tmp_yaml):
     path = tmp_yaml("""
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: t
             prompt: p
@@ -225,7 +225,7 @@ def test_load_config_with_mcps(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           mcp-assistant:
-            adapter: claude-code
+            type: claude-code
             mcps:
               - name: my-server
                 type: stdio
@@ -255,7 +255,7 @@ def test_load_config_mcps_defaults(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
             mcps:
               - name: minimal
         tasks:
@@ -279,7 +279,7 @@ def test_load_config_mcps_sse_type(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
             mcps:
               - name: remote
                 type: sse
@@ -301,7 +301,7 @@ def test_load_config_mcps_rejects_extra_fields(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
             mcps:
               - name: bad
                 unknown_field: oops
@@ -338,7 +338,7 @@ def test_load_config_no_mcps_defaults_to_empty(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           a:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: t
             prompt: p
@@ -355,7 +355,7 @@ def test_mcp_env_validation_missing_var_no_default(tmp_yaml, monkeypatch):
     path = tmp_yaml("""\
         assistants:
           bob:
-            adapter: bob
+            type: bob
             mcps:
               - name: test-mcp
                 type: stdio
@@ -382,7 +382,7 @@ def test_mcp_env_validation_missing_var_with_default(tmp_yaml, monkeypatch):
     path = tmp_yaml("""\
         assistants:
           bob:
-            adapter: bob
+            type: bob
             mcps:
               - name: test-mcp
                 type: stdio
@@ -407,7 +407,7 @@ def test_mcp_env_validation_var_is_set(tmp_yaml, monkeypatch):
     path = tmp_yaml("""\
         assistants:
           bob:
-            adapter: bob
+            type: bob
             mcps:
               - name: test-mcp
                 type: stdio
@@ -433,7 +433,7 @@ def test_mcp_env_validation_multiple_missing_vars(tmp_yaml, monkeypatch):
     path = tmp_yaml("""\
         assistants:
           bob:
-            adapter: bob
+            type: bob
             mcps:
               - name: test-mcp
                 type: stdio
@@ -462,7 +462,7 @@ def test_mcp_env_validation_plain_text(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           bob:
-            adapter: bob
+            type: bob
             mcps:
               - name: test-mcp
                 type: stdio
@@ -488,7 +488,7 @@ def test_mcp_env_validation_mixed_vars(tmp_yaml, monkeypatch):
     path = tmp_yaml("""\
         assistants:
           bob:
-            adapter: bob
+            type: bob
             mcps:
               - name: test-mcp
                 type: stdio
@@ -517,7 +517,7 @@ def test_mcp_env_validation_empty_env(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           bob:
-            adapter: bob
+            type: bob
             mcps:
               - name: test-mcp
                 type: stdio
@@ -538,7 +538,7 @@ def test_assistant_name_with_comma_raises(tmp_yaml):
     path = tmp_yaml("""\
         assistants:
           foo,bar:
-            adapter: claude-code
+            type: claude-code
         tasks:
           - name: t
             prompt: p

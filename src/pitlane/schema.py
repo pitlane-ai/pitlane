@@ -13,14 +13,51 @@ def _ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _collect_refs(obj: object) -> set[str]:
+    """Return all ``$defs`` names referenced via ``$ref`` inside *obj*."""
+    refs: set[str] = set()
+    if isinstance(obj, dict):
+        if "$ref" in obj:
+            ref = obj["$ref"]
+            if ref.startswith("#/$defs/"):
+                refs.add(ref.removeprefix("#/$defs/"))
+        for v in obj.values():
+            refs |= _collect_refs(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            refs |= _collect_refs(v)
+    return refs
+
+
+def _order_defs(defs: dict) -> dict:
+    """Topologically sort ``$defs`` so referenced types precede referencing types."""
+    ordered: dict[str, dict] = {}
+    visited: set[str] = set()
+
+    def _visit(name: str) -> None:
+        if name in visited or name not in defs:
+            return
+        visited.add(name)
+        for dep in _collect_refs(defs[name]):
+            _visit(dep)
+        ordered[name] = defs[name]
+
+    for name in defs:
+        _visit(name)
+    return ordered
+
+
 def generate_json_schema() -> dict:
-    return EvalConfig.model_json_schema()
+    schema = EvalConfig.model_json_schema()
+    if "$defs" in schema:
+        schema["$defs"] = _order_defs(schema["$defs"])
+    return schema
 
 
 def write_json_schema(path: Path) -> None:
     _ensure_parent(path)
     schema = generate_json_schema()
-    path.write_text(json.dumps(schema, indent=2, sort_keys=True))
+    path.write_text(json.dumps(schema, indent=2) + "\n")
 
 
 def _format_fields(fields: Iterable[str]) -> str:
@@ -53,9 +90,9 @@ def generate_schema_doc() -> str:
     lines.append("")
     lines.append("## Assistant Config")
     lines.append(
-        "- `adapter`: string (required) - one of: claude-code, cline, codex, mistral-vibe, opencode"
+        "- `type`: string (required) - one of: bob, claude-code, mistral-vibe, opencode"
     )
-    lines.append("- `args`: object (optional) - adapter-specific arguments")
+    lines.append("- `args`: object (optional) - assistant-specific arguments")
     lines.append("- `skills`: array (optional) - list of skill references")
     lines.append("")
     lines.append("## Assertions")

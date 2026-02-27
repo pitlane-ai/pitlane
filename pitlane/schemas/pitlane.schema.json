@@ -1,33 +1,114 @@
 {
   "$defs": {
-    "AdapterType": {
+    "AssistantType": {
       "enum": [
         "bob",
         "claude-code",
         "mistral-vibe",
         "opencode"
       ],
-      "title": "AdapterType",
+      "title": "AssistantType",
       "type": "string"
+    },
+    "McpServerConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "stdio",
+          "enum": [
+            "stdio",
+            "sse",
+            "http"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "args": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Args",
+          "type": "array"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Env",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "McpServerConfig",
+      "type": "object"
+    },
+    "SkillRef": {
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "skill": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skill"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "SkillRef",
+      "type": "object"
     },
     "AssistantConfig": {
       "properties": {
-        "adapter": {
-          "$ref": "#/$defs/AdapterType"
+        "type": {
+          "$ref": "#/$defs/AssistantType"
         },
         "args": {
           "additionalProperties": true,
           "default": {},
           "title": "Args",
           "type": "object"
-        },
-        "mcps": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/McpServerConfig"
-          },
-          "title": "Mcps",
-          "type": "array"
         },
         "skills": {
           "default": [],
@@ -36,12 +117,63 @@
           },
           "title": "Skills",
           "type": "array"
+        },
+        "mcps": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/McpServerConfig"
+          },
+          "title": "Mcps",
+          "type": "array"
         }
       },
       "required": [
-        "adapter"
+        "type"
       ],
       "title": "AssistantConfig",
+      "type": "object"
+    },
+    "SimilaritySpec": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "title": "Actual",
+          "type": "string"
+        },
+        "expected": {
+          "title": "Expected",
+          "type": "string"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "min_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Score"
+        }
+      },
+      "required": [
+        "actual",
+        "expected"
+      ],
+      "title": "SimilaritySpec",
       "type": "object"
     },
     "BERTScoreAssertion": {
@@ -136,35 +268,9 @@
       "title": "CosineSimilarityAssertion",
       "type": "object"
     },
-    "CustomScriptAssertion": {
-      "additionalProperties": false,
-      "properties": {
-        "custom_script": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "$ref": "#/$defs/CustomScriptSpec"
-            }
-          ],
-          "title": "Custom Script"
-        }
-      },
-      "required": [
-        "custom_script"
-      ],
-      "title": "CustomScriptAssertion",
-      "type": "object"
-    },
     "CustomScriptSpec": {
       "additionalProperties": false,
       "properties": {
-        "expected_exit_code": {
-          "default": 0,
-          "title": "Expected Exit Code",
-          "type": "integer"
-        },
         "interpreter": {
           "anyOf": [
             {
@@ -201,6 +307,11 @@
           "default": 60,
           "title": "Timeout",
           "type": "integer"
+        },
+        "expected_exit_code": {
+          "default": 0,
+          "title": "Expected Exit Code",
+          "type": "integer"
         }
       },
       "required": [
@@ -209,22 +320,25 @@
       "title": "CustomScriptSpec",
       "type": "object"
     },
-    "FileContainsAssertion": {
+    "CustomScriptAssertion": {
       "additionalProperties": false,
       "properties": {
-        "file_contains": {
-          "$ref": "#/$defs/FileContainsSpec"
-        },
-        "weight": {
-          "default": 1.0,
-          "title": "Weight",
-          "type": "number"
+        "custom_script": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/CustomScriptSpec"
+            }
+          ],
+          "title": "Custom Script"
         }
       },
       "required": [
-        "file_contains"
+        "custom_script"
       ],
-      "title": "FileContainsAssertion",
+      "title": "CustomScriptAssertion",
       "type": "object"
     },
     "FileContainsSpec": {
@@ -246,6 +360,24 @@
       "title": "FileContainsSpec",
       "type": "object"
     },
+    "FileContainsAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "file_contains": {
+          "$ref": "#/$defs/FileContainsSpec"
+        },
+        "weight": {
+          "default": 1.0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "file_contains"
+      ],
+      "title": "FileContainsAssertion",
+      "type": "object"
+    },
     "FileExistsAssertion": {
       "additionalProperties": false,
       "properties": {
@@ -263,70 +395,6 @@
         "file_exists"
       ],
       "title": "FileExistsAssertion",
-      "type": "object"
-    },
-    "McpServerConfig": {
-      "additionalProperties": false,
-      "properties": {
-        "args": {
-          "default": [],
-          "items": {
-            "type": "string"
-          },
-          "title": "Args",
-          "type": "array"
-        },
-        "command": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Command"
-        },
-        "env": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "default": {},
-          "title": "Env",
-          "type": "object"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "type": {
-          "default": "stdio",
-          "enum": [
-            "stdio",
-            "sse",
-            "http"
-          ],
-          "title": "Type",
-          "type": "string"
-        },
-        "url": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Url"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "title": "McpServerConfig",
       "type": "object"
     },
     "RougeAssertion": {
@@ -347,76 +415,25 @@
       "title": "RougeAssertion",
       "type": "object"
     },
-    "SimilaritySpec": {
-      "additionalProperties": false,
-      "properties": {
-        "actual": {
-          "title": "Actual",
-          "type": "string"
-        },
-        "expected": {
-          "title": "Expected",
-          "type": "string"
-        },
-        "metric": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Metric"
-        },
-        "min_score": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Min Score"
-        }
-      },
-      "required": [
-        "actual",
-        "expected"
-      ],
-      "title": "SimilaritySpec",
-      "type": "object"
-    },
-    "SkillRef": {
-      "properties": {
-        "skill": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Skill"
-        },
-        "source": {
-          "title": "Source",
-          "type": "string"
-        }
-      },
-      "required": [
-        "source"
-      ],
-      "title": "SkillRef",
-      "type": "object"
-    },
     "TaskConfig": {
       "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "prompt": {
+          "title": "Prompt",
+          "type": "string"
+        },
+        "workdir": {
+          "title": "Workdir",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 300,
+          "title": "Timeout",
+          "type": "integer"
+        },
         "assertions": {
           "items": {
             "anyOf": [
@@ -451,23 +468,6 @@
           },
           "title": "Assertions",
           "type": "array"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "prompt": {
-          "title": "Prompt",
-          "type": "string"
-        },
-        "timeout": {
-          "default": 300,
-          "title": "Timeout",
-          "type": "integer"
-        },
-        "workdir": {
-          "title": "Workdir",
-          "type": "string"
         }
       },
       "required": [

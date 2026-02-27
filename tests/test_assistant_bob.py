@@ -1,12 +1,12 @@
 import json
 import subprocess
 
-from pitlane.adapters.bob import BobAdapter
+from pitlane.assistants.bob import BobAssistant
 from pitlane.config import McpServerConfig
 
 
 def test_build_command_minimal():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     cmd = adapter._build_command("Write hello world", {})
     assert cmd[0] == "bob"
     assert "--output-format" in cmd
@@ -16,7 +16,7 @@ def test_build_command_minimal():
 
 
 def test_build_command_with_chat_mode():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     cmd = adapter._build_command("test", {"chat_mode": "code"})
     assert "--chat-mode" in cmd
     assert "code" in cmd
@@ -24,7 +24,7 @@ def test_build_command_with_chat_mode():
 
 
 def test_build_command_with_max_coins():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     cmd = adapter._build_command("test", {"max_coins": 100})
     assert "--max-coins" in cmd
     assert "100" in cmd
@@ -70,7 +70,7 @@ def _make_cost_message(cost=0.09):
 
 
 def test_parse_json_result():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     stdout = "\n".join(
         [
             _make_completion_event("Hello from Bob"),
@@ -88,7 +88,7 @@ def test_parse_json_result():
 
 
 def test_parse_json_with_tool_calls():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     tool_event = json.dumps(
         {
             "type": "tool_use",
@@ -112,10 +112,17 @@ def test_parse_json_with_tool_calls():
     assert token_usage["input"] == 50
     assert token_usage["output"] == 20
     assert cost == 0.15
+    # Tool entries must use canonical format (not old role:tool_use format)
+    tool_entries = [e for e in conversation if "tool_use" in e]
+    assert len(tool_entries) == 3
+    for entry in tool_entries:
+        assert entry["role"] == "assistant"
+        assert entry["tool_use"]["name"] == "bash"
+        assert entry["tool_use"]["input"] == {"command": "ls"}
 
 
 def test_parse_json_no_response_text():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     # Result event only, no attempt_completion
     stdout = _make_result_event(input_tokens=100, output_tokens=40)
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
@@ -126,7 +133,7 @@ def test_parse_json_no_response_text():
 
 
 def test_parse_non_json_lines_skipped():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     stdout = "\n".join(
         [
             "YOLO mode is enabled. All tool calls will be automatically approved.",
@@ -144,7 +151,7 @@ def test_parse_non_json_lines_skipped():
 
 
 def test_parse_no_result_event():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     # attempt_completion only, no result event
     stdout = _make_completion_event("Hello from Bob")
     conversation, token_usage, cost, tool_calls_count = adapter._parse_output(stdout)
@@ -156,7 +163,7 @@ def test_parse_no_result_event():
 
 
 def test_parse_cost_extracted_from_message():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     stdout = "\n".join(
         [
             _make_completion_event("Done"),
@@ -169,7 +176,7 @@ def test_parse_cost_extracted_from_message():
 
 
 def test_parse_non_cost_message_does_not_set_cost():
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     non_cost_message = json.dumps(
         {
             "type": "message",
@@ -191,7 +198,7 @@ def test_parse_non_cost_message_does_not_set_cost():
 
 def test_bob_with_custom_model():
     """Test bob adapter with custom model configuration."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     config = {"model": "claude-3-5-sonnet-20241022"}
     cmd = adapter._build_command("test prompt", config)
     assert cmd[0] == "bob"
@@ -205,14 +212,14 @@ def test_bob_with_api_error_handling(tmp_path, monkeypatch):
     """Test bob adapter handles API errors gracefully."""
     import logging
 
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     logger = logging.getLogger("test")
 
     def mock_run_command(*args, **kwargs):
         raise Exception("API Error: Rate limit exceeded")
 
     monkeypatch.setattr(
-        "pitlane.adapters.bob.run_command_with_live_logging", mock_run_command
+        "pitlane.assistants.bob.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {}, logger)
@@ -227,14 +234,14 @@ def test_bob_with_timeout_error(tmp_path, monkeypatch):
     """Test bob adapter handles timeout errors."""
     import logging
 
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     logger = logging.getLogger("test")
 
     def mock_run_command(*args, **kwargs):
         raise TimeoutError("Command timed out")
 
     monkeypatch.setattr(
-        "pitlane.adapters.bob.run_command_with_live_logging", mock_run_command
+        "pitlane.assistants.bob.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run("test", tmp_path, {"timeout": 10}, logger)
@@ -245,7 +252,7 @@ def test_bob_with_timeout_error(tmp_path, monkeypatch):
 
 def test_bob_with_invalid_response_format():
     """Test bob adapter handles invalid JSON response format."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     # Mix of invalid JSON and valid events
     stdout = "\n".join(
         [
@@ -266,7 +273,7 @@ def test_bob_with_invalid_response_format():
 
 def test_bob_with_empty_response():
     """Test bob adapter handles empty or whitespace-only response."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     # Empty completion result
     empty_completion = json.dumps(
         {
@@ -291,7 +298,7 @@ def test_bob_with_empty_response():
 
 def test_bob_with_all_options_combined():
     """Test bob adapter with all configuration options combined."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     config = {
         "chat_mode": "code",
         "max_coins": 500,
@@ -312,19 +319,19 @@ def test_bob_with_all_options_combined():
 
 def test_bob_cli_name():
     """Test bob adapter returns correct CLI name."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     assert adapter.cli_name() == "bob"
 
 
 def test_bob_agent_type():
     """Test bob adapter returns correct agent type."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     assert adapter.agent_type() == "bob"
 
 
 def test_bob_get_cli_version_success(mocker, monkeypatch):
     """Test bob adapter gets CLI version successfully."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
 
     def mock_run(*args, **kwargs):
         result = mocker.Mock()
@@ -339,7 +346,7 @@ def test_bob_get_cli_version_success(mocker, monkeypatch):
 
 def test_bob_get_cli_version_failure(monkeypatch):
     """Test bob adapter handles CLI version check failure."""
-    adapter = BobAdapter()
+    adapter = BobAssistant()
 
     def mock_run(*args, **kwargs):
         raise Exception("Command not found")
@@ -353,7 +360,7 @@ def test_bob_run_with_debug_logging(tmp_path, monkeypatch):
     """Test bob adapter logs debug information during run."""
     import logging
 
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     logger = logging.getLogger("test")
     logger.setLevel(logging.DEBUG)
 
@@ -371,7 +378,7 @@ def test_bob_run_with_debug_logging(tmp_path, monkeypatch):
         return "test output", "", 0, False
 
     monkeypatch.setattr(
-        "pitlane.adapters.bob.run_command_with_live_logging", mock_run_command
+        "pitlane.assistants.bob.run_command_with_live_logging", mock_run_command
     )
 
     result = adapter.run("test prompt", tmp_path, {"timeout": 60}, logger)
@@ -389,7 +396,7 @@ def test_bob_run_with_debug_logging(tmp_path, monkeypatch):
 
 
 def test_install_mcp_creates_bob_mcp_json(tmp_path):
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 
@@ -414,7 +421,7 @@ def test_install_mcp_creates_bob_mcp_json(tmp_path):
 
 
 def test_install_mcp_merges_existing(tmp_path):
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 
@@ -432,7 +439,7 @@ def test_install_mcp_merges_existing(tmp_path):
 
 
 def test_install_mcp_creates_bob_dir(tmp_path):
-    adapter = BobAdapter()
+    adapter = BobAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 

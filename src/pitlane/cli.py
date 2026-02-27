@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.metadata
 from pathlib import Path
 import sys
 
@@ -10,6 +11,30 @@ from pydantic import ValidationError
 app = typer.Typer(name="pitlane", help="Evaluate AI coding assistants")
 schema_app = typer.Typer(name="schema", help="Generate and install schema tooling")
 app.add_typer(schema_app, name="schema")
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        try:
+            version = importlib.metadata.version("pitlane")
+        except Exception:
+            version = "unknown"
+        typer.echo(f"pitlane {version}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _main(
+    version: bool = typer.Option(
+        None,
+        "--version",
+        "-V",
+        callback=_version_callback,
+        is_eager=True,
+        help="Show version and exit.",
+    ),
+) -> None:
+    pass
 
 
 @app.command()
@@ -180,7 +205,7 @@ def init(
     example.write_text("""\
 assistants:
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 

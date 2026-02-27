@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 import subprocess
@@ -12,8 +13,13 @@ if TYPE_CHECKING:
     from pitlane.config import McpServerConfig
 
 
+class AssistantFeature(str, Enum):
+    MCPS = "mcps"
+    SKILLS = "skills"
+
+
 @dataclass
-class AdapterResult:
+class AssistantResult:
     stdout: str
     stderr: str
     exit_code: int
@@ -25,7 +31,7 @@ class AdapterResult:
     timed_out: bool = False
 
 
-class BaseAdapter(ABC):
+class BaseAssistant(ABC):
     @abstractmethod
     def run(
         self,
@@ -33,7 +39,7 @@ class BaseAdapter(ABC):
         workdir: Path,
         config: dict[str, Any],
         logger: logging.Logger,
-    ) -> AdapterResult:
+    ) -> AssistantResult:
         """Execute the agent with the given prompt in workdir."""
         ...
 
@@ -49,13 +55,22 @@ class BaseAdapter(ABC):
 
     @abstractmethod
     def get_cli_version(self) -> str | None:
-        """Get the version of the CLI tool this adapter uses."""
+        """Get the version of the CLI tool this assistant uses."""
         ...
 
     @abstractmethod
     def install_mcp(self, workspace: Path, mcp: McpServerConfig) -> None:
         """Write MCP server config into the workspace for this agent."""
         ...
+
+    @abstractmethod
+    def supported_features(self) -> frozenset[AssistantFeature]:
+        """Features this assistant supports."""
+        ...
+
+    def skills_dir(self) -> str | None:
+        """Relative path where this agent discovers skills, or None if unsupported."""
+        return None
 
 
 def run_command_with_live_logging(

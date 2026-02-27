@@ -150,21 +150,21 @@ def test_run_command_with_invalid_yaml(tmp_path):
 def test_run_command_with_invalid_schema(tmp_path):
     """Test run command with valid YAML but wrong schema (missing required keys)."""
     config_file = tmp_path / "wrong.yaml"
-    config_file.write_text("assistants:\n  bob:\n    adapter: claude-code\n")
+    config_file.write_text("assistants:\n  bob:\n    type: claude-code\n")
 
     result = runner.invoke(app, ["run", str(config_file)])
     assert result.exit_code == 1
     assert "invalid config" in result.output
 
 
-def test_run_command_with_missing_adapter(tmp_path, monkeypatch):
-    """Test run command when adapter is not found."""
+def test_run_command_with_missing_assistant(tmp_path, monkeypatch):
+    """Test run command when assistant type is not found."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: nonexistent-adapter
+    type: nonexistent-adapter
     args: {}
 
 tasks:
@@ -183,14 +183,14 @@ tasks:
     assert result.exit_code != 0
 
 
-def test_run_command_with_adapter_error(tmp_path, monkeypatch, mocker):
-    """Test run command when adapter execution fails (hard error)."""
+def test_run_command_with_assistant_error(tmp_path, monkeypatch, mocker):
+    """Test run command when assistant execution fails (hard error)."""
     monkeypatch.chdir(tmp_path)
     config_file = tmp_path / "eval.yaml"
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -206,7 +206,7 @@ tasks:
     fixtures = tmp_path / "fixtures/empty"
     fixtures.mkdir(parents=True, exist_ok=True)
 
-    # Mock the Runner to simulate an adapter error
+    # Mock the Runner to simulate an assistant error
     mock_runner_class = mocker.patch("pitlane.runner.Runner")
     mock_runner = mocker.Mock()
     mock_runner.interrupted = False
@@ -240,7 +240,7 @@ def test_run_command_with_assertion_error(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -290,7 +290,7 @@ def test_run_command_with_workspace_error(tmp_path, monkeypatch):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -314,7 +314,7 @@ def test_run_command_with_keyboard_interrupt(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -366,7 +366,7 @@ def test_run_command_with_verbose_flag(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -416,7 +416,7 @@ def test_run_command_with_no_open_flag(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -465,7 +465,7 @@ def test_run_command_opens_browser_by_default(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -514,7 +514,7 @@ def test_run_command_with_all_options_combined(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -841,7 +841,7 @@ def test_run_command_exit_nonzero_on_timeout(tmp_path, monkeypatch, mocker):
     config_file.write_text("""
 assistants:
   test-assistant:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 
@@ -923,11 +923,11 @@ def _make_run_config(tmp_path):
     config_file.write_text(f"""
 assistants:
   a:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
   b:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 

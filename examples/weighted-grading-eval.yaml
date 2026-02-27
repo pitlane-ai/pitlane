@@ -15,17 +15,17 @@
 
 assistants:
   # bob-baseline:
-  #   adapter: bob
+  #   type: bob
   #   args:
   #     chat_mode: code
 
   # claude-baseline:
-  #   adapter: claude-code
+  #   type: claude-code
   #   args:
   #     model: haiku
 
   opencode-baseline:
-    adapter: opencode
+    type: opencode
     args:
       model: opencode/minimax-m2.5-free
 

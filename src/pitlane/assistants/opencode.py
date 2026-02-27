@@ -1,4 +1,4 @@
-"""OpenCode (opencode.ai) adapter."""
+"""OpenCode (opencode.ai) assistant."""
 
 from __future__ import annotations
 
@@ -9,9 +9,10 @@ from typing import Any, TYPE_CHECKING
 
 from expandvars import expandvars
 
-from pitlane.adapters.base import (
-    AdapterResult,
-    BaseAdapter,
+from pitlane.assistants.base import (
+    AssistantFeature,
+    AssistantResult,
+    BaseAssistant,
     run_command_with_live_logging,
 )
 
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     import logging
 
 
-class OpenCodeAdapter(BaseAdapter):
+class OpenCodeAssistant(BaseAssistant):
     def cli_name(self) -> str:
         return "opencode"
 
@@ -38,6 +39,12 @@ class OpenCodeAdapter(BaseAdapter):
         except Exception:
             pass
         return None
+
+    def supported_features(self) -> frozenset[AssistantFeature]:
+        return frozenset({AssistantFeature.MCPS, AssistantFeature.SKILLS})
+
+    def skills_dir(self) -> str | None:
+        return ".agents/skills"
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
@@ -125,17 +132,28 @@ class OpenCodeAdapter(BaseAdapter):
                     )
 
             if msg_type == "tool_use":
-                tool_calls_count += 1
-                conversation.append(
-                    {
-                        "role": "assistant",
-                        "content": "",
-                        "tool_use": {
-                            "name": msg.get("name", ""),
-                            "input": msg.get("input", {}),
-                        },
-                    }
-                )
+                # Real opencode format: name in part.tool
+                # Fallback: legacy format with top-level name
+                part = msg.get("part", {})
+                tool_name = msg.get("name") or part.get("tool", "")
+                tool_input = msg.get("input") or part.get("state", {}).get("input", {})
+                if tool_name:
+                    tool_calls_count += 1
+                    conversation.append(
+                        {
+                            "role": "assistant",
+                            "content": "",
+                            "tool_use": {
+                                "name": tool_name,
+                                "input": tool_input,
+                            },
+                        }
+                    )
+
+            if msg_type == "text":
+                content = msg.get("part", {}).get("text", "")
+                if content:
+                    conversation.append({"role": "assistant", "content": content})
 
             # OpenCode provides tokens in step_finish events
             if msg_type == "step_finish":
@@ -144,9 +162,9 @@ class OpenCodeAdapter(BaseAdapter):
                 if tokens:
                     total_input_tokens += tokens.get("input", 0)
                     total_output_tokens += tokens.get("output", 0)
-                    step_cost = part.get("cost", 0)
-                    if step_cost:
-                        total_cost += step_cost
+                step_cost = part.get("cost", 0)
+                if step_cost:
+                    total_cost += step_cost
 
         token_usage = None
         if total_input_tokens > 0 or total_output_tokens > 0:
@@ -165,7 +183,7 @@ class OpenCodeAdapter(BaseAdapter):
         workdir: Path,
         config: dict[str, Any],
         logger: logging.Logger,
-    ) -> AdapterResult:
+    ) -> AssistantResult:
         cmd = self._build_command(prompt, config)
         timeout = config.get("timeout", 300)
 
@@ -182,7 +200,7 @@ class OpenCodeAdapter(BaseAdapter):
             duration = time.monotonic() - start
             if logger:
                 logger.debug(f"Command failed after {duration:.2f}s: {e}")
-            return AdapterResult(
+            return AssistantResult(
                 stdout="",
                 stderr=str(e),
                 exit_code=-1,
@@ -203,7 +221,7 @@ class OpenCodeAdapter(BaseAdapter):
             logger.debug(f"Parsed cost: {cost}")
             logger.debug(f"Parsed tool_calls_count: {tool_calls_count}")
 
-        return AdapterResult(
+        return AssistantResult(
             stdout=stdout,
             stderr=stderr,
             exit_code=exit_code,

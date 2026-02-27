@@ -9,102 +9,150 @@ This guide covers development setup, testing, and how to submit changes.
 - Python 3.11+
 - [uv](https://github.com/astral-sh/uv) package manager
 - Git
+- `make`
 
 ### Development setup
 
 1. Fork and clone the repository:
 
 ```bash
-git clone https://github.com/vburckhardt/pitlane.git
+git clone https://github.com/pitlane-ai/pitlane.git
 cd pitlane
 ```
 
-2. Install dependencies:
+2. Run setup:
 
 ```bash
-uv sync
+make
 ```
 
-3. Install the CLI in development mode:
-
-   ```bash
-   uv tool install .
-   ```
-
-4. Install pre-commit hooks:
-
-   ```bash
-   uv run pre-commit install
-   ```
-
-   This will automatically run code quality checks before each commit.
+This installs dependencies, the pitlane CLI, and the pre-commit hooks in one step.
 
 ## Running tests
 
-Run the full test suite:
+| Command | What it runs |
+|---|---|
+| `make test` | Fast unit tests only |
+| `make test-all` | Unit + integration (the CI gate) |
+| `make coverage` | Unit + integration with HTML coverage report |
+| `make e2e` | E2E tests against real AI assistants (requires CLIs installed) |
+| `make e2e-claude_code` | E2E tests for a single assistant |
 
-```bash
-uv run pytest
-```
-
-Run specific test files:
+Run a specific test file:
 
 ```bash
 uv run pytest tests/test_assertions.py
 ```
 
-Skip slow integration tests:
+### E2E tests
+
+E2E tests invoke real AI assistants and are excluded from CI and pre-commit. Run them
+on-demand once all relevant CLIs are installed:
 
 ```bash
-uv run pytest -m "not integration"
+make e2e
 ```
 
-Run tests with coverage:
-
-```bash
-uv run pytest --cov=src/pitlane --cov-report=html
-```
+If a required CLI is missing the test fails immediately with a clear message — it does
+not skip silently.
 
 ## Adding new features
 
-### Adding a new adapter
+### Adding a new assistant
 
-We currently support Bob, Claude Code, Mistral Vibe, and OpenCode. To add support for a new AI coding assistant:
-
-1. Create `src/pitlane/adapters/your_adapter.py`
-2. Inherit from `BaseAdapter` in `adapters/base.py`
-3. Implement required methods:
-   - `cli_name()` - Returns the CLI identifier
-   - `agent_type()` - Returns the agent type string
-   - `run()` - Executes the assistant and returns results
-4. Return `AdapterResult` with:
-   - `conversation` - List of message exchanges
-   - `token_usage` - Token counts (if available)
-   - `cost_usd` - Estimated cost (if available)
-5. Add comprehensive tests in `tests/test_adapter_your_adapter.py`
-6. Update the adapter registry in `adapters/__init__.py`
-7. Add the adapter to the supported assistants table in README.md
-
-Example adapter structure:
+1. Create `src/pitlane/assistants/your_assistant.py`
+2. Inherit from `BaseAssistant` in `assistants/base.py`
+3. Implement all required methods:
 
 ```python
-from pitlane.adapters.base import BaseAdapter, AdapterResult
+from __future__ import annotations
 
-class YourAdapter(BaseAdapter):
-    @staticmethod
-    def cli_name() -> str:
+from pathlib import Path
+from typing import Any, TYPE_CHECKING
+
+from pitlane.assistants.base import AssistantResult, BaseAssistant
+
+if TYPE_CHECKING:
+    import logging
+    from pitlane.config import McpServerConfig
+
+
+class YourAssistant(BaseAssistant):
+    def cli_name(self) -> str:
+        return "your-cli"
+
+    def agent_type(self) -> str:
         return "your-assistant"
 
-    @staticmethod
-    def agent_type() -> str:
-        return "YourAssistant"
+    def get_cli_version(self) -> str | None:
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["your-cli", "--version"], capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except Exception:
+            pass
+        return None
 
-    def run(self, task_prompt: str, workdir: Path, timeout: int) -> AdapterResult:
-        # Implementation here
+    def install_mcp(self, workspace: Path, mcp: McpServerConfig) -> None:
+        # Write MCP server config into the workspace directory
+        pass
+
+    def run(
+        self,
+        prompt: str,
+        workdir: Path,
+        config: dict[str, Any],
+        logger: logging.Logger,
+    ) -> AssistantResult:
+        # Execute the assistant and return results
         pass
 ```
 
-See existing adapters for complete examples.
+`AssistantResult` fields:
+
+```python
+AssistantResult(
+    stdout="",                      # raw stdout from the CLI
+    stderr="",                      # raw stderr from the CLI
+    exit_code=0,                    # process exit code
+    duration_seconds=1.5,           # wall-clock time
+    conversation=[                  # parsed message list
+        {"role": "assistant", "content": "..."}
+    ],
+    token_usage={"input": 100, "output": 50},  # None if unavailable
+    cost_usd=0.001,                 # None if unavailable
+    tool_calls_count=3,             # None if unavailable
+    timed_out=False,
+)
+```
+
+4. Register the assistant in `src/pitlane/assistants/__init__.py`:
+
+```python
+from .your_assistant import YourAssistant
+
+_ASSISTANTS: dict[str, type[BaseAssistant]] = {
+    ...
+    "your-assistant": YourAssistant,
+}
+```
+
+5. Add it to the `AssistantType` enum in `src/pitlane/config.py`:
+
+```python
+class AssistantType(str, Enum):
+    ...
+    YOUR_ASSISTANT = "your-assistant"
+```
+
+6. Add tests in `tests/test_assistant_your_assistant.py`
+7. Add E2E smoke tests in `tests/e2e/`
+8. Add the assistant to the supported assistants table in README.md
+
+See existing assistants for complete examples.
 
 ### Adding new assertion types
 
@@ -127,72 +175,62 @@ See existing adapters for complete examples.
 - Follow PEP 8 style guidelines
 - Use Pydantic models for configuration validation
 - Keep functions focused and testable
-- Add docstrings for public APIs
 
 ### Pre-commit hooks
 
-The project uses pre-commit hooks to ensure code quality. These run automatically before each commit if you installed them (see setup step 4).
-
-Run all checks manually:
+Pre-commit hooks run automatically before each commit. Run them manually:
 
 ```bash
-uv run pre-commit run --all-files
+make pre-commit
 ```
 
-The pre-commit hooks include:
+The hooks include ruff linting and formatting, mypy type checking, fast pytest, YAML
+validation, markdown linting, and secret detection.
 
-- Ruff linting and formatting
-- mypy type checking
-- pytest (fast tests only)
-- YAML validation
-- Markdown linting
-- Secret detection
-- File quality checks (trailing whitespace, end-of-file fixes, etc.)
+To run just lint and type checks without tests:
+
+```bash
+make check
+```
 
 ## Testing guidelines
 
 - Write tests for all new functionality
-- Use fixtures in `tests/conftest.py` for common test data
-- Mock external dependencies (file system, subprocess calls)
-- Test both success and failure cases
-- Keep tests fast (mock slow operations)
+- Mock `run_command_with_live_logging` for assistant unit tests — never the assistant itself
+- Test both success and failure cases including timeouts and malformed output
+- Keep unit tests fast (no real subprocess calls)
+- Add E2E tests in `tests/e2e/` for any new assistant
 
 ## Submitting changes
 
 1. Create a feature branch:
 
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+```bash
+git checkout -b feature/your-feature-name
+```
 
 2. Make your changes and add tests
 
-3. Run tests:
+3. Run the full check:
 
-   ```bash
-   uv run pytest
-   ```
+```bash
+make check
+make test-all
+```
 
-4. Commit with a clear message:
+4. Commit with a conventional commit message:
 
-   ```bash
-   git commit -m "feat: add support for new assistant"
-   ```
+```bash
+git commit -m "feat: add support for new assistant"
+```
 
-   Use conventional commit prefixes:
-
-   - `feat:` - New features
-   - `fix:` - Bug fixes
-   - `docs:` - Documentation changes
-   - `test:` - Test additions or changes
-   - `refactor:` - Code refactoring
-   - `chore:` - Maintenance tasks
+Prefixes: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
 
 5. Push to your fork:
 
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+```bash
+git push origin feature/your-feature-name
+```
 
 6. Open a pull request on GitHub
 

@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 from junitparser import JUnitXml
-from pitlane.adapters.base import AdapterResult
+from pitlane.assistants.base import AssistantResult
 from pitlane.config import load_config
 from pitlane.runner import Runner
 from pitlane.reporting.junit import generate_report
@@ -18,11 +18,11 @@ def full_eval_setup(tmp_path):
     config_file.write_text(f"""\
 assistants:
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
   opencode-baseline:
-    adapter: opencode
+    type: opencode
     args:
       model: gpt-4
 
@@ -38,10 +38,10 @@ tasks:
     return config_file, tmp_path
 
 
-def _make_mock_result(workdir: Path) -> AdapterResult:
+def _make_mock_result(workdir: Path) -> AssistantResult:
     """Create a mock result that also creates the expected file."""
     (workdir / "hello.py").write_text('print("Hello, World!")')
-    return AdapterResult(
+    return AssistantResult(
         stdout='{"type":"result","result":"Done"}',
         stderr="",
         exit_code=0,
@@ -59,8 +59,8 @@ def test_full_pipeline(mocker, full_eval_setup):
     def mock_run(self, prompt, workdir, config, logger):
         return _make_mock_result(workdir)
 
-    mocker.patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run)
-    mocker.patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run)
+    mocker.patch("pitlane.assistants.claude_code.ClaudeCodeAssistant.run", mock_run)
+    mocker.patch("pitlane.assistants.opencode.OpenCodeAssistant.run", mock_run)
     runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
     run_dir = runner.execute()
 
@@ -118,7 +118,7 @@ def test_skill_installation_non_interactive(tmp_path):
 
 
 def test_simple_codegen_eval_example(mocker, tmp_path):
-    """Unit test: Verify runner works with example config using mocked adapters."""
+    """Unit test: Verify runner works with example config using mocked assistants."""
     from pathlib import Path
 
     # Load the actual example config
@@ -126,9 +126,9 @@ def test_simple_codegen_eval_example(mocker, tmp_path):
     config = load_config(example_config)
 
     def mock_run(self, prompt, workdir, config, logger):
-        """Mock adapter that creates the expected hello.py file."""
+        """Mock assistant that creates the expected hello.py file."""
         (workdir / "hello.py").write_text('print("Hello, World!")')
-        return AdapterResult(
+        return AssistantResult(
             stdout='{"type":"result","result":"Created hello.py"}',
             stderr="",
             exit_code=0,
@@ -138,11 +138,11 @@ def test_simple_codegen_eval_example(mocker, tmp_path):
             cost_usd=0.01,
         )
 
-    # Mock all adapters in the example
-    mocker.patch("pitlane.adapters.bob.BobAdapter.run", mock_run)
-    mocker.patch("pitlane.adapters.claude_code.ClaudeCodeAdapter.run", mock_run)
-    mocker.patch("pitlane.adapters.mistral_vibe.MistralVibeAdapter.run", mock_run)
-    mocker.patch("pitlane.adapters.opencode.OpenCodeAdapter.run", mock_run)
+    # Mock all assistants in the example
+    mocker.patch("pitlane.assistants.bob.BobAssistant.run", mock_run)
+    mocker.patch("pitlane.assistants.claude_code.ClaudeCodeAssistant.run", mock_run)
+    mocker.patch("pitlane.assistants.mistral_vibe.MistralVibeAssistant.run", mock_run)
+    mocker.patch("pitlane.assistants.opencode.OpenCodeAssistant.run", mock_run)
     runner = Runner(config=config, output_dir=tmp_path / "runs", verbose=False)
     run_dir = runner.execute()
 

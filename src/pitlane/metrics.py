@@ -6,7 +6,7 @@ from typing import Any, TYPE_CHECKING
 
 import numpy as np
 
-from pitlane.adapters.base import AdapterResult
+from pitlane.assistants.base import AssistantResult
 from pitlane.assertions.base import AssertionResult
 
 if TYPE_CHECKING:
@@ -146,12 +146,12 @@ def aggregate_results(run_results: list[IterationResult]) -> AggregatedResult:  
 
 
 def collect_metrics(
-    adapter_result: AdapterResult,
+    assistant_result: AssistantResult,
     assertion_results: list[AssertionResult],
     workspace: Path,
     files_before: set[str],
 ) -> dict[str, Any]:
-    """Collect all metrics for a single adapter run."""
+    """Collect all metrics for a single assistant run."""
     # File diff
     files_after = {
         str(f.relative_to(workspace)) for f in workspace.rglob("*") if f.is_file()
@@ -188,19 +188,20 @@ def collect_metrics(
         weighted_score = 0.0
 
     # Token usage
-    tu = adapter_result.token_usage or {}
+    tu = assistant_result.token_usage or {}
 
     return {
-        "wall_clock_seconds": adapter_result.duration_seconds,
-        "exit_code": adapter_result.exit_code,
+        "wall_clock_seconds": assistant_result.duration_seconds,
+        "exit_code": assistant_result.exit_code,
         "files_created": files_created,
         "files_modified": files_modified,
         "total_lines_generated": total_lines,
         "token_usage_input": tu.get("input"),
         "token_usage_output": tu.get("output"),
-        "cost_usd": adapter_result.cost_usd,
-        "tool_calls_count": adapter_result.tool_calls_count,
-        "timed_out": adapter_result.timed_out,
+        "token_usage_input_cached": tu.get("input_cached"),
+        "cost_usd": assistant_result.cost_usd,
+        "tool_calls_count": assistant_result.tool_calls_count,
+        "timed_out": assistant_result.timed_out,
         "assertion_pass_count": passed,
         "assertion_fail_count": failed,
         "assertion_pass_rate": round(pass_rate, 2),

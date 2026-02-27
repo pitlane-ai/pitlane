@@ -49,6 +49,7 @@ def write_junit(run_dir: Path, all_results: dict[str, dict[str, Any]]) -> Path:
                 "cost_usd",
                 "token_usage_input",
                 "token_usage_output",
+                "token_usage_input_cached",
                 "weighted_score",
                 "assertion_pass_rate",
                 "files_created",
@@ -58,8 +59,7 @@ def write_junit(run_dir: Path, all_results: dict[str, dict[str, Any]]) -> Path:
             ]
             for key in prop_keys:
                 val = metrics.get(key)
-                if val is not None:
-                    suite.add_property(key, str(val))
+                suite.add_property(key, str(val if val is not None else 0))
 
             # Repeat-mode stats: emit as {metric}_{stat} properties
             if metrics_stats:
@@ -276,6 +276,7 @@ def generate_report(run_dir: Path) -> Path:
                 "tool_calls_count": _float_prop("tool_calls_count"),
                 "token_usage_input": inp,
                 "token_usage_output": out,
+                "token_usage_input_cached": _float_prop("token_usage_input_cached"),
                 "total_tokens": total_tokens,
                 "files_created": _float_prop("files_created"),
                 "files_modified": _float_prop("files_modified"),

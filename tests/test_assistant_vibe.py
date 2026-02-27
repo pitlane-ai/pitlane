@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pitlane.adapters.mistral_vibe import MistralVibeAdapter
+from pitlane.assistants.mistral_vibe import MistralVibeAssistant
 from pitlane.config import McpServerConfig
 
 
@@ -18,8 +18,8 @@ def mock_logger(mocker):
 
 @pytest.fixture
 def adapter():
-    """Create a MistralVibeAdapter instance."""
-    return MistralVibeAdapter()
+    """Create a MistralVibeAssistant instance."""
+    return MistralVibeAssistant()
 
 
 # ============================================================================
@@ -471,7 +471,7 @@ def test_run_command_exception(mocker, adapter, mock_logger, tmp_path, monkeypat
 
     # Mock run_command_with_live_logging to raise exception
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
+        "pitlane.assistants.mistral_vibe.run_command_with_live_logging",
         side_effect=Exception("Command failed"),
     )
 
@@ -493,7 +493,7 @@ def test_run_with_timeout(mocker, adapter, mock_logger, tmp_path, monkeypatch):
 
     # Mock successful command execution
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
+        "pitlane.assistants.mistral_vibe.run_command_with_live_logging",
         return_value=("output", "", 0, False),
     )
 
@@ -520,7 +520,8 @@ def test_run_success_with_session_stats(
     vibe_home = tmp_path / "vibe_home"
     vibe_home.mkdir()
     monkeypatch.setattr(
-        "pitlane.adapters.mistral_vibe.tempfile.mkdtemp", lambda prefix: str(vibe_home)
+        "pitlane.assistants.mistral_vibe.tempfile.mkdtemp",
+        lambda prefix: str(vibe_home),
     )
 
     # Create session stats
@@ -542,7 +543,7 @@ def test_run_success_with_session_stats(
     # Mock successful command with JSON output
     output = json.dumps([{"role": "assistant", "content": "Done"}])
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
+        "pitlane.assistants.mistral_vibe.run_command_with_live_logging",
         return_value=(output, "", 0, False),
     )
 
@@ -565,7 +566,7 @@ def test_run_with_custom_model(mocker, adapter, mock_logger, tmp_path, monkeypat
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
+        "pitlane.assistants.mistral_vibe.run_command_with_live_logging",
         return_value=("[]", "", 0, False),
     )
 
@@ -588,7 +589,7 @@ def test_run_with_empty_response(mocker, adapter, mock_logger, tmp_path, monkeyp
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
+        "pitlane.assistants.mistral_vibe.run_command_with_live_logging",
         return_value=("", "", 0, False),
     )
 
@@ -610,7 +611,7 @@ def test_run_with_invalid_response_format(
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
+        "pitlane.assistants.mistral_vibe.run_command_with_live_logging",
         return_value=("invalid json {[", "", 0, False),
     )
 
@@ -632,7 +633,7 @@ def test_run_with_all_options_combined(
     monkeypatch.setattr(Path, "home", lambda: fake_home)
 
     mocker.patch(
-        "pitlane.adapters.mistral_vibe.run_command_with_live_logging",
+        "pitlane.assistants.mistral_vibe.run_command_with_live_logging",
         return_value=("[]", "", 0, False),
     )
 
@@ -718,7 +719,7 @@ def test_generate_config_reads_pitlane_mcps_sidecar(tmp_path):
         )
     )
 
-    adapter = MistralVibeAdapter()
+    adapter = MistralVibeAssistant()
     adapter._generate_config(tmp_path, {"model": "devstral-2"})
 
     config_file = tmp_path / ".vibe" / "config.toml"
@@ -738,7 +739,7 @@ def test_generate_config_reads_pitlane_mcps_sidecar(tmp_path):
 
 def test_generate_config_no_sidecar_is_noop(tmp_path):
     """_generate_config does not crash if .pitlane_mcps.json is absent."""
-    adapter = MistralVibeAdapter()
+    adapter = MistralVibeAssistant()
     adapter._generate_config(tmp_path, {"model": "devstral-2"})
     config_file = tmp_path / ".vibe" / "config.toml"
     assert config_file.exists()
@@ -753,7 +754,7 @@ def test_generate_config_sidecar_no_env(tmp_path):
         json.dumps([{"name": "bare", "transport": "stdio", "command": "cmd"}])
     )
 
-    adapter = MistralVibeAdapter()
+    adapter = MistralVibeAssistant()
     adapter._generate_config(tmp_path, {"model": "devstral-2"})
 
     content = (tmp_path / ".vibe" / "config.toml").read_text()
@@ -765,7 +766,7 @@ def test_generate_config_sidecar_no_env(tmp_path):
 
 
 def test_install_mcp_creates_sidecar(tmp_path):
-    adapter = MistralVibeAdapter()
+    adapter = MistralVibeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 
@@ -789,7 +790,7 @@ def test_install_mcp_creates_sidecar(tmp_path):
 
 
 def test_install_mcp_accumulates_entries(tmp_path):
-    adapter = MistralVibeAdapter()
+    adapter = MistralVibeAssistant()
     ws = tmp_path / "ws"
     ws.mkdir()
 

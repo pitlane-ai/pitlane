@@ -10,9 +10,10 @@ from typing import Any, TYPE_CHECKING
 
 from expandvars import expandvars
 
-from pitlane.adapters.base import (
-    AdapterResult,
-    BaseAdapter,
+from pitlane.assistants.base import (
+    AssistantFeature,
+    AssistantResult,
+    BaseAssistant,
     run_command_with_live_logging,
 )
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     import logging
 
 
-class MistralVibeAdapter(BaseAdapter):
+class MistralVibeAssistant(BaseAssistant):
     def cli_name(self) -> str:
         return "vibe"
 
@@ -47,6 +48,12 @@ class MistralVibeAdapter(BaseAdapter):
         if max_price := config.get("max_price"):
             cmd.extend(["--max-price", str(max_price)])
         return cmd
+
+    def supported_features(self) -> frozenset[AssistantFeature]:
+        return frozenset({AssistantFeature.MCPS, AssistantFeature.SKILLS})
+
+    def skills_dir(self) -> str | None:
+        return ".vibe/skills"
 
     def install_mcp(self, workspace: Path, mcp: Any) -> None:
         # Resolve ${VAR} references from the user's YAML config
@@ -223,7 +230,7 @@ class MistralVibeAdapter(BaseAdapter):
         workdir: Path,
         config: dict[str, Any],
         logger: logging.Logger,
-    ) -> AdapterResult:
+    ) -> AssistantResult:
         self._generate_config(workdir, config)
         cmd = self._build_command(prompt, config)
         timeout = config.get("timeout", 300)
@@ -243,6 +250,10 @@ class MistralVibeAdapter(BaseAdapter):
             )
         env = {**os.environ, "VIBE_HOME": vibe_home}
 
+        # Trust the workspace so vibe reads workdir/.vibe/config.toml
+        trusted_toml = Path(vibe_home) / "trusted_folders.toml"
+        trusted_toml.write_text(f'trusted = ["{workdir.resolve()}"]\nuntrusted = []\n')
+
         start = time.monotonic()
         try:
             stdout, stderr, exit_code, timed_out = run_command_with_live_logging(
@@ -252,7 +263,7 @@ class MistralVibeAdapter(BaseAdapter):
             duration = time.monotonic() - start
             if logger:
                 logger.debug(f"Command failed after {duration:.2f}s: {e}")
-            return AdapterResult(
+            return AssistantResult(
                 stdout="",
                 stderr=str(e),
                 exit_code=-1,
@@ -270,7 +281,7 @@ class MistralVibeAdapter(BaseAdapter):
         token_usage, cost, tool_calls_count = self._read_session_stats(
             vibe_home, logger
         )
-        return AdapterResult(
+        return AssistantResult(
             stdout=stdout,
             stderr=stderr,
             exit_code=exit_code,

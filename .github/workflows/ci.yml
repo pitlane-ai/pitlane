@@ -19,13 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
@@ -36,6 +34,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           uv run pytest \
+            -m "not e2e" \
             --cov=src/pitlane \
             --cov-report=xml \
             --cov-report=html \
@@ -54,18 +53,25 @@ jobs:
       - name: Generate and push coverage badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
         run: |
-          # Push badge svg to badge branch (README.md points to it)
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          git fetch origin badge || true
-          git checkout badge || git checkout -b badge
+          git stash --include-untracked || true
+          git fetch origin badge:badge || git branch badge
+          git checkout badge
 
           uv run genbadge coverage -i coverage.xml -o coverage.svg
 
           git add coverage.svg
-          git commit -m "ci: update coverage badge"
-          git push origin badge
+          if git diff --staged --quiet; then
+            echo "No changes to coverage badge"
+          else
+            git commit -m "ci: update coverage badge"
+            git push origin badge
+          fi
+
+          git checkout main
+          git stash pop || true
 
 
       - name: Upload coverage badge to artifacts
@@ -88,11 +94,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install uv
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@v4
-
-      - name: Set up Python
-        run: uv python install 3.11
+        with:
+          python-version: "3.11"
 
       - name: Check if version changed
         id: version_check

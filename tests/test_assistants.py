@@ -1,15 +1,15 @@
 import pytest
 
-from pitlane.adapters import get_adapter
-from pitlane.adapters.base import AdapterResult, BaseAdapter
-from pitlane.adapters.claude_code import ClaudeCodeAdapter
-from pitlane.adapters.mistral_vibe import MistralVibeAdapter
-from pitlane.adapters.opencode import OpenCodeAdapter
+from pitlane.assistants import get_assistant
+from pitlane.assistants.base import AssistantResult, BaseAssistant
+from pitlane.assistants.claude_code import ClaudeCodeAssistant
+from pitlane.assistants.mistral_vibe import MistralVibeAssistant
+from pitlane.assistants.opencode import OpenCodeAssistant
 
 
-class TestAdapterResultCreation:
-    def test_adapter_result_creation(self):
-        result = AdapterResult(
+class TestAssistantResultCreation:
+    def test_assistant_result_creation(self):
+        result = AssistantResult(
             stdout="hello",
             stderr="err",
             exit_code=0,
@@ -26,8 +26,8 @@ class TestAdapterResultCreation:
         assert result.token_usage == {"input": 10, "output": 20}
         assert result.cost_usd == 0.01
 
-    def test_adapter_result_defaults(self):
-        result = AdapterResult(
+    def test_assistant_result_defaults(self):
+        result = AssistantResult(
             stdout="out",
             stderr="",
             exit_code=0,
@@ -42,18 +42,18 @@ class TestGetAdapter:
     @pytest.mark.parametrize(
         "name,expected_type,cli,agent",
         [
-            ("claude-code", ClaudeCodeAdapter, "claude", "claude-code"),
-            ("mistral-vibe", MistralVibeAdapter, "vibe", "mistral-vibe"),
-            ("opencode", OpenCodeAdapter, "opencode", "opencode"),
+            ("claude-code", ClaudeCodeAssistant, "claude", "claude-code"),
+            ("mistral-vibe", MistralVibeAssistant, "vibe", "mistral-vibe"),
+            ("opencode", OpenCodeAssistant, "opencode", "opencode"),
         ],
     )
-    def test_get_adapter_returns_correct_type(self, name, expected_type, cli, agent):
-        adapter = get_adapter(name)
+    def test_get_assistant_returns_correct_type(self, name, expected_type, cli, agent):
+        adapter = get_assistant(name)
         assert isinstance(adapter, expected_type)
-        assert isinstance(adapter, BaseAdapter)
+        assert isinstance(adapter, BaseAssistant)
         assert adapter.cli_name() == cli
         assert adapter.agent_type() == agent
 
-    def test_get_adapter_unknown_raises(self):
-        with pytest.raises(ValueError, match="Unknown adapter"):
-            get_adapter("unknown-agent")
+    def test_get_assistant_unknown_raises(self):
+        with pytest.raises(ValueError, match="Unknown assistant"):
+            get_assistant("unknown-agent")

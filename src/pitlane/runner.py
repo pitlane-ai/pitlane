@@ -10,8 +10,8 @@ from typing import Any
 
 import yaml
 
-from pitlane.adapters import get_adapter
-from pitlane.adapters.base import BaseAdapter
+from pitlane.assistants import get_assistant
+from pitlane.assistants.base import AssistantFeature, BaseAssistant
 from pitlane.assertions.deterministic import evaluate_assertion
 from pitlane.config import EvalConfig, AssistantConfig, TaskConfig
 from pitlane.metrics import (
@@ -95,14 +95,15 @@ class Runner:
         # Prep CLI versions for report
         cli_versions = {}
         for assistant_name, assistant_config in assistants.items():
-            adapter = get_adapter(assistant_config.adapter)
-            version = adapter.get_cli_version()
+            assistant = get_assistant(assistant_config.type)
+            version = assistant.get_cli_version()
             if version:
-                cli_versions[f"{assistant_name} ({adapter.cli_name()})"] = version
+                cli_versions[f"{assistant_name} ({assistant.cli_name()})"] = version
 
         total_tasks = len(assistants) * len(tasks) * self.repeat
         print(
-            f"Running {total_tasks} task(s) with parallelism {self.parallel_tasks}..."
+            f"Running {total_tasks} task(s) with parallelism {self.parallel_tasks}...",
+            flush=True,
         )
 
         with ThreadPoolExecutor(max_workers=self.parallel_tasks) as executor:
@@ -110,14 +111,14 @@ class Runner:
 
             for assistant_name, assistant_config in assistants.items():
                 all_results[assistant_name] = {}
-                adapter = get_adapter(assistant_config.adapter)
+                assistant = get_assistant(assistant_config.type)
 
                 for task in tasks:
                     for iteration in range(self.repeat):
                         future = executor.submit(
                             self._run_task,
                             workspace_mgr=workspace_mgr,
-                            adapter=adapter,
+                            assistant=assistant,
                             assistant_name=assistant_name,
                             assistant_config=assistant_config,
                             task=task,
@@ -153,7 +154,8 @@ class Runner:
                         if self.repeat > 1:
                             label += f" iter-{iteration}"
                         print(
-                            f"  [{completed_count}/{len(future_to_task)}] {label} ({n_passed}/{n_total} assertions{score_str}{dur})"
+                            f"  [{completed_count}/{len(future_to_task)}] {label} ({n_passed}/{n_total} assertions{score_str}{dur})",
+                            flush=True,
                         )
 
                         # Convert dict to IterationResult object
@@ -172,7 +174,8 @@ class Runner:
                         if self.repeat > 1:
                             label += f" iter-{iteration}"
                         print(
-                            f"  [{completed_count}/{len(future_to_task)}] ERROR  {label}: {e}"
+                            f"  [{completed_count}/{len(future_to_task)}] ERROR  {label}: {e}",
+                            flush=True,
                         )
                         logger.error(
                             f"Task '{task_name}' failed for assistant '{assistant_name}': {e}"
@@ -279,7 +282,7 @@ class Runner:
     def _run_task(
         self,
         workspace_mgr: WorkspaceManager,
-        adapter: BaseAdapter,
+        assistant: BaseAssistant,
         assistant_name: str,
         assistant_config: AssistantConfig,
         task: TaskConfig,
@@ -316,24 +319,28 @@ class Runner:
         }
 
         # Log CLI version information
-        cli_version = adapter.get_cli_version()
+        cli_version = assistant.get_cli_version()
         if cli_version:
-            task_logger.debug(f"Using {adapter.cli_name()} CLI version: {cli_version}")
-        else:
-            task_logger.debug(f"Could not detect {adapter.cli_name()} CLI version")
-
-        for skill in assistant_config.skills:
-            workspace_mgr.install_skill(
-                workspace=workspace,
-                skill=skill,
-                agent_type=adapter.agent_type(),
+            task_logger.debug(
+                f"Using {assistant.cli_name()} CLI version: {cli_version}"
             )
+        else:
+            task_logger.debug(f"Could not detect {assistant.cli_name()} CLI version")
 
-        for mcp in assistant_config.mcps:
-            adapter.install_mcp(workspace=workspace, mcp=mcp)
+        if AssistantFeature.SKILLS in assistant.supported_features():
+            for skill in assistant_config.skills:
+                workspace_mgr.install_skill(
+                    workspace=workspace,
+                    skill=skill,
+                    agent_type=assistant.agent_type(),
+                )
+
+        if AssistantFeature.MCPS in assistant.supported_features():
+            for mcp in assistant_config.mcps:
+                assistant.install_mcp(workspace=workspace, mcp=mcp)
 
         config = {**assistant_config.args, "timeout": task.timeout}
-        adapter_result = adapter.run(
+        assistant_result = assistant.run(
             prompt=task.prompt,
             workdir=workspace,
             config=config,
@@ -350,7 +357,7 @@ class Runner:
 
         # Collect metrics
         metrics = collect_metrics(
-            adapter_result=adapter_result,
+            assistant_result=assistant_result,
             assertion_results=assertion_results,
             workspace=workspace,
             files_before=files_before,
@@ -360,7 +367,7 @@ class Runner:
         conv_dir = workspace.parent
         conv_file = conv_dir / "conversation.json"
         conv_file.write_text(
-            json.dumps(adapter_result.conversation, indent=2, default=str)
+            json.dumps(assistant_result.conversation, indent=2, default=str)
         )
 
         logger.debug(

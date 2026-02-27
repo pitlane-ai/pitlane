@@ -1,6 +1,6 @@
 import pytest
 from pitlane.metrics import collect_metrics
-from pitlane.adapters.base import AdapterResult
+from pitlane.assistants.base import AssistantResult
 from pitlane.assertions.base import AssertionResult
 
 
@@ -11,7 +11,7 @@ def test_collect_metrics_basic(tmp_path):
     (workspace / "existing.tf").write_text("modified content\nsecond line")
     (workspace / "new.tf").write_text("new file\nline 2\nline 3")
 
-    adapter_result = AdapterResult(
+    assistant_result = AssistantResult(
         stdout="output",
         stderr="",
         exit_code=0,
@@ -32,7 +32,7 @@ def test_collect_metrics_basic(tmp_path):
     ]
 
     metrics = collect_metrics(
-        adapter_result=adapter_result,
+        assistant_result=assistant_result,
         assertion_results=assertion_results,
         workspace=workspace,
         files_before=workspace_before,
@@ -58,7 +58,7 @@ def test_weighted_score_with_equal_weights(tmp_path):
     workspace = tmp_path
     (workspace / "f.txt").write_text("x")
 
-    adapter_result = AdapterResult(
+    assistant_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
@@ -71,7 +71,7 @@ def test_weighted_score_with_equal_weights(tmp_path):
     ]
 
     metrics = collect_metrics(
-        adapter_result=adapter_result,
+        assistant_result=assistant_result,
         assertion_results=assertion_results,
         workspace=workspace,
         files_before=set(),
@@ -86,7 +86,7 @@ def test_weighted_score_with_different_weights(tmp_path):
     workspace = tmp_path
     (workspace / "f.txt").write_text("x")
 
-    adapter_result = AdapterResult(
+    assistant_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
@@ -101,7 +101,7 @@ def test_weighted_score_with_different_weights(tmp_path):
     ]
 
     metrics = collect_metrics(
-        adapter_result=adapter_result,
+        assistant_result=assistant_result,
         assertion_results=assertion_results,
         workspace=workspace,
         files_before=set(),
@@ -116,7 +116,7 @@ def test_weighted_score_with_continuous_scores(tmp_path):
     workspace = tmp_path
     (workspace / "f.txt").write_text("x")
 
-    adapter_result = AdapterResult(
+    assistant_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
@@ -136,7 +136,7 @@ def test_weighted_score_with_continuous_scores(tmp_path):
     ]
 
     metrics = collect_metrics(
-        adapter_result=adapter_result,
+        assistant_result=assistant_result,
         assertion_results=assertion_results,
         workspace=workspace,
         files_before=set(),
@@ -153,7 +153,7 @@ def test_weighted_score_empty_assertions(tmp_path):
     workspace = tmp_path
     (workspace / "f.txt").write_text("x")
 
-    adapter_result = AdapterResult(
+    assistant_result = AssistantResult(
         stdout="",
         stderr="",
         exit_code=0,
@@ -161,7 +161,7 @@ def test_weighted_score_empty_assertions(tmp_path):
     )
 
     metrics = collect_metrics(
-        adapter_result=adapter_result,
+        assistant_result=assistant_result,
         assertion_results=[],
         workspace=workspace,
         files_before=set(),
