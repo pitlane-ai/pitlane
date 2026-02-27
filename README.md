@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/pitlane-ai/pitlane/workflows/CI/badge.svg)](https://github.com/pitlane-ai/pitlane/actions)
 [![Coverage](https://raw.githubusercontent.com/pitlane-ai/pitlane/badge/coverage.svg)](https://github.com/pitlane-ai/pitlane/actions)
-[![PyPI version](https://badge.fury.io/py/pitlane.svg)](https://badge.fury.io/py/pitlane)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
@@ -46,6 +45,7 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 - [Writing Benchmarks](#writing-benchmarks)
 - [TDD Workflow](#tdd-workflow)
 - [Editor Integration](#editor-integration)
+- [Security Considerations](#security-considerations)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -67,6 +67,8 @@ Install on Windows:
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
+> **Note:** Windows should work but has not been extensively tested. If you encounter issues or can help validate Windows support, contributions are welcome!
+
 Install pitlane:
 
 ```bash
@@ -76,7 +78,7 @@ uv tool install pitlane --from git+https://github.com/pitlane-ai/pitlane.git
 Or run without installing:
 
 ```bash
-uvx --from git+https://github.com/pitlane-ai/pitlane.git pitlane run pitlane/examples/simple-codegen-eval.yaml
+uvx --from git+https://github.com/pitlane-ai/pitlane.git pitlane run examples/simple-codegen-eval.yaml
 ```
 
 ### Running your first example
@@ -92,12 +94,12 @@ pitlane init --with-examples
 Run the evaluation:
 
 ```bash
-pitlane run pitlane/examples/simple-codegen-eval.yaml
+pitlane run examples/simple-codegen-eval.yaml
 ```
 
 Results appear in `runs/` with an HTML report showing pass rates and metrics.
 
-**Want to use a different assistant?** Edit `pitlane/examples/simple-codegen-eval.yaml` and uncomment your preferred assistant configuration. See [Supported Assistants](#supported-assistants) for options.
+**Want to use a different assistant?** Edit `examples/simple-codegen-eval.yaml` and uncomment your preferred assistant configuration. See [Supported Assistants](#supported-assistants) for options.
 
 **Need help designing benchmarks?** Install the pitlane skill for AI-guided assistance:
 
@@ -111,12 +113,14 @@ Your AI assistant can then help you create effective eval benchmarks. See [Writi
 
 | Assistant | Type | Status |
 |-----------|------|--------|
-| [Bob](https://www.ibm.com/products/bob) | `bob` | ✅ Tested |
 | [Claude Code](https://www.anthropic.com/claude) | `claude-code` | ✅ Tested |
 | [Mistral Vibe](https://mistral.ai/) | `mistral-vibe` | ✅ Tested |
 | [OpenCode](https://opencode.ai) | `opencode` | ✅ Tested |
+| [Bob](https://www.ibm.com/products/bob) | `bob` | ✅ Tested |
 
-**Want to add support for another assistant?** See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-assistant) for instructions on implementing new assistants.
+For the latest status and additional assistants in development, see [PR #32](https://github.com/pitlane-ai/pitlane/pull/32).
+
+**Want to add support for another assistant?** Contributions are welcome! See the [Contributing Guide](CONTRIBUTING.md#adding-a-new-assistant) for instructions on implementing new assistants.
 
 ## Usage
 
@@ -190,16 +194,16 @@ Press Ctrl+C to stop a run. You'll get a partial HTML report with results from c
 
 ### Open report in browser
 
-Add `--open` to launch `report.html` in your default browser immediately after the run:
+By default, `report.html` opens in your browser after each run. To disable this:
 
 ```bash
-pitlane run examples/simple-codegen-eval.yaml --open
+pitlane run examples/simple-codegen-eval.yaml --no-open
 ```
 
 The same flag works when regenerating a report:
 
 ```bash
-pitlane report runs/2024-01-01_12-00-00 --open
+pitlane report runs/2024-01-01_12-00-00 --no-open
 ```
 
 ### Other commands
@@ -262,7 +266,7 @@ tasks:
     timeout: 120
     assertions:
       - file_exists: "hello.py"
-      - command_succeeds: "python hello.py"
+      - command_succeeds: "python3 hello.py"
       - file_contains: { path: "hello.py", pattern: "Hello, World!" }
 ```
 
@@ -481,7 +485,7 @@ Manual setup:
 ```json
 {
   "yaml.schemas": {
-    "./pitlane/schemas/pitlane.schema.json": [
+    "./schemas/pitlane.schema.json": [
       "eval.yaml",
       "examples/*.yaml",
       "**/*eval*.y*ml"
@@ -501,8 +505,21 @@ pitlane schema generate
 
 This outputs:
 
-- `pitlane/schemas/pitlane.schema.json`
-- `pitlane/docs/schema.md`
+- `schemas/pitlane.schema.json`
+- `docs/schema.md`
+
+## Security considerations
+
+**Execution is not sandboxed.** Pitlane runs assistants directly on your system using their native CLIs. While this provides full functionality and realistic testing conditions, it means assistants have the same file system and network access as any other process you run.
+
+**Recommended precautions:**
+
+- Run evaluations in a Docker container or virtual machine when testing untrusted code or prompts
+- Review benchmark tasks and assertions before running them
+- Use dedicated test environments rather than production systems
+- Be cautious with benchmarks that involve sensitive data or credentials
+
+The native CLI approach is intentional—it ensures pitlane tests assistants in real-world conditions. But like any development tool that executes code, reasonable precautions are advisable.
 
 ## Contributing
 
