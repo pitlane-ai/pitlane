@@ -37,10 +37,10 @@ pitlane pitlane_command
 uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane pitlane_command
 ```
 
-The user also needs at least one AI coding assistant CLI installed. Pitlane supports three adapters:
+The user also needs at least one AI coding assistant CLI installed. Pitlane supports four assistants:
 
-| Adapter | CLI | Cheap model for iteration |
-|---------|-----|--------------------------|
+| Type | CLI | Cheap model for iteration |
+|------|-----|--------------------------|
 | `claude-code` | `claude` | `haiku` |
 | `mistral-vibe` | `vibe` | `devstral-small` |
 | `opencode` | `opencode` | `minimax-m2.5-free` (free) |
@@ -57,11 +57,11 @@ An eval file has two sections: `assistants` (who runs the tasks) and `tasks` (wh
 ```yaml
 assistants:
   baseline:
-    adapter: claude-code       # or mistral-vibe, opencode
+    type: claude-code       # or mistral-vibe, opencode
     args:
       model: haiku
   with-skill:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
     skills:
@@ -79,19 +79,19 @@ tasks:
       - file_contains: { path: "output.py", pattern: "def main" }
 ```
 
-For MCP servers instead of skills, pass the config through adapter args:
+For MCP servers instead of skills, pass the config through assistant args:
 
 ```yaml
 # Claude Code
 with-mcp:
-  adapter: claude-code
+  type: claude-code
   args:
     model: haiku
     mcp_config: ./mcp-config.json
 
 # Mistral Vibe
 with-mcp:
-  adapter: mistral-vibe
+  type: mistral-vibe
   args:
     model: devstral-small
     mcp_servers:

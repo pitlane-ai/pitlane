@@ -36,7 +36,7 @@ This installs dependencies, the pitlane CLI, and the pre-commit hooks in one ste
 | `make test-all` | Unit + integration (the CI gate) |
 | `make coverage` | Unit + integration with HTML coverage report |
 | `make e2e` | E2E tests against real AI assistants (requires CLIs installed) |
-| `make e2e-claude_code` | E2E tests for a single adapter |
+| `make e2e-claude_code` | E2E tests for a single assistant |
 
 Run a specific test file:
 
@@ -58,11 +58,11 @@ not skip silently.
 
 ## Adding new features
 
-### Adding a new adapter
+### Adding a new assistant
 
-1. Create `src/pitlane/adapters/your_adapter.py`
-2. Inherit from `BaseAdapter` in `adapters/base.py`
-3. Implement all five required methods:
+1. Create `src/pitlane/assistants/your_assistant.py`
+2. Inherit from `BaseAssistant` in `assistants/base.py`
+3. Implement all required methods:
 
 ```python
 from __future__ import annotations
@@ -70,19 +70,19 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
-from pitlane.adapters.base import AdapterResult, BaseAdapter
+from pitlane.assistants.base import AssistantResult, BaseAssistant
 
 if TYPE_CHECKING:
     import logging
     from pitlane.config import McpServerConfig
 
 
-class YourAdapter(BaseAdapter):
+class YourAssistant(BaseAssistant):
     def cli_name(self) -> str:
         return "your-cli"
 
     def agent_type(self) -> str:
-        return "your-adapter"
+        return "your-assistant"
 
     def get_cli_version(self) -> str | None:
         import subprocess
@@ -106,15 +106,15 @@ class YourAdapter(BaseAdapter):
         workdir: Path,
         config: dict[str, Any],
         logger: logging.Logger,
-    ) -> AdapterResult:
+    ) -> AssistantResult:
         # Execute the assistant and return results
         pass
 ```
 
-`AdapterResult` fields:
+`AssistantResult` fields:
 
 ```python
-AdapterResult(
+AssistantResult(
     stdout="",                      # raw stdout from the CLI
     stderr="",                      # raw stderr from the CLI
     exit_code=0,                    # process exit code
@@ -129,30 +129,30 @@ AdapterResult(
 )
 ```
 
-4. Register the adapter in `src/pitlane/adapters/__init__.py`:
+4. Register the assistant in `src/pitlane/assistants/__init__.py`:
 
 ```python
-from .your_adapter import YourAdapter
+from .your_assistant import YourAssistant
 
-_ADAPTERS: dict[str, type[BaseAdapter]] = {
+_ASSISTANTS: dict[str, type[BaseAssistant]] = {
     ...
-    "your-adapter": YourAdapter,
+    "your-assistant": YourAssistant,
 }
 ```
 
-5. Add it to the `AdapterType` enum in `src/pitlane/config.py`:
+5. Add it to the `AssistantType` enum in `src/pitlane/config.py`:
 
 ```python
-class AdapterType(str, Enum):
+class AssistantType(str, Enum):
     ...
-    YOUR_ADAPTER = "your-adapter"
+    YOUR_ASSISTANT = "your-assistant"
 ```
 
-6. Add tests in `tests/test_adapter_your_adapter.py`
-7. Add E2E smoke tests in `tests/test_e2e_adapters.py`
-8. Add the adapter to the supported assistants table in README.md
+6. Add tests in `tests/test_assistant_your_assistant.py`
+7. Add E2E smoke tests in `tests/e2e/`
+8. Add the assistant to the supported assistants table in README.md
 
-See existing adapters for complete examples.
+See existing assistants for complete examples.
 
 ### Adding new assertion types
 
@@ -196,10 +196,10 @@ make check
 ## Testing guidelines
 
 - Write tests for all new functionality
-- Mock `run_streaming_sync` for adapter unit tests — never the adapter itself
+- Mock `run_command_with_live_logging` for assistant unit tests — never the assistant itself
 - Test both success and failure cases including timeouts and malformed output
 - Keep unit tests fast (no real subprocess calls)
-- Add an E2E class in `tests/test_e2e_adapters.py` for any new adapter
+- Add E2E tests in `tests/e2e/` for any new assistant
 
 ## Submitting changes
 

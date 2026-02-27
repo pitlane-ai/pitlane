@@ -29,13 +29,13 @@
 assistants:
   # Bob baseline for comparison
   bob-baseline:
-    adapter: bob
+    type: bob
     args:
       chat_mode: code
 
   # With TIM MCP: same capability as the skill but via MCP server
   bob-with-tim-mcp:
-    adapter: bob
+    type: bob
     args:
       chat_mode: advance
     mcps:
@@ -51,13 +51,13 @@ assistants:
 
   # Baseline: no skill — relies on the model's training data alone
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
 
   # With TIM skill: should discover and use real TIM modules
   claude-with-tim-skill:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
     skills:
@@ -66,7 +66,7 @@ assistants:
 
   # With TIM MCP: same capability as the skill but via MCP server
   claude-with-tim-mcp:
-    adapter: claude-code
+    type: claude-code
     args:
       model: haiku
     mcps:
@@ -82,23 +82,23 @@ assistants:
 
   # mistral vibe baseline for cross-assistant comparison
   vibe-baseline:
-    adapter: mistral-vibe
+    type: mistral-vibe
     args:
-      model: devstral-2
+      model: devstral-small
 
   vibe-with-tim-skill:
-    adapter: mistral-vibe
+    type: mistral-vibe
     args:
-      model: devstral-2
+      model: devstral-small
     skills:
       - source: terraform-ibm-modules/terraform-ibm-modules-skills
         skill: terraform-ibm-modules-solution-builder
 
   # With TIM MCP: same capability as the skill but via MCP server
   vibe-with-tim-mcp:
-    adapter: mistral-vibe
+    type: mistral-vibe
     args:
-      model: devstral-2
+      model: devstral-small
     mcps:
       - name: tim-mcp
         type: stdio
@@ -109,6 +109,35 @@ assistants:
           - "tim-mcp"
         env:
           GITHUB_TOKEN: "${GITHUB_TOKEN}"
+
+opencode-baseline:
+  type: opencode
+  args:
+    model: opencode/minimax-m2.5-free
+
+opencode-with-tim-skill:
+  type: opencode
+  args:
+    model: opencode/minimax-m2.5-free
+  skills:
+    - source: terraform-ibm-modules/terraform-ibm-modules-skills
+      skill: terraform-ibm-modules-solution-builder
+
+# With TIM MCP: same capability as the skill but via MCP server
+opencode-with-tim-mcp:
+  type: opencode
+  args:
+    model: opencode/minimax-m2.5-free
+  mcps:
+    - name: tim-mcp
+      type: stdio
+      command: uvx
+      args:
+        - "--from"
+        - "git+https://github.com/terraform-ibm-modules/tim-mcp.git"
+        - "tim-mcp"
+      env:
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
 
 tasks:
   - name: compose-vpc-and-vsi
@@ -127,8 +156,16 @@ tasks:
 
       # ── TIM module usage (deterministic) ────────────────────────
       # Must reference the actual TIM module sources
-      - file_contains: { path: "main.tf", pattern: "terraform-ibm-modules/landing-zone-vpc/ibm" }
-      - file_contains: { path: "main.tf", pattern: "terraform-ibm-modules/landing-zone-vsi/ibm" }
+      - file_contains:
+          {
+            path: "main.tf",
+            pattern: "terraform-ibm-modules/landing-zone-vpc/ibm",
+          }
+      - file_contains:
+          {
+            path: "main.tf",
+            pattern: "terraform-ibm-modules/landing-zone-vsi/ibm",
+          }
       # Must use module blocks (not raw resources)
       - file_contains: { path: "main.tf", pattern: "module\\s+\"" }
       # Provider must be pinned
@@ -145,12 +182,33 @@ tasks:
 
       # ── README quality (similarity) ─────────────────────────────
       # Does the README cover the same topics as the golden reference?
-      - rouge: { actual: "README.md", expected: "./refs/expected-readme.md", metric: "rougeL", min_score: 0.35 }
+      - rouge:
+          {
+            actual: "README.md",
+            expected: "./refs/expected-readme.md",
+            metric: "rougeL",
+            min_score: 0.35,
+          }
       # Semantic meaning preserved even with different wording?
-      - bertscore: { actual: "README.md", expected: "./refs/expected-readme.md", min_score: 0.75 }
+      - bertscore:
+          {
+            actual: "README.md",
+            expected: "./refs/expected-readme.md",
+            min_score: 0.75,
+          }
 
       # ── Code structure (similarity) ─────────────────────────────
       # Are the right module blocks, arguments, and wiring present?
-      - bleu: { actual: "main.tf", expected: "./refs/expected-main.tf", min_score: 0.25 }
+      - bleu:
+          {
+            actual: "main.tf",
+            expected: "./refs/expected-main.tf",
+            min_score: 0.25,
+          }
       # Are the right variables defined with similar names/descriptions?
-      - cosine_similarity: { actual: "variables.tf", expected: "./refs/expected-vars.tf", min_score: 0.7 }
+      - cosine_similarity:
+          {
+            actual: "variables.tf",
+            expected: "./refs/expected-vars.tf",
+            min_score: 0.7,
+          }

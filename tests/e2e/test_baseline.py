@@ -1,4 +1,4 @@
-"""E2E baseline tests: basic codegen with all 4 adapters, no MCP, no skills.
+"""E2E baseline tests: basic codegen with all 4 assistants, no MCP, no skills.
 
 Run with: uv run pytest -m e2e -k baseline -v --tb=long
 """

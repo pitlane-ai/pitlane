@@ -205,7 +205,7 @@ def init(
     example.write_text("""\
 assistants:
   claude-baseline:
-    adapter: claude-code
+    type: claude-code
     args:
       model: sonnet
 

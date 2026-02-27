@@ -1,4 +1,4 @@
-"""E2E MCP integration tests: all 4 adapters with MCP server, no skills.
+"""E2E MCP integration tests: all 4 assistants with MCP server, no skills.
 
 Run with: uv run pytest -m e2e -k mcp -v --tb=long
 """
@@ -35,7 +35,7 @@ def _has_tool_call(conversation: list[dict], tool_name: str) -> bool:
     - {"tool_use": {"name": ...}} (claude, opencode, vibe)
     - {"tool_name": ...} (bob)
 
-    Uses substring match to handle adapter-specific prefixes:
+    Uses substring match to handle assistant-specific prefixes:
     - claude: mcp__pitlane-test-mcp__write_marker
     - vibe: pitlane-test-mcp_write_marker
     - bob: write_marker (bare)

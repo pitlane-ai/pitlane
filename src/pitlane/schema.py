@@ -53,9 +53,9 @@ def generate_schema_doc() -> str:
     lines.append("")
     lines.append("## Assistant Config")
     lines.append(
-        "- `adapter`: string (required) - one of: claude-code, cline, codex, mistral-vibe, opencode"
+        "- `type`: string (required) - one of: bob, claude-code, mistral-vibe, opencode"
     )
-    lines.append("- `args`: object (optional) - adapter-specific arguments")
+    lines.append("- `args`: object (optional) - assistant-specific arguments")
     lines.append("- `skills`: array (optional) - list of skill references")
     lines.append("")
     lines.append("## Assertions")

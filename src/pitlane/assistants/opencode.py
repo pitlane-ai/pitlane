@@ -1,4 +1,4 @@
-"""OpenCode (opencode.ai) adapter."""
+"""OpenCode (opencode.ai) assistant."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from typing import Any, TYPE_CHECKING
 
 from expandvars import expandvars
 
-from pitlane.adapters.base import (
-    AdapterFeature,
-    AdapterResult,
-    BaseAdapter,
+from pitlane.assistants.base import (
+    AssistantFeature,
+    AssistantResult,
+    BaseAssistant,
     run_command_with_live_logging,
 )
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     import logging
 
 
-class OpenCodeAdapter(BaseAdapter):
+class OpenCodeAssistant(BaseAssistant):
     def cli_name(self) -> str:
         return "opencode"
 
@@ -40,8 +40,8 @@ class OpenCodeAdapter(BaseAdapter):
             pass
         return None
 
-    def supported_features(self) -> frozenset[AdapterFeature]:
-        return frozenset({AdapterFeature.MCPS, AdapterFeature.SKILLS})
+    def supported_features(self) -> frozenset[AssistantFeature]:
+        return frozenset({AssistantFeature.MCPS, AssistantFeature.SKILLS})
 
     def skills_dir(self) -> str | None:
         return ".agents/skills"
@@ -183,7 +183,7 @@ class OpenCodeAdapter(BaseAdapter):
         workdir: Path,
         config: dict[str, Any],
         logger: logging.Logger,
-    ) -> AdapterResult:
+    ) -> AssistantResult:
         cmd = self._build_command(prompt, config)
         timeout = config.get("timeout", 300)
 
@@ -200,7 +200,7 @@ class OpenCodeAdapter(BaseAdapter):
             duration = time.monotonic() - start
             if logger:
                 logger.debug(f"Command failed after {duration:.2f}s: {e}")
-            return AdapterResult(
+            return AssistantResult(
                 stdout="",
                 stderr=str(e),
                 exit_code=-1,
@@ -221,7 +221,7 @@ class OpenCodeAdapter(BaseAdapter):
             logger.debug(f"Parsed cost: {cost}")
             logger.debug(f"Parsed tool_calls_count: {tool_calls_count}")
 
-        return AdapterResult(
+        return AssistantResult(
             stdout=stdout,
             stderr=stderr,
             exit_code=exit_code,

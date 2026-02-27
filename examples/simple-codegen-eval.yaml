@@ -1,22 +1,22 @@
 assistants:
   opencode-baseline:
-    adapter: opencode
+    type: opencode
     args:
       model: opencode/minimax-m2.5-free
 
   # Uncomment to compare against other assistants (requires each tool installed):
   # claude-baseline:
-  #   adapter: claude-code
+  #   type: claude-code
   #   args:
   #     model: haiku
 
   # vibe-devstral-small:
-  #   adapter: mistral-vibe
+  #   type: mistral-vibe
   #   args:
   #     model: devstral-small
 
   # bob-baseline:
-  #   adapter: bob
+  #   type: bob
   #   args:
   #     chat_mode: code
 

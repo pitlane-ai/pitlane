@@ -4,11 +4,11 @@
 
 ### Subprocess-Based Execution
 
-Each adapter runs as a subprocess for isolation. This prevents state leakage and enables timeout enforcement, but requires CLI tools to be installed.
+Each assistant runs as a subprocess for isolation. This prevents state leakage and enables timeout enforcement, but requires CLI tools to be installed.
 
 ### Stream-Based Parsing
 
-Parse NDJSON/streaming output for real-time metrics. See `adapters/streaming.py` for implementation.
+Parse NDJSON/streaming output for real-time metrics. See `assistants/base.py` for implementation.
 
 ### Workspace Isolation
 
