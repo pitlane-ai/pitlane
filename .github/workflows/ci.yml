@@ -55,18 +55,25 @@ jobs:
       - name: Generate and push coverage badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
         run: |
-          # Push badge svg to badge branch (README.md points to it)
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          git fetch origin badge || true
-          git checkout badge || git checkout -b badge
+          git stash --include-untracked || true
+          git fetch origin badge:badge || git branch badge
+          git checkout badge
 
           uv run genbadge coverage -i coverage.xml -o coverage.svg
 
           git add coverage.svg
-          git commit -m "ci: update coverage badge"
-          git push origin badge
+          if git diff --staged --quiet; then
+            echo "No changes to coverage badge"
+          else
+            git commit -m "ci: update coverage badge"
+            git push origin badge
+          fi
+
+          git checkout main
+          git stash pop || true
 
 
       - name: Upload coverage badge to artifacts
