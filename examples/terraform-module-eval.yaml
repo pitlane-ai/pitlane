@@ -23,7 +23,6 @@
 #   5. Documentation quality (README vs golden reference)
 #   6. Variable/output design quality (vs golden reference)
 #
-# Requires: pip install pitlane[similarity] for rouge/bleu/bertscore checks
 # Set GITHUB_TOKEN to avoid GitHub API rate limits when using tim-mcp.
 
 assistants:

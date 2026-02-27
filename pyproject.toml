@@ -1,6 +1,6 @@
 [project]
 name = "pitlane"
-version = "0.4.0"
+version = "0.5.0"
 description = "Lightweight harness to evaluate AI coding assistants"
 requires-python = ">=3.11"
 dependencies = [
@@ -17,6 +17,7 @@ dependencies = [
     "sacrebleu>=2.6.0",
     "junitparser>=4.0",
     "expandvars>=0.12",
+    "pdfplumber>=0.11.9",
 ]
 
 [project.scripts]
