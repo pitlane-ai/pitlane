@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](CONTRIBUTING.md)
 
-**A feedback loop for people building AI coding skills and MCP servers.**
+**A feedback loop for people building AI skills and MCP servers.**
 
 You're building a skill, an MCP server, or a custom prompt strategy that's supposed to make an AI coding assistant better at a specific job. But how do you know it actually works? How do you know your latest commit made things better and not worse?
 

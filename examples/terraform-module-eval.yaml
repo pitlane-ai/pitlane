@@ -110,34 +110,34 @@ assistants:
         env:
           GITHUB_TOKEN: "${GITHUB_TOKEN}"
 
-opencode-baseline:
-  type: opencode
-  args:
-    model: opencode/minimax-m2.5-free
+  opencode-baseline:
+    type: opencode
+    args:
+      model: opencode/minimax-m2.5-free
 
-opencode-with-tim-skill:
-  type: opencode
-  args:
-    model: opencode/minimax-m2.5-free
-  skills:
-    - source: terraform-ibm-modules/terraform-ibm-modules-skills
-      skill: terraform-ibm-modules-solution-builder
+  opencode-with-tim-skill:
+    type: opencode
+    args:
+      model: opencode/minimax-m2.5-free
+    skills:
+      - source: terraform-ibm-modules/terraform-ibm-modules-skills
+        skill: terraform-ibm-modules-solution-builder
 
-# With TIM MCP: same capability as the skill but via MCP server
-opencode-with-tim-mcp:
-  type: opencode
-  args:
-    model: opencode/minimax-m2.5-free
-  mcps:
-    - name: tim-mcp
-      type: stdio
-      command: uvx
-      args:
-        - "--from"
-        - "git+https://github.com/terraform-ibm-modules/tim-mcp.git"
-        - "tim-mcp"
-      env:
-        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+  # With TIM MCP: same capability as the skill but via MCP server
+  opencode-with-tim-mcp:
+    type: opencode
+    args:
+      model: opencode/minimax-m2.5-free
+    mcps:
+      - name: tim-mcp
+        type: stdio
+        command: uvx
+        args:
+          - "--from"
+          - "git+https://github.com/terraform-ibm-modules/tim-mcp.git"
+          - "tim-mcp"
+        env:
+          GITHUB_TOKEN: "${GITHUB_TOKEN}"
 
 tasks:
   - name: compose-vpc-and-vsi
