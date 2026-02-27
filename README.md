@@ -25,6 +25,14 @@ Building skills and MCP servers works the same way:
 
 Pitlane is the telemetry system. You build the skill, pitlane tells you if it's working.
 
+## Demo
+
+
+
+https://github.com/user-attachments/assets/0d351a06-e289-4b9c-b57f-70d96c6b31fc
+
+
+
 ## Key features
 
 - YAML-based benchmark definitions (easy to version and diff)
