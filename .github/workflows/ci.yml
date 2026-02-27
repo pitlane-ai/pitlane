@@ -19,13 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
@@ -96,11 +94,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install uv
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@v4
-
-      - name: Set up Python
-        run: uv python install 3.11
+        with:
+          python-version: "3.11"
 
       - name: Check if version changed
         id: version_check
