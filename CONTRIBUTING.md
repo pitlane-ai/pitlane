@@ -16,7 +16,7 @@ This guide covers development setup, testing, and how to submit changes.
 1. Fork and clone the repository:
 
 ```bash
-git clone https://github.com/vburckhardt/pitlane.git
+git clone https://github.com/pitlane-ai/pitlane.git
 cd pitlane
 ```
 

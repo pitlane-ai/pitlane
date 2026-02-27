@@ -31,10 +31,10 @@ Install pitlane if the user doesn't have it yet:
 
 ```bash
 # installs pitlane cli
-uv tool install pitlane --from git+https://github.com/vburckhardt/pitlane.git
+uv tool install pitlane --from git+https://github.com/pitlane-ai/pitlane.git
 pitlane pitlane_command
 # or (no intall with uvx)
-uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane pitlane_command
+uvx --from git+https://github.com/pitlane-ai/pitlane.git pitlane pitlane_command
 ```
 
 The user also needs at least one AI coding assistant CLI installed. Pitlane supports four assistants:

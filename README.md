@@ -1,7 +1,7 @@
 # pitlane 🏁
 
-[![CI](https://github.com/vburckhardt/pitlane/workflows/CI/badge.svg)](https://github.com/vburckhardt/pitlane/actions)
-[![Coverage](https://raw.githubusercontent.com/vburckhardt/pitlane/badge/coverage.svg)](https://github.com/vburckhardt/pitlane/actions)
+[![CI](https://github.com/pitlane-ai/pitlane/workflows/CI/badge.svg)](https://github.com/pitlane-ai/pitlane/actions)
+[![Coverage](https://raw.githubusercontent.com/pitlane-ai/pitlane/badge/coverage.svg)](https://github.com/pitlane-ai/pitlane/actions)
 [![PyPI version](https://badge.fury.io/py/pitlane.svg)](https://badge.fury.io/py/pitlane)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -70,13 +70,13 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 Install pitlane:
 
 ```bash
-uv tool install pitlane --from git+https://github.com/vburckhardt/pitlane.git
+uv tool install pitlane --from git+https://github.com/pitlane-ai/pitlane.git
 ```
 
 Or run without installing:
 
 ```bash
-uvx --from git+https://github.com/vburckhardt/pitlane.git pitlane run pitlane/examples/simple-codegen-eval.yaml
+uvx --from git+https://github.com/pitlane-ai/pitlane.git pitlane run pitlane/examples/simple-codegen-eval.yaml
 ```
 
 ### Running your first example
@@ -102,7 +102,7 @@ Results appear in `runs/` with an HTML report showing pass rates and metrics.
 **Need help designing benchmarks?** Install the pitlane skill for AI-guided assistance:
 
 ```bash
-npx skills add vburckhardt/pitlane
+npx skills add pitlane-ai/pitlane
 ```
 
 Your AI assistant can then help you create effective eval benchmarks. See [Writing Benchmarks](#writing-benchmarks) for details.
@@ -241,7 +241,7 @@ Benchmarks are YAML files with two sections: `assistants` and `tasks`.
 **Need help designing effective benchmarks?** Install the pitlane skill for AI-guided assistance:
 
 ```bash
-npx skills add vburckhardt/pitlane
+npx skills add pitlane-ai/pitlane
 ```
 
 Your AI assistant can help you design eval benchmarks that actually measure whether your skills or MCP servers improve performance.
