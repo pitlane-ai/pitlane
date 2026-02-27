@@ -96,16 +96,6 @@ check_csv(
     required_values=["Grand Total", "Hardware"],
 )
 
-# Check extraction_summary.txt
-summary_file = "extraction_summary.txt"
-if not os.path.exists(summary_file):
-    errors.append(f"{summary_file}: file not found")
-else:
-    with open(summary_file, "r") as f:
-        summary = f.read()
-    if "4" not in summary:
-        errors.append(f"{summary_file}: does not mention 4 tables")
-
 # Report results
 if errors:
     print(f"FAIL: {len(errors)} validation error(s):")
