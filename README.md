@@ -27,7 +27,11 @@ Pitlane is the telemetry system. You build the skill, pitlane tells you if it's 
 
 ## Demo
 
-<https://github.com/user-attachments/assets/0d351a06-e289-4b9c-b57f-70d96c6b31fc>
+
+
+https://github.com/user-attachments/assets/c1aa78d8-9e26-43e0-9945-027fd0da6fe5
+
+
 
 ## Key features
 
