@@ -110,10 +110,10 @@ def test_skill_installation_non_interactive(tmp_path):
     )
 
     # Verify skill installation artifacts exist
-    # The skills CLI creates .agents/skills/<skillname>/SKILL.md
-    skill_files = list((ws / ".agents" / "skills").rglob("SKILL.md"))
+    # skills CLI v1.4+ uses agent-specific paths (.claude/skills/ for claude-code)
+    skill_files = list((ws / ".claude" / "skills").rglob("SKILL.md"))
     assert len(skill_files) > 0, (
-        "Expected SKILL.md file not found under .agents/skills/ after skill installation"
+        "Expected SKILL.md file not found under .claude/skills/ after skill installation"
     )
 
 
