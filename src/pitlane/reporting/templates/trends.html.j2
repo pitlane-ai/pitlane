@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitlane Trends</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" integrity="sha384-vsrfeLOOY6KuIYKDlmVH5UiBmgIdB1oEf7p01YgWHuqmOHfZr374+odEv96n9tNC" crossorigin="anonymous"></script>  {# pragma: allowlist secret #}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+
+    .header {
+      background: #1a1a2e;
+      color: #e5e7eb;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+    }
+    .header .run-dir {
+      font-size: 12px;
+      color: #9ca3af;
+      font-family: monospace;
+      word-break: break-all;
+    }
+
+    .controls-bar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 12px 24px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .control-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    .control-group input[type="date"],
+    .control-group select {
+      font-size: 13px;
+      padding: 5px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #f9fafb;
+      color: #374151;
+    }
+    .btn {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #3b82f6;
+      color: #fff;
+      transition: background .15s;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .btn-secondary:hover { background: #d1d5db; }
+
+    .summary {
+      display: flex;
+      gap: 16px;
+      padding: 24px 24px 8px;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      padding: 16px 20px;
+      min-width: 110px;
+      text-align: center;
+    }
+    .card .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #6b7280;
+    }
+    .card .card-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 4px;
+      color: #374151;
+    }
+
+    .charts-section {
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .chart-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      overflow: hidden;
+    }
+    .chart-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      flex-wrap: wrap;
+    }
+    .chart-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .chart-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+    .chart-controls label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .chart-controls select {
+      font-size: 13px;
+      padding: 4px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #f9fafb;
+      color: #374151;
+      cursor: pointer;
+    }
+    .chart-container {
+      padding: 16px;
+    }
+    .chart-container canvas {
+      max-height: 400px;
+    }
+
+    .assistant-toggles {
+      padding: 8px 24px 24px;
+    }
+    .toggle-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+      padding: 12px 16px;
+    }
+    .toggle-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 8px;
+    }
+    .toggle-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .toggle-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-item input[type="checkbox"] {
+      cursor: pointer;
+    }
+    .toggle-swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 48px;
+      color: #6b7280;
+      font-size: 15px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 48px;
+      color: #9ca3af;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Pitlane Trends</h1>
+  <span class="run-dir">{{ runs_dir }}</span>
+</div>
+
+<div class="controls-bar">
+  <div class="control-group">
+    <label for="date-from">From</label>
+    <input type="date" id="date-from">
+  </div>
+  <div class="control-group">
+    <label for="date-to">To</label>
+    <input type="date" id="date-to">
+  </div>
+  <div class="control-group">
+    <label for="task-filter">Task</label>
+    <select id="task-filter">
+      <option value="__all__">All tasks (avg)</option>
+    </select>
+  </div>
+  <button class="btn" id="btn-load">Load</button>
+  <button class="btn btn-secondary" id="btn-reset">Reset</button>
+</div>
+
+<div id="loading" class="loading">Loading runs...</div>
+<div id="empty" class="empty-state hidden">No runs found for the selected date range.</div>
+
+<div id="main-content" class="hidden">
+
+  <div class="summary" id="summary-cards">
+    <div class="card">
+      <div class="card-label">Runs</div>
+      <div class="card-value" id="card-runs">0</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Assistants</div>
+      <div class="card-value" id="card-assistants">0</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Tasks</div>
+      <div class="card-value" id="card-tasks">0</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Date Range</div>
+      <div class="card-value" id="card-range" style="font-size: 16px;">-</div>
+    </div>
+  </div>
+
+  <div class="charts-section">
+    <!-- Default trend chart -->
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <span class="chart-card-title">Trend</span>
+        <div class="chart-controls">
+          <label for="trend-metric">Y Axis</label>
+          <select id="trend-metric"></select>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart-trend"></canvas>
+      </div>
+    </div>
+
+    <!-- Second trend chart -->
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <span class="chart-card-title">Trend 2</span>
+        <div class="chart-controls">
+          <label for="trend-metric-2">Y Axis</label>
+          <select id="trend-metric-2"></select>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="chart-trend-2"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="assistant-toggles">
+    <div class="toggle-card">
+      <div class="toggle-title">Assistants</div>
+      <div class="toggle-list" id="assistant-toggles"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── State ─────────────────────────────────────────────────────────────── */
+var runsData = [];
+var metaData = {};
+var assistantColors = {};
+var assistantVisible = {};
+
+/* ── Palette (qualitative, colorblind-friendly) ───────────────────────── */
+var palette = [
+  '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1',
+  '#a855f7', '#84cc16', '#e11d48', '#0891b2'
+];
+
+function assignColors(assistants) {
+  assistantColors = {};
+  for (var i = 0; i < assistants.length; i++) {
+    assistantColors[assistants[i]] = palette[i % palette.length];
+  }
+}
+
+/* ── Metric definitions ────────────────────────────────────────────────── */
+var metricLabels = {
+  weighted_score: 'Weighted Score',
+  assertion_pass_rate: 'Assertion Pass Rate (%)',
+  cost_usd: 'Cost (USD)',
+  wall_clock_seconds: 'Time (seconds)',
+  token_usage_input: 'Input Tokens',
+  token_usage_output: 'Output Tokens',
+  token_usage_input_cached: 'Cached Input Tokens',
+  tool_calls_count: 'Tool Calls',
+  files_created: 'Files Created',
+  files_modified: 'Files Modified',
+  timed_out: 'Timed Out'
+};
+
+var defaultTrendMetric = 'weighted_score';
+
+/* ── Data fetching ─────────────────────────────────────────────────────── */
+function fetchRuns(dateFrom, dateTo) {
+  var url = '/api/runs';
+  var params = [];
+  if (dateFrom) params.push('from=' + encodeURIComponent(dateFrom));
+  if (dateTo) params.push('to=' + encodeURIComponent(dateTo));
+  if (params.length) url += '?' + params.join('&');
+
+  return fetch(url).then(function(r) { return r.json(); });
+}
+
+/* ── Compute average of a metric across matching suites for an assistant ── */
+function avgMetric(suites, assistant, metricKey, taskFilter) {
+  var sum = 0, count = 0;
+  for (var i = 0; i < suites.length; i++) {
+    var s = suites[i];
+    if (s.assistant !== assistant) continue;
+    if (taskFilter !== '__all__' && s.task !== taskFilter) continue;
+    var v = s[metricKey];
+    if (v !== null && v !== undefined) { sum += v; count++; }
+  }
+  return count > 0 ? sum / count : null;
+}
+
+/* ── Build series for trend chart with enriched data points ────────────── */
+var defaultSecondary = ['weighted_score', 'cost_usd'];
+var secondaryMetrics = {
+  weighted_score: ['cost_usd', 'wall_clock_seconds'],
+  cost_usd: ['weighted_score', 'wall_clock_seconds'],
+  wall_clock_seconds: ['weighted_score', 'cost_usd']
+};
+
+function buildTrendSeries(metricKey, taskFilter) {
+  var series = {};
+
+  for (var i = 0; i < runsData.length; i++) {
+    var run = runsData[i];
+    // Collect which assistants have data in this run
+    var assistantsInRun = {};
+    for (var j = 0; j < run.suites.length; j++) {
+      var s = run.suites[j];
+      if (taskFilter !== '__all__' && s.task !== taskFilter) continue;
+      var val = s[metricKey];
+      if (val === null || val === undefined) continue;
+      if (!assistantsInRun[s.assistant]) {
+        assistantsInRun[s.assistant] = { sum: 0, count: 0 };
+      }
+      assistantsInRun[s.assistant].sum += val;
+      assistantsInRun[s.assistant].count += 1;
+    }
+
+    var names = Object.keys(assistantsInRun);
+    for (var k = 0; k < names.length; k++) {
+      var name = names[k];
+      var agg = assistantsInRun[name];
+      var avg = agg.sum / agg.count;
+
+      // Gather secondary metrics
+      var secs = secondaryMetrics[metricKey] || defaultSecondary;
+      var secondary = {};
+      for (var m = 0; m < secs.length; m++) {
+        secondary[secs[m]] = avgMetric(run.suites, name, secs[m], taskFilter);
+      }
+
+      if (!series[name]) series[name] = [];
+      series[name].push({
+        x: run.timestamp,
+        y: avg,
+        run_id: run.run_id,
+        repeat: run.repeat || 1,
+        task_count: agg.count,
+        delta: null,
+        secondary: secondary
+      });
+    }
+  }
+
+  // Compute deltas (change from previous point)
+  var assistantNames = Object.keys(series);
+  for (var a = 0; a < assistantNames.length; a++) {
+    var pts = series[assistantNames[a]];
+    for (var p = 1; p < pts.length; p++) {
+      if (pts[p].y !== null && pts[p - 1].y !== null) {
+        pts[p].delta = pts[p].y - pts[p - 1].y;
+      }
+    }
+  }
+
+  return series;
+}
+
+/* ── Smart timestamp formatting based on data span ─────────────────────── */
+function detectTimeSpan() {
+  if (runsData.length < 2) return 'short';
+  var first = new Date(runsData[0].timestamp);
+  var last = new Date(runsData[runsData.length - 1].timestamp);
+  var diffMs = last - first;
+  var diffDays = diffMs / (1000 * 60 * 60 * 24);
+  if (diffDays < 1) return 'hours';    // same day: show HH:MM
+  if (diffDays <= 7) return 'days';     // within a week: show Mon DD HH:MM
+  return 'weeks';                        // wider: show Mon DD
+}
+
+function formatTimestamp(isoStr, span) {
+  try {
+    var d = new Date(isoStr);
+    if (span === 'hours') {
+      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    } else if (span === 'days') {
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+        ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+  } catch(e) { return isoStr; }
+}
+
+/* ── Shared tooltip format helpers ──────────────────────────────────────── */
+function fmtVal(v, key) {
+  if (v === null || v === undefined) return '-';
+  if (key === 'cost_usd') return '$' + v.toFixed(4);
+  if (key === 'wall_clock_seconds') return v.toFixed(1) + 's';
+  if (typeof v === 'number') return v.toFixed(2);
+  return String(v);
+}
+
+function buildTooltipTitle(items) {
+  if (!items.length) return '';
+  var p = items[0].raw;
+  var lines = [];
+  try { lines.push(new Date(p.x).toLocaleString()); } catch(e) { lines.push(p.x); }
+  if (p.run_id) lines.push('Run: ' + p.run_id);
+  return lines;
+}
+
+function buildTooltipLabel(ctx, metricKey) {
+  var p = ctx.raw;
+  var lines = [];
+  // Primary value
+  lines.push(ctx.dataset.label + ': ' + fmtVal(p.y, metricKey));
+  // Delta from previous
+  if (p.delta !== null && p.delta !== undefined) {
+    var sign = p.delta >= 0 ? '+' : '';
+    lines.push('Change: ' + sign + fmtVal(p.delta, metricKey));
+  }
+  return lines;
+}
+
+function buildTooltipAfterLabel(ctx, metricKey) {
+  var p = ctx.raw;
+  var lines = [];
+  // Repeat count
+  if (p.repeat && p.repeat > 1) lines.push('Repeats: ' + p.repeat);
+  // Task count (only when aggregating)
+  if (p.task_count && p.task_count > 1) lines.push('Tasks: ' + p.task_count + ' (avg)');
+  // Secondary metrics
+  if (p.secondary) {
+    var secKeys = Object.keys(p.secondary);
+    for (var i = 0; i < secKeys.length; i++) {
+      var sk = secKeys[i];
+      var sv = p.secondary[sk];
+      if (sv !== null && sv !== undefined) {
+        lines.push((metricLabels[sk] || sk) + ': ' + fmtVal(sv, sk));
+      }
+    }
+  }
+  return lines;
+}
+
+function trendChartOptions(metricKey) {
+  return {
+    responsive: true,
+    interaction: { mode: 'nearest', intersect: false },
+    plugins: {
+      legend: { display: true, position: 'top' },
+      tooltip: {
+        callbacks: {
+          title: buildTooltipTitle,
+          label: function(ctx) { return buildTooltipLabel(ctx, metricKey); },
+          afterLabel: function(ctx) { return buildTooltipAfterLabel(ctx, metricKey); }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'category',
+        title: { display: true, text: 'Run' },
+        ticks: {
+          callback: function(value) {
+            var label = this.getLabelForValue(value);
+            return formatTimestamp(label, detectTimeSpan());
+          },
+          maxRotation: 45
+        }
+      },
+      y: {
+        title: { display: true, text: metricLabels[metricKey] || metricKey }
+      }
+    }
+  };
+}
+
+/* ── Build datasets from series ────────────────────────────────────────── */
+function buildDatasets(series) {
+  var datasets = [];
+  var assistants = Object.keys(series);
+  for (var i = 0; i < assistants.length; i++) {
+    var name = assistants[i];
+    if (!assistantVisible[name]) continue;
+    datasets.push({
+      label: name,
+      data: series[name],
+      borderColor: assistantColors[name] || palette[i % palette.length],
+      backgroundColor: assistantColors[name] || palette[i % palette.length],
+      fill: false,
+      tension: 0.2,
+      pointRadius: 5,
+      pointHoverRadius: 7
+    });
+  }
+  return datasets;
+}
+
+/* ── Render a trend chart ───────────────────────────────────────────────── */
+var charts = {};
+
+function renderChart(chartKey, metricSelectId, canvasId) {
+  var metricKey = document.getElementById(metricSelectId).value;
+  var taskFilter = document.getElementById('task-filter').value;
+  var series = buildTrendSeries(metricKey, taskFilter);
+
+  if (charts[chartKey]) charts[chartKey].destroy();
+  charts[chartKey] = new Chart(document.getElementById(canvasId), {
+    type: 'line',
+    data: { datasets: buildDatasets(series) },
+    options: trendChartOptions(metricKey)
+  });
+}
+
+function renderAllCharts() {
+  renderChart('trend1', 'trend-metric', 'chart-trend');
+  renderChart('trend2', 'trend-metric-2', 'chart-trend-2');
+}
+
+/* ── Populate dropdowns ────────────────────────────────────────────────── */
+function populateMetricDropdowns() {
+  var keys = Object.keys(metricLabels);
+  var trendSel = document.getElementById('trend-metric');
+  var trendSel2 = document.getElementById('trend-metric-2');
+
+  // Check which metrics have data
+  var available = keys.filter(function(k) {
+    for (var i = 0; i < runsData.length; i++) {
+      for (var j = 0; j < runsData[i].suites.length; j++) {
+        var v = runsData[i].suites[j][k];
+        if (v !== null && v !== undefined) return true;
+      }
+    }
+    return false;
+  });
+
+  [trendSel, trendSel2].forEach(function(sel) {
+    sel.innerHTML = '';
+    available.forEach(function(k) {
+      var opt = document.createElement('option');
+      opt.value = k; opt.textContent = metricLabels[k];
+      sel.appendChild(opt);
+    });
+  });
+
+  trendSel.value = available.indexOf(defaultTrendMetric) >= 0 ? defaultTrendMetric : available[0];
+  // Default second chart to cost_usd (or second available metric)
+  var defaultMetric2 = 'cost_usd';
+  trendSel2.value = available.indexOf(defaultMetric2) >= 0 ? defaultMetric2 : (available[1] || available[0]);
+}
+
+function populateTaskFilter() {
+  var sel = document.getElementById('task-filter');
+  var current = sel.value;
+  sel.innerHTML = '';
+  var allOpt = document.createElement('option');
+  allOpt.value = '__all__'; allOpt.textContent = 'All tasks (avg)';
+  sel.appendChild(allOpt);
+
+  var tasks = metaData.all_tasks || [];
+  tasks.forEach(function(t) {
+    var opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    sel.appendChild(opt);
+  });
+
+  if (current && tasks.indexOf(current) >= 0) sel.value = current;
+}
+
+function populateAssistantToggles() {
+  var container = document.getElementById('assistant-toggles');
+  container.innerHTML = '';
+  var assistants = metaData.all_assistants || [];
+
+  assistants.forEach(function(name) {
+    if (assistantVisible[name] === undefined) assistantVisible[name] = true;
+    var color = assistantColors[name] || '#6b7280';
+    var label = document.createElement('label');
+    label.className = 'toggle-item';
+
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = assistantVisible[name];
+    cb.addEventListener('change', function() {
+      assistantVisible[name] = cb.checked;
+      renderAllCharts();
+    });
+
+    var swatch = document.createElement('span');
+    swatch.className = 'toggle-swatch';
+    swatch.style.background = color;
+
+    label.appendChild(cb);
+    label.appendChild(swatch);
+    label.appendChild(document.createTextNode(' ' + name));
+    container.appendChild(label);
+  });
+}
+
+/* ── Update UI with loaded data ────────────────────────────────────────── */
+function updateUI(data) {
+  runsData = data.runs;
+  metaData = data.meta;
+
+  var loading = document.getElementById('loading');
+  var empty = document.getElementById('empty');
+  var main = document.getElementById('main-content');
+
+  loading.classList.add('hidden');
+
+  if (runsData.length === 0) {
+    empty.classList.remove('hidden');
+    main.classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  main.classList.remove('hidden');
+
+  // Summary cards
+  document.getElementById('card-runs').textContent = metaData.total_runs;
+  document.getElementById('card-assistants').textContent = metaData.all_assistants.length;
+  document.getElementById('card-tasks').textContent = metaData.all_tasks.length;
+
+  if (runsData.length > 0) {
+    var first = runsData[0].timestamp.slice(0, 10);
+    var last = runsData[runsData.length - 1].timestamp.slice(0, 10);
+    document.getElementById('card-range').textContent = first === last ? first : first + ' \u2192 ' + last;
+  }
+
+  assignColors(metaData.all_assistants);
+  populateMetricDropdowns();
+  populateTaskFilter();
+  populateAssistantToggles();
+  renderAllCharts();
+}
+
+/* ── Event handlers ────────────────────────────────────────────────────── */
+document.getElementById('btn-load').addEventListener('click', function() {
+  var dateFrom = document.getElementById('date-from').value || null;
+  var dateTo = document.getElementById('date-to').value || null;
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('main-content').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  fetchRuns(dateFrom, dateTo).then(updateUI);
+});
+
+document.getElementById('btn-reset').addEventListener('click', function() {
+  document.getElementById('date-from').value = '';
+  document.getElementById('date-to').value = '';
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('main-content').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  fetchRuns(null, null).then(updateUI);
+});
+
+document.getElementById('trend-metric').addEventListener('change', function() {
+  renderChart('trend1', 'trend-metric', 'chart-trend');
+});
+document.getElementById('trend-metric-2').addEventListener('change', function() {
+  renderChart('trend2', 'trend-metric-2', 'chart-trend-2');
+});
+document.getElementById('task-filter').addEventListener('change', renderAllCharts);
+
+/* ── Initial load ──────────────────────────────────────────────────────── */
+fetchRuns(null, null).then(updateUI);
+</script>
+</body>
+</html>

@@ -167,6 +167,25 @@ def report(
         webbrowser.open(report_path.resolve().as_uri())
 
 
+@app.command()
+def trends(
+    runs_dir: str = typer.Option("runs", help="Directory containing run results"),
+    port: int = typer.Option(8095, help="Port for the dashboard server"),
+    no_open: bool = typer.Option(
+        False, "--no-open", help="Do not open browser automatically"
+    ),
+):
+    """Start the trends dashboard to visualize metrics across runs."""
+    from pitlane.dashboard.server import start_server
+
+    runs_path = Path(runs_dir)
+    if not runs_path.exists():
+        typer.echo(f"Error: runs directory not found: {runs_dir}", err=True)
+        raise typer.Exit(1)
+
+    start_server(runs_path, port=port, open_browser=not no_open)
+
+
 def _examples_source() -> Path | None:
     # Installed package: examples are bundled next to cli.py
     pkg = Path(__file__).parent / "examples"
